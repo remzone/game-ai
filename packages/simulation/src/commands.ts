@@ -1,0 +1,383 @@
+import { z } from 'zod';
+import { GOODS, RACES, emptyStocks, type World, type Ancestry } from './model.js';
+import { addPerson, event, makeJourney, nextId, profession, promote, route } from './world.js';
+import { adult, levy, quests } from './systems.js';
+import { finishBattle, startBattle } from './combat.js';
+const id = z.number().int().nonnegative(),
+  text = z.string().trim().min(1).max(80);
+export const BiographySchema = z
+  .object({
+    name: z.string().trim().min(1).max(40),
+    race: z.enum(RACES),
+    sex: z.enum(['female', 'male']),
+    birthplace: id,
+    origin: z.enum(['peasants', 'merchants', 'nobles']),
+    childhood: z.enum(['fields', 'books', 'streets']),
+    youth: z.enum(['militia', 'caravan', 'temple']),
+    training: z.enum(['warrior', 'trader', 'healer']),
+    turningPoint: z.enum(['loss', 'inheritance', 'rescue']),
+    reason: z.enum(['fortune', 'knowledge', 'duty']),
+  })
+  .strict();
+export const CommandSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('create_player'), biography: BiographySchema }).strict(),
+  z
+    .object({
+      type: z.literal('speed'),
+      value: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(5), z.literal(10)]),
+    })
+    .strict(),
+  z.object({ type: z.literal('travel'), settlement: id }).strict(),
+  z.object({ type: z.literal('enter') }).strict(),
+  z.object({ type: z.literal('leave') }).strict(),
+  z
+    .object({
+      type: z.literal('trade'),
+      side: z.enum(['buy', 'sell']),
+      good: z.enum(GOODS),
+      quantity: z.number().int().min(1).max(500),
+    })
+    .strict(),
+  z.object({ type: z.literal('recruit'), count: z.number().int().min(1).max(20) }).strict(),
+  z.object({ type: z.literal('dismiss') }).strict(),
+  z.object({ type: z.literal('accept_quest'), quest: text }).strict(),
+  z.object({ type: z.literal('complete_quest'), quest: text }).strict(),
+  z.object({ type: z.literal('battle') }).strict(),
+  z.object({ type: z.literal('retreat') }).strict(),
+  z
+    .object({
+      type: z.literal('battle_order'),
+      x: z.number().min(0).max(20),
+      y: z.number().min(0).max(14),
+      unitClass: z.enum(['all', 'infantry', 'spearmen', 'archers', 'cavalry', 'mages']),
+    })
+    .strict(),
+  z.object({ type: z.literal('marry'), person: id }).strict(),
+  z.object({ type: z.literal('inherit'), person: id }).strict(),
+  z.object({ type: z.literal('petition') }).strict(),
+  z.object({ type: z.literal('build') }).strict(),
+  z.object({ type: z.literal('tax'), value: z.number().min(0).max(0.6) }).strict(),
+]);
+export type Command = z.infer<typeof CommandSchema>;
+export function command(w: World, input: unknown): { ok: boolean; error?: string } {
+  const parsed = CommandSchema.safeParse(input);
+  if (!parsed.success)
+    return { ok: false, error: parsed.error.issues.map((i) => i.message).join('; ') };
+  try {
+    apply(w, parsed.data);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : 'Команда отклонена' };
+  }
+}
+function ensure(value: unknown, message: string): asserts value {
+  if (!value) throw new Error(message);
+}
+function apply(w: World, c: Command) {
+  if (c.type === 'create_player') {
+    ensure(!w.player, 'Персонаж уже создан');
+    const b = c.biography,
+      s = w.settlements[b.birthplace];
+    ensure(s, 'Поселение не существует');
+    const ancestry = RACES.map((r) => (r === b.race ? 1 : 0)) as Ancestry;
+    const age = [22, 42, 40, 20, 32, 18][RACES.indexOf(b.race)];
+    const mother = addPerson(w, s.id, age + 40, ancestry),
+      father = addPerson(w, s.id, age + 45, ancestry);
+    mother.sex = 'female';
+    father.sex = 'male';
+    mother.spouse = father.id;
+    father.spouse = mother.id;
+    const hero = addPerson(w, s.id, age, ancestry, [mother.id, father.id]);
+    hero.sex = b.sex;
+    const npc = promote(w, hero.id);
+    npc.name = b.name;
+    npc.biography = Object.values(b).join(' · ');
+    hero.homeProfession = hero.profession;
+    profession(w, hero, 'soldier');
+    const army = {
+      id: nextId(w, 'army'),
+      state: s.state,
+      settlement: s.id,
+      members: [] as number[],
+      unitClass: 'spearmen' as const,
+      food: 0,
+      morale: 100,
+      player: true,
+    };
+    w.armies.push(army);
+    w.player = {
+      person: hero.id,
+      name: b.name,
+      gold: b.origin === 'merchants' ? 300 : 150,
+      inventory: { ...emptyStocks(), grain: 30, weapons: b.training === 'warrior' ? 2 : 1 },
+      skills: {
+        melee: b.training === 'warrior' ? 5 : 1,
+        trade: b.training === 'trader' ? 5 : 1,
+        medicine: b.training === 'healer' ? 5 : 1,
+        command: b.youth === 'militia' ? 3 : 1,
+        diplomacy: b.origin === 'nobles' ? 3 : 1,
+      },
+      attributes: {
+        strength: b.childhood === 'fields' ? 12 : 10,
+        agility: b.childhood === 'streets' ? 12 : 10,
+        endurance: 10,
+        intelligence: b.childhood === 'books' ? 12 : 10,
+        charisma: b.origin === 'nobles' ? 12 : 10,
+        willpower: b.reason === 'duty' ? 12 : 10,
+        magicalPotential: b.race === 'Elf' ? 5 : 1,
+      },
+      reputation: { [`settlement:${s.id}`]: b.turningPoint === 'rescue' ? 10 : 0 },
+      legitimacy: 0,
+      title: 'Путешественник',
+      army: army.id,
+      biography: Object.fromEntries(Object.entries(b).map(([k, v]) => [k, String(v)])),
+      visited: [s.id],
+      scene: 'world',
+      heirs: [],
+      gameOver: false,
+    };
+    if (b.turningPoint === 'inheritance') w.player.gold += 80;
+    event(w, 'hero', `${b.name} отправляется в путь.`, [`person:${hero.id}`], true);
+    quests(w);
+    return;
+  }
+  const p = w.player;
+  if (c.type === 'speed') {
+    ensure(!p || w.people[p.person].alive, 'Выберите наследника');
+    w.speed = c.value;
+    return;
+  }
+  ensure(p, 'Сначала создайте персонажа');
+  const person = w.people[p.person];
+  if (c.type === 'inherit') {
+    ensure(!person.alive, 'Персонаж ещё жив');
+    ensure(p.heirs.includes(c.person), 'Это не наследник');
+    const heir = w.people[c.person];
+    ensure(heir?.alive && adult(w, heir), 'Наследник должен быть живым и взрослым');
+    const heirs = p.heirs.filter((id) => w.people[id].alive),
+      share = heirs.length;
+    for (const id of heirs) if (id !== heir.id) w.people[id].wealth += p.gold / share;
+    p.gold /= share;
+    for (const g of GOODS) p.inventory[g] /= share;
+    p.person = heir.id;
+    p.name = promote(w, heir.id).name;
+    p.heirs = [...heir.children];
+    p.gameOver = false;
+    p.title = 'Наследник';
+    p.legitimacy *= 0.5;
+    for (const key of Object.keys(p.reputation)) p.reputation[key] *= 0.3;
+    p.scene = 'world';
+    p.journey = undefined;
+    w.battle = null;
+    const old = w.armies.find((a) => a.id === p.army);
+    if (old) {
+      for (const id of old.members)
+        profession(w, w.people[id], w.people[id].homeProfession ?? 'farmer');
+      old.members = [];
+    }
+    heir.homeProfession = heir.profession;
+    profession(w, heir, 'soldier');
+    if (old) {
+      old.settlement = heir.settlement;
+      old.state = heir.state;
+    }
+    event(w, 'inheritance', `${p.name} продолжает историю династии.`, [`person:${heir.id}`], true);
+    return;
+  }
+  ensure(person.alive && !p.gameOver, 'Персонаж погиб. Выберите наследника.');
+  const s = w.settlements[person.settlement],
+    army = w.armies.find((a) => a.id === p.army)!;
+  if (c.type === 'battle_order') {
+    ensure(w.battle?.status === 'active', 'Бой не идёт');
+    for (const f of w.battle.fighters)
+      if (f.side === 'player' && (c.unitClass === 'all' || c.unitClass === f.unitClass)) {
+        f.targetX = c.x;
+        f.targetY = c.y;
+      }
+    return;
+  }
+  if (c.type === 'retreat') {
+    ensure(w.battle?.status === 'active', 'Бой не идёт');
+    finishBattle(w, 'retreated');
+    return;
+  }
+  ensure(w.battle?.status !== 'active', 'Сначала завершите бой');
+  if (c.type === 'leave') {
+    p.scene = 'world';
+    w.battle = null;
+    return;
+  }
+  ensure(!p.journey, 'Сначала завершите путешествие');
+  if (c.type === 'travel') {
+    ensure(w.settlements[c.settlement], 'Поселение не существует');
+    ensure(c.settlement !== s.id, 'Вы уже здесь');
+    const path = route(w, s.id, c.settlement);
+    ensure(path.length > 1, 'Нет открытого маршрута');
+    p.journey = makeJourney(w, path);
+    p.scene = 'world';
+    w.speed = 1;
+    return;
+  }
+  if (c.type === 'enter') {
+    p.scene = 'settlement';
+    for (const id of s.residents.filter((id) => w.people[id].alive).slice(0, 12)) promote(w, id);
+    return;
+  }
+  if (c.type === 'battle') {
+    ensure(s.monsters > 0, 'В окрестностях нет угроз');
+    startBattle(w);
+    return;
+  }
+  ensure(p.scene === 'settlement', 'Войдите в поселение');
+  if (c.type === 'trade') {
+    const price = s.prices[c.good] * (c.side === 'sell' ? 0.8 : 1),
+      total = price * c.quantity;
+    if (c.side === 'buy') {
+      ensure(s.stocks[c.good] >= c.quantity, 'На складе нет столько товара');
+      ensure(p.gold >= total, 'Недостаточно монет');
+      s.stocks[c.good] -= c.quantity;
+      p.inventory[c.good] += c.quantity;
+      p.gold -= total;
+      s.treasury += total;
+    } else {
+      ensure(p.inventory[c.good] >= c.quantity, 'Недостаточно товара');
+      ensure(s.treasury >= total, 'Рынок не может оплатить товар');
+      p.inventory[c.good] -= c.quantity;
+      s.stocks[c.good] += c.quantity;
+      p.gold += total;
+      s.treasury -= total;
+    }
+    p.skills.trade += 0.05;
+    return;
+  }
+  if (c.type === 'recruit') {
+    ensure(army.members.length + c.count <= 60, 'В отряде может быть до 60 солдат');
+    ensure(p.gold >= c.count * 10, 'Нужно 10 монет за бойца');
+    ensure(
+      s.stocks.weapons >= c.count && s.stocks.grain >= c.count * 3,
+      'В поселении не хватает оружия или еды',
+    );
+    const eligible = s.residents.filter((id) => {
+      const q = w.people[id];
+      return (
+        q.alive &&
+        adult(w, q) &&
+        q.profession !== 'soldier' &&
+        !w.states.some((st) => st.ruler === id)
+      );
+    });
+    ensure(eligible.length >= c.count, 'Недостаточно взрослых жителей для набора');
+    const recruits = levy(w, s.id, c.count, true);
+    army.members.push(...recruits.members);
+    army.food += recruits.food;
+    w.armies = w.armies.filter((a) => a !== recruits);
+    p.gold -= c.count * 10;
+    s.treasury += c.count * 10;
+    event(
+      w,
+      'recruit',
+      `${p.name} нанял ${c.count} жителей.`,
+      army.members.map((id) => `person:${id}`),
+    );
+    return;
+  }
+  if (c.type === 'dismiss') {
+    for (const id of army.members)
+      profession(w, w.people[id], w.people[id].homeProfession ?? 'farmer');
+    s.stocks.weapons += army.members.length;
+    s.stocks.grain += army.food;
+    army.members = [];
+    army.food = 0;
+    return;
+  }
+  if (c.type === 'accept_quest' || c.type === 'complete_quest') {
+    const q = w.quests.find((q) => q.id === c.quest);
+    ensure(q && q.settlement === s.id, 'Контракт находится в другом поселении');
+    if (c.type === 'accept_quest') {
+      ensure(q.status === 'open', 'Контракт недоступен');
+      q.status = 'accepted';
+    } else {
+      ensure(q.status === 'accepted', 'Сначала примите контракт');
+      ensure(s.treasury >= q.reward, 'В казне пока недостаточно денег для награды');
+      if (q.type === 'deliver') {
+        ensure(p.inventory.grain >= q.need, 'Недостаточно зерна');
+        p.inventory.grain -= q.need;
+        s.stocks.grain += q.need;
+      } else ensure(s.monsters === 0, 'Угроза ещё не устранена');
+      s.treasury -= q.reward;
+      p.gold += q.reward;
+      q.status = 'completed';
+      p.reputation[`settlement:${s.id}`] = (p.reputation[`settlement:${s.id}`] ?? 0) + 20;
+      event(
+        w,
+        'quest_completed',
+        `${p.name} выполнил контракт ${q.id}.`,
+        [q.id, `person:${p.person}`],
+        true,
+      );
+    }
+    return;
+  }
+  if (c.type === 'marry') {
+    const spouse = w.people[c.person];
+    ensure(
+      spouse?.alive && spouse.settlement === s.id && adult(w, spouse),
+      'Нужен взрослый житель этого поселения',
+    );
+    ensure(
+      spouse.id !== person.id && person.spouse === undefined && spouse.spouse === undefined,
+      'Брак недоступен',
+    );
+    ensure(
+      !person.parents.includes(spouse.id) &&
+        !person.children.includes(spouse.id) &&
+        !person.parents.some((id) => spouse.parents.includes(id)),
+      'Близкое родство',
+    );
+    person.spouse = spouse.id;
+    spouse.spouse = person.id;
+    promote(w, spouse.id);
+    event(
+      w,
+      'marriage',
+      `${p.name} и ${w.npcs[spouse.id].name} заключили брак.`,
+      [`person:${person.id}`, `person:${spouse.id}`],
+      true,
+    );
+    return;
+  }
+  if (c.type === 'petition') {
+    ensure((p.reputation[`settlement:${s.id}`] ?? 0) >= 40, 'Нужна репутация 40 в этом поселении');
+    ensure(army.members.length >= 5, 'Нужен отряд из 5 бойцов');
+    p.title = `Защитник ${s.name}`;
+    p.legitimacy = Math.max(p.legitimacy, 20);
+    promote(w, p.person).titles.push(p.title);
+    return;
+  }
+  if (c.type === 'build') {
+    ensure(
+      p.inventory.wood >= 20 && p.inventory.stone >= 20 && p.gold >= 50,
+      'Нужно 20 дерева, 20 камня и 50 монет',
+    );
+    p.inventory.wood -= 20;
+    p.inventory.stone -= 20;
+    p.gold -= 50;
+    s.treasury += 50;
+    s.infrastructure++;
+    p.reputation[`settlement:${s.id}`] = (p.reputation[`settlement:${s.id}`] ?? 0) + 10;
+    event(
+      w,
+      'construction',
+      `${p.name} улучшил хозяйство ${s.name}.`,
+      [`settlement:${s.id}`, `person:${p.person}`],
+      true,
+    );
+    return;
+  }
+  if (c.type === 'tax') {
+    const state = w.states[s.state];
+    ensure(state.ruler === p.person, 'Налоги меняет только правитель');
+    state.tax = c.value;
+    return;
+  }
+}
