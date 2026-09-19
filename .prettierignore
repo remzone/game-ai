@@ -1,0 +1,6 @@
+node_modules
+dist
+package-lock.json
+docs/MASTER_PROMPT.ru.txt
+data
+prisma/migrations

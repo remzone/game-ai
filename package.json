@@ -1,0 +1,40 @@
+{
+  "name": "living-world-rpg",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run build -w @living-world/simulation && concurrently -k -n engine,server,web \"npm run dev -w @living-world/simulation\" \"npm run dev -w @living-world/server\" \"npm run dev -w @living-world/web\"",
+    "build": "npm run build -w @living-world/simulation && npm run build -w @living-world/server && npm run build -w @living-world/web",
+    "start": "node --env-file-if-exists=.env apps/server/dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "node --import tsx scripts/benchmark.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:dev": "prisma migrate dev",
+    "db:seed": "node --env-file-if-exists=.env --import tsx prisma/seed.ts",
+    "check": "npm run build && npm test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.0",
+    "prisma": "6.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.8",
+    "tsx": "^4.20.6",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.0"
+  }
+}
