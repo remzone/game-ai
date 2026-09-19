@@ -29,11 +29,14 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
       decor!: Phaser.GameObjects.Container;
       last?: View;
       lastSelected = -1;
+      lastUnit = '';
       origin = { x: 0, y: 0 };
       sx = 24;
       sy = 12;
       down = { x: 0, y: 0 };
       hover = -1;
+      framed = false;
+      reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       preload() {
         for (const [key, source] of Object.entries(ART))
           if (!this.textures.exists(key))
@@ -48,6 +51,7 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
         this.overlay = this.add.graphics();
         this.last = undefined;
         this.lastSelected = -1;
+        this.framed = false;
         this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
           this.down = { x: p.x, y: p.y };
         });
@@ -65,11 +69,12 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
           'wheel',
           (_p: Phaser.Input.Pointer, _objects: unknown, _dx: number, dy: number) => {
             const c = this.cameras.main;
-            c.setZoom(Phaser.Math.Clamp(c.zoom * (dy > 0 ? 0.9 : 1.1), 0.65, 3.2));
+            c.setZoom(Phaser.Math.Clamp(c.zoom * (dy > 0 ? 0.9 : 1.1), 0.18, 3.2));
           },
         );
         const resize = () => {
           this.last = undefined;
+          this.framed = false;
         };
         this.scale.on('resize', resize);
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', resize));
@@ -106,19 +111,6 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
       tile(x: number, y: number, color: number) {
         const p = this.xy(x, y),
           g = this.ground;
-        // Thick shoreline gives the continent a stone-and-earth silhouette.
-        g.fillStyle(0x162328);
-        g.fillPoints(
-          [
-            { x: p.x - this.sx, y: p.y },
-            { x: p.x, y: p.y + this.sy },
-            { x: p.x + this.sx, y: p.y },
-            { x: p.x + this.sx, y: p.y + 6 },
-            { x: p.x, y: p.y + this.sy + 6 },
-            { x: p.x - this.sx, y: p.y + 6 },
-          ],
-          true,
-        );
         g.fillStyle(color);
         g.fillPoints(
           [
@@ -129,7 +121,7 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
           ],
           true,
         );
-        g.lineStyle(0.6, 0x9aab89, 0.09);
+        g.lineStyle(0.6, 0x9aab89, 0.025);
         g.strokePoints(
           [
             { x: p.x, y: p.y - this.sy },
@@ -150,18 +142,22 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
       begin(cols: number, rows: number) {
         this.ground.clear();
         this.overlay.clear();
+        this.tweens.killAll();
         this.decor.removeAll(true);
         const width = this.scale.width,
           height = this.scale.height;
-        this.sx = Math.min((width - 80) / (cols + rows), ((height - 130) * 2) / (cols + rows));
+        this.sx =
+          this.scene.key === 'World'
+            ? 82
+            : Math.max(22, Math.min(width / (this.scene.key === 'Battle' ? 25 : 20), height / 11));
         this.sy = this.sx / 2;
         this.origin = {
           x: width / 2 - ((cols - rows) * this.sx) / 2,
           y: height / 2 - ((cols + rows) * this.sy) / 2 + 25,
         };
         const g = this.ground;
-        g.fillStyle(0x111e27);
-        g.fillRect(-2000, -2000, 5000, 5000);
+        g.fillStyle(this.scene.key === 'World' ? 0x213b43 : 0x35463c);
+        g.fillRect(-10000, -10000, 20000, 20000);
         for (let i = 0; i < 100; i++) {
           const x = noise(i, 11) * width,
             y = noise(i, 23) * height;
@@ -169,7 +165,29 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
           g.lineBetween(x, y, x + 15 + noise(i, 29) * 60, y - 5);
         }
       }
+      frameCamera(overview = false) {
+        const camera = this.cameras.main;
+        if (this.scene.key === 'World' && !overview) {
+          const w = current().world;
+          const home = w.settlements[w.hero?.settlement ?? current().selected];
+          const p = this.xy(home.x, home.y);
+          camera.setZoom(1);
+          camera.centerOn(p.x + 120, p.y + 100);
+        } else {
+          camera.setZoom(
+            overview && this.scene.key === 'World'
+              ? Math.min(
+                  (this.scale.width - 90) / (40 * this.sx),
+                  (this.scale.height - 150) / (40 * this.sy),
+                )
+              : 1,
+          );
+          camera.centerOn(this.scale.width / 2, this.scale.height / 2);
+        }
+        this.framed = true;
+      }
       finish() {
+        if (!this.framed) this.frameCamera();
         this.decor.sort('depth');
       }
       click(_p: Phaser.Input.Pointer) {}
@@ -182,13 +200,14 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
           this.scene.start(key);
           return;
         }
-        if (this.last !== b.world || this.lastSelected !== b.selected) {
+        if (this.last !== b.world || this.lastSelected !== b.selected || this.lastUnit !== b.unit) {
           this.last = b.world;
           this.lastSelected = b.selected;
+          this.lastUnit = b.unit;
           this.draw();
         }
         // Cosmetic pulse only; never advances world time or spends simulation RNG.
-        this.overlay.setAlpha(0.83 + Math.sin(time * 0.002) * 0.13);
+        this.overlay.setAlpha(this.reducedMotion ? 1 : 0.93 + Math.sin(time * 0.002) * 0.06);
       }
       draw() {}
     }
@@ -201,10 +220,10 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
         const { world: w, selected } = current();
         const winter = Math.floor((w.day % 360) / 90) === 3;
         const palettes = {
-          plains: [0x62694e, 0x6d7256, 0x555f49],
-          forest: [0x394f43, 0x425b48, 0x33473e],
-          mountain: [0x5c6966, 0x68736c, 0x505e5d],
-          marsh: [0x3d5858, 0x466461, 0x354d50],
+          plains: [0x465440, 0x485540, 0x43523e],
+          forest: [0x394c3f, 0x3c4e41, 0x3a4c40],
+          mountain: [0x4c5952, 0x4e5b53, 0x4b574f],
+          marsh: [0x3d514b, 0x40554e, 0x3b514d],
         };
         const sorted = [...w.settlements].sort((a, b) => a.x + a.y - b.x - b.y);
         for (const s of sorted) {
@@ -225,9 +244,9 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
             pa = this.xy(a.x, a.y),
             pb = this.xy(b.x, b.y);
           this.ground.lineStyle(
-            r.blocked ? 1.8 : 1,
+            r.blocked ? 4 : 3,
             r.blocked ? 0xb06555 : 0xb6a680,
-            r.blocked ? 0.8 : 0.23,
+            r.blocked ? 0.8 : 0.44,
           );
           this.ground.lineBetween(pa.x, pa.y, pb.x, pb.y);
         }
@@ -257,16 +276,17 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
             this.overlay.fillStyle(0xd88970, 0.9);
             this.overlay.fillCircle(p.x + size * 0.6, p.y + size * 0.15, 2);
           }
+          if (s.central && s.id !== selected) this.label(p.x, p.y + size * 0.38, s.name, 12);
           if (s.id === selected) {
             this.overlay.lineStyle(1.6, 0xe1c88e, 0.9);
             this.overlay.strokeEllipse(p.x, p.y, size * 1.9, this.sy * 1.6);
-            this.label(p.x, p.y + size * 0.7, s.name, 11, '#f0d8a2');
+            this.label(p.x, p.y + size * 0.7, s.name, 14, '#f0d8a2');
           }
         }
         for (const state of w.states) {
           const cap = w.settlements[state.capital],
             p = this.xy(cap.x + 2, cap.y - 0.25);
-          this.label(p.x, p.y - this.sx * 0.85, state.name, 11, '#c6b995');
+          this.label(p.x, p.y - this.sx * 1.45, state.name, 15, '#c6b995');
         }
         for (const c of w.caravans) {
           const a = w.settlements[c.journey.route[c.journey.leg]],
@@ -321,11 +341,11 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
               y,
               road
                 ? noise(x, y) > 0.5
-                  ? 0x737364
-                  : 0x686c60
+                  ? 0x787560
+                  : 0x77735e
                 : noise(x, y) > 0.5
-                  ? 0x465c46
-                  : 0x3c5140,
+                  ? 0x36483d
+                  : 0x37493d,
             );
           }
         // Trees define the outskirts rather than covering interactive characters.
@@ -336,10 +356,10 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
           this.stamp('pine', p.x, p.y, this.sx * (1.9 + noise(i, 4) * 0.6));
         }
         const buildings: [number, number, string, string, number][] = [
-          [2, 3, 'market', 'Торговые ряды', 3.4],
-          [10, 3, 'smith', 'Кузница', 3],
-          [3, 9, 'house', 'Жилой квартал', 2.7],
-          [10, 9, here.central ? 'castle' : 'house', here.central ? 'Крепость' : 'Дом старосты', 4],
+          [10, 3, 'market', 'Торговые ряды', 3.4],
+          [3, 9, 'smith', 'Кузница', 3],
+          [10, 9, 'house', 'Жилой квартал', 2.7],
+          [2, 2, here.central ? 'castle' : 'house', here.central ? 'Крепость' : 'Дом старосты', 4],
         ];
         for (const [x, y, key, name, size] of buildings) {
           const p = this.xy(x, y);
@@ -360,9 +380,9 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
         this.stamp('fire', fire.x, fire.y, this.sx * 1.4);
         this.overlay.fillStyle(0xedb76a, 0.05);
         this.overlay.fillEllipse(fire.x, fire.y, this.sx * 3, this.sx * 1.5);
-        const locals = w.locals.filter((p) => p.id !== w.hero!.id);
+        const locals = w.locals.filter((p) => p.id !== w.hero!.id).slice(0, 12);
         for (const [n, person] of locals.entries()) {
-          const p = this.xy(5.8 + (n % 3) * 0.55, 2 + Math.floor(n / 3) * 1.1);
+          const p = this.xy(5.8 + (n % 3) * 0.65, 2 + Math.floor(n / 3) * 1.6);
           this.stamp(
             person.profession === 'soldier' ? 'soldier' : 'citizen',
             p.x,
@@ -378,49 +398,116 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
       }
     }
     class BattleScene extends IsoScene {
+      actors = new Map<
+        string,
+        { container: Phaser.GameObjects.Container; hp: number; cooldown: number }
+      >();
+      battleId = '';
       constructor() {
         super('Battle');
       }
       draw() {
-        this.begin(21, 15);
-        const { world: w } = current();
-        for (let x = 0; x <= 20; x++)
-          for (let y = 0; y <= 14; y++) this.tile(x, y, noise(x, y) > 0.6 ? 0x555c47 : 0x424f3e);
-        for (let i = 0; i < 16; i++) {
-          const x = i < 8 ? i * 2.6 : 20,
-            y = i < 8 ? 0 : (i - 8) * 1.9,
-            p = this.xy(x, y);
-          this.stamp(i % 5 === 0 ? 'rock' : 'pine', p.x, p.y, this.sx * (i % 5 === 0 ? 1.2 : 2));
-        }
+        const { world: w, unit } = current();
         const b = w.battle;
-        if (!b) return;
-        for (const f of [...b.fighters].sort((a, b) => a.x + a.y - b.x - b.y)) {
-          const p = this.xy(f.x, f.y);
+        const previous = new Map(
+          [...this.actors].map(([id, a]) => [
+            id,
+            { x: a.container.x, y: a.container.y, hp: a.hp, cooldown: a.cooldown },
+          ]),
+        );
+        if (this.battleId !== b?.id || !this.framed) previous.clear();
+        this.battleId = b?.id ?? '';
+        this.actors.clear();
+        this.begin(21, 15);
+        for (let x = -5; x <= 25; x++)
+          for (let y = -5; y <= 20; y++) this.tile(x, y, noise(x, y) > 0.6 ? 0x38493c : 0x35463c);
+        // A worn trail crosses the fighting ground; all orders still use simulation coordinates.
+        const roadStart = this.xy(0, 8),
+          roadEnd = this.xy(21, 8);
+        this.ground.lineStyle(this.sx * 1.5, 0x797359, 0.32);
+        this.ground.lineBetween(roadStart.x, roadStart.y, roadEnd.x, roadEnd.y);
+        for (let i = 0; i < 34; i++) {
+          const x = i < 17 ? -1 : 22;
+          const p = this.xy(x + noise(i, 12), (i % 17) - 1);
+          this.stamp(i % 7 === 0 ? 'rock' : 'pine', p.x, p.y, this.sx * (i % 7 === 0 ? 1.2 : 2.3));
+        }
+        const ruins = this.xy(15, -1);
+        this.stamp('ruins', ruins.x, ruins.y, this.sx * 2.5);
+        if (!b) {
+          this.finish();
+          return;
+        }
+        for (const f of b.fighters) {
+          const p = this.xy(f.x, f.y),
+            hero = f.person === w.player?.person;
+          const old = previous.get(f.id);
+          const size = this.sx * (hero ? 1.8 : 1.55);
+          const selected = f.side === 'player' && (unit === 'all' || f.unitClass === unit);
+          const actor = this.add.container(old?.x ?? p.x, old?.y ?? p.y).setDepth(p.y);
+          this.decor.add(actor);
+          const ring = this.add.graphics();
+          if (selected && f.hp > 0) {
+            ring.lineStyle(hero ? 2 : 1, hero ? 0xe5c889 : 0xa6be90, 0.8);
+            ring.strokeEllipse(0, 2, this.sx * 0.8, this.sy * 0.7);
+          }
+          const sprite = this.add
+            .image(0, 0, f.side === 'enemy' ? 'wolf' : hero ? 'hero' : 'soldier')
+            .setOrigin(0.5, 0.91)
+            .setDisplaySize(size, size);
+          const health = this.add.graphics();
+          actor.add([ring, sprite, health]);
           if (f.hp <= 0) {
-            this.ground.fillStyle(0x633e34, 0.6);
-            this.ground.fillEllipse(p.x, p.y, 13, 6);
-            this.stamp(f.side === 'enemy' ? 'wolf' : 'soldier', p.x, p.y, this.sx * 0.8)
+            sprite
               .setAngle(75)
-              .setAlpha(0.4);
-            continue;
+              .setAlpha(0.35)
+              .setScale(sprite.scaleX * 0.75, sprite.scaleY * 0.75);
+          } else {
+            const width = this.sx * 0.7;
+            health.fillStyle(0x111e24, 0.95);
+            health.fillRect(-width / 2 - 1, -size * 0.87 - 1, width + 2, 6);
+            health.fillStyle(f.side === 'enemy' ? 0xbe826d : 0xa9bc8a);
+            health.fillRect(-width / 2, -size * 0.87, (width * f.hp) / f.maxHp, 4);
+            if (old && !this.reducedMotion) {
+              const moving = Math.hypot(p.x - old.x, p.y - old.y) > 0.5;
+              if (moving) this.tweens.add({ targets: sprite, y: -2.5, duration: 100, yoyo: true });
+              if (f.cooldown > old.cooldown)
+                this.tweens.add({
+                  targets: sprite,
+                  angle: f.side === 'player' ? 11 : -11,
+                  duration: 90,
+                  yoyo: true,
+                });
+              if (f.hp < old.hp) {
+                sprite.setTint(0xffc2a0);
+                this.tweens.add({
+                  targets: sprite,
+                  alpha: 0.6,
+                  duration: 100,
+                  yoyo: true,
+                  onComplete: () => sprite.clearTint(),
+                });
+              }
+            }
           }
-          const hero = f.person === w.player?.person;
-          this.stamp(
-            f.side === 'enemy' ? 'wolf' : hero ? 'hero' : 'soldier',
-            p.x,
-            p.y,
-            this.sx * (hero ? 1.8 : 1.55),
-          );
-          if (f.side === 'player') {
-            this.ground.lineStyle(1, hero ? 0xe5c889 : 0x93aba0, 0.7);
-            this.ground.strokeEllipse(p.x, p.y + 2, this.sx * 0.75, this.sy * 0.65);
+          if (old && !this.reducedMotion)
+            this.tweens.add({
+              targets: actor,
+              x: p.x,
+              y: p.y,
+              duration: 230,
+              onUpdate: () => {
+                actor.setDepth(actor.y);
+                this.decor.sort('depth');
+              },
+            });
+          else actor.setPosition(p.x, p.y);
+          this.actors.set(f.id, { container: actor, hp: f.hp, cooldown: f.cooldown });
+          if (selected && f.hp > 0 && b.status === 'active') {
+            const target = this.xy(f.targetX, f.targetY);
+            this.overlay.lineStyle(1, 0xd6bd7e, 0.3);
+            this.overlay.lineBetween(p.x, p.y, target.x, target.y);
+            this.overlay.strokeEllipse(target.x, target.y, 13, 7);
           }
-          const width = Math.max(13, this.sx * 0.65),
-            y = p.y - this.sx * 1.35;
-          this.overlay.fillStyle(0x121c20, 0.9);
-          this.overlay.fillRoundedRect(p.x - width / 2 - 1, y - 1, width + 2, 5, 1);
-          this.overlay.fillStyle(f.side === 'enemy' ? 0xb77966 : 0x9eaf86);
-          this.overlay.fillRect(p.x - width / 2, y, (width * f.hp) / f.maxHp, 3);
         }
         this.finish();
       }
@@ -459,9 +546,10 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
     if (!scene) return;
     const c = scene.cameras.main;
     if (factor === 0) {
-      c.setZoom(1);
-      c.setScroll(0, 0);
-    } else c.setZoom(Phaser.Math.Clamp(c.zoom * factor, 0.65, 3.2));
+      (scene as Phaser.Scene & { frameCamera: (overview: boolean) => void }).frameCamera(true);
+    } else if (factor === -1) {
+      (scene as Phaser.Scene & { frameCamera: (overview: boolean) => void }).frameCamera(false);
+    } else c.setZoom(Phaser.Math.Clamp(c.zoom * factor, 0.18, 3.2));
   };
   return (
     <div className="game-stage">
@@ -476,6 +564,9 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
         </button>
         <button aria-label="Отдалить карту" onClick={() => zoom(0.8)}>
           −
+        </button>
+        <button aria-label="К герою" onClick={() => zoom(-1)}>
+          ♟
         </button>
         <button aria-label="Показать всю карту" onClick={() => zoom(0)}>
           ⌖

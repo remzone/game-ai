@@ -12,6 +12,8 @@ import {
 import { api, ApiError } from './api';
 import type { View } from './types';
 import './style.css';
+import { ART } from './art';
+const artwork = (key: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ART[key]);
 const Game = lazy(() => import('./game').then((m) => ({ default: m.Game })));
 const goods: Record<string, string> = {
   grain: 'Зерно',
@@ -34,6 +36,8 @@ function App() {
     [selected, setSelected] = useState(0),
     [tab, setTab] = useState('place'),
     [newGame, setNewGame] = useState(false),
+    [menu, setMenu] = useState(true),
+    [menuSaves, setMenuSaves] = useState(false),
     [slots, setSlots] = useState<any[]>([]),
     [admin, setAdmin] = useState<any>(null),
     [online, setOnline] = useState(false),
@@ -94,6 +98,13 @@ function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).matches('input,select,textarea')) return;
+      if (e.key === 'Escape') {
+        if (!menu && world?.speed) void send({ type: 'speed', value: 0 });
+        setMenu((v) => !v);
+        setNewGame(false);
+        return;
+      }
+      if (menu || newGame) return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (world) void send({ type: 'speed', value: world.speed === 0 ? 1 : 0 });
@@ -102,15 +113,15 @@ function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [world]);
+  }, [world, menu, newGame]);
   useEffect(() => {
-    if (tab === 'saves') void action(async () => setSlots(await api('/saves')));
+    if (tab === 'saves' || menuSaves) void action(async () => setSlots(await api('/saves')));
     if (tab === 'admin') void action(async () => setAdmin(await api('/admin')));
-  }, [tab]);
+  }, [tab, menuSaves]);
   const p = world?.player,
     hero = world?.hero,
     local = world && hero ? world.settlements[hero.settlement] : null,
-    s = world?.settlements[selected] ?? local,
+    s = world?.player?.scene === 'settlement' ? local : (world?.settlements[selected] ?? local),
     army = world?.armies.find((a) => a.id === p?.army);
   if (locked)
     return (
@@ -143,11 +154,11 @@ function App() {
       </div>
     );
   if (!loaded) return <div className="entry">{error || 'Подключение к миру…'}</div>;
-  if (!world?.player || newGame)
+  if (menu && !newGame)
     return (
-      <div className="entry">
-        <div className="entry-card wide">
-          <span className="eyebrow">LIVING WORLD RPG · ALPHA 0.1</span>
+      <div className="entry title-screen">
+        <div className="title-copy">
+          <span className="eyebrow">LIVING WORLD RPG · ALPHA</span>
           <h1>
             Пепельная
             <br />
@@ -158,6 +169,68 @@ function App() {
             <br />
             Какой след оставит ваша династия?
           </p>
+          <div className="title-actions">
+            <button className="primary" onClick={() => setNewGame(true)}>
+              Начать новую историю →
+            </button>
+            <button
+              disabled={!world?.player}
+              onClick={() => {
+                setMenu(false);
+                setMenuSaves(false);
+              }}
+            >
+              Продолжить
+            </button>
+            <button onClick={() => setMenuSaves((v) => !v)}>Сохранения</button>
+          </div>
+          {menuSaves && (
+            <div className="menu-saves">
+              <h3>Загрузить историю</h3>
+              {slots.length === 0 && <p>Сохранений пока нет.</p>}
+              {slots.map((slot) => (
+                <button
+                  key={slot.slot}
+                  onClick={() =>
+                    void action(async () => {
+                      const next = await api<View>(`/saves/${slot.slot}/load`, {});
+                      setWorld(next);
+                      setSelected(next.hero?.settlement ?? 0);
+                      setMenu(false);
+                      setMenuSaves(false);
+                    })
+                  }
+                >
+                  {slot.slot === 0 ? 'Автосохранение' : `Слот ${slot.slot}`} · День {slot.day}
+                </button>
+              ))}
+            </div>
+          )}
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <small>10 держав · 300 поселений · живой мир</small>
+        </div>
+        <img className="title-hero" src={artwork('hero')} alt="Герой у стен крепости" />
+      </div>
+    );
+  if (!world?.player || newGame)
+    return (
+      <div className="entry creation-screen">
+        <div className="creation-content">
+          <button
+            className="back-link"
+            onClick={() => {
+              setNewGame(false);
+              setMenu(true);
+            }}
+          >
+            ← Главное меню
+          </button>
+          <span className="eyebrow">СОЗДАНИЕ ГЕРОЯ</span>
+          <h2>У каждой династии есть начало</h2>
           <Biography
             busy={busy}
             onStart={async (seed, biography) => {
@@ -166,22 +239,18 @@ function App() {
                 const w = await api<View>('/new', { seed, biography });
                 setWorld(w);
                 setSelected(w.hero!.settlement);
+                setTab('place');
                 setNewGame(false);
+                setMenu(false);
               });
               setBusy(false);
             }}
           />
-          {world?.player && <button onClick={() => setNewGame(false)}>Вернуться в игру</button>}
           {error && (
             <p className="error" role="alert">
               {error}
             </p>
           )}
-          <small>
-            10 держав · 300 поселений · 18 000 жителей на старте
-            <br />
-            Карта постоянна. Seed меняет людей и политический мир.
-          </small>
         </div>
       </div>
     );
@@ -189,7 +258,7 @@ function App() {
     <div className="app">
       <header>
         <div className="brand">
-          <span>♜</span>
+          <img className="brand-art" src={artwork('castle')} alt="" />
           <div>
             ПЕПЕЛЬНАЯ КОРОНА<small>LIVING WORLD RPG</small>
           </div>
@@ -219,7 +288,9 @@ function App() {
       <div className="hero-bar">
         <b>{p!.name}</b>
         <span>{p!.title}</span>
-        <span>♥ {fmt(hero!.health)}</span>
+        <span className="health">
+          Здоровье <meter min="0" max="100" value={hero!.health} /> {fmt(hero!.health)}
+        </span>
         <span>◈ {fmt(p!.gold)} монет</span>
         <span>⚑ {army?.members.length ?? 0} бойцов</span>
         <span>Население: {fmt(world.population.alive)}</span>
@@ -273,33 +344,8 @@ function App() {
             </span>
             <span>Пробел — пауза · E — войти</span>
           </div>
-          <div className="chronicle">
-            <span className="eyebrow">ЛЕТОПИСЬ МИРА</span>
-            {world.events
-              .slice(-5)
-              .reverse()
-              .map((e) => (
-                <p key={e.id}>
-                  <time>{date(e.day)}</time>
-                  {e.text}
-                </p>
-              ))}
-          </div>
         </section>
         <aside>
-          <nav>
-            {[
-              ['place', 'Место'],
-              ['hero', 'Герой'],
-              ['states', 'Державы'],
-              ['saves', 'Слоты'],
-              ['admin', 'Admin'],
-            ].map(([id, label]) => (
-              <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
-                {label}
-              </button>
-            ))}
-          </nav>
           <div className="side-content">
             {!hero!.alive && (
               <section className="card">
@@ -316,10 +362,35 @@ function App() {
                   ))}
               </section>
             )}
-            {p!.scene === 'battle' && (
-              <section className="card">
-                <h3>Тактический бой</h3>
-                <p>Золотые — ваш отряд. Красные — волки.</p>
+            {p!.scene === 'battle' && world.battle && (
+              <section className="battle-card">
+                <span className="eyebrow">ТАКТИЧЕСКИЙ БОЙ</span>
+                <h2>
+                  {world.battle.status === 'active'
+                    ? 'Схватка с волками'
+                    : { victory: 'Победа', defeat: 'Поражение', retreated: 'Отступление' }[
+                        world.battle.status
+                      ]}
+                </h2>
+                <p className="muted">
+                  {Math.floor(world.battle.elapsed)} с · {local?.name}
+                </p>
+                {(['player', 'enemy'] as const).map((side) => {
+                  const all = world.battle!.fighters.filter((f) => f.side === side);
+                  const alive = all.filter((f) => f.hp > 0).length;
+                  return (
+                    <div className={`force-meter ${side}`} key={side}>
+                      <div>
+                        <span>{side === 'player' ? 'Ваш отряд и герой' : 'Волки'}</span>
+                        <b>
+                          {alive} / {all.length}
+                        </b>
+                      </div>
+                      <meter min="0" max={Math.max(1, all.length)} value={alive} />
+                    </div>
+                  );
+                })}
+                <h3>Приказ отряду</h3>
                 <select
                   aria-label="Отряд для приказа"
                   value={unit}
@@ -329,26 +400,63 @@ function App() {
                   <option value="infantry">Герой / пехота</option>
                   <option value="spearmen">Копейщики</option>
                 </select>
-                <p>
-                  {world.battle?.status === 'active'
-                    ? `Бой идёт: ${Math.floor(world.battle.elapsed)} с`
-                    : `Результат: ${world.battle?.status}`}
+                <p className="muted">
+                  Нажмите на поле, чтобы задать позицию выбранным бойцам. В пределах досягаемости
+                  они атакуют сами.
                 </p>
                 <button
+                  className="primary full"
+                  disabled={world.battle.status !== 'active'}
+                  onClick={() => {
+                    const enemy = world.battle!.fighters.find(
+                      (f) => f.side === 'enemy' && f.hp > 0,
+                    );
+                    if (enemy)
+                      void send({ type: 'battle_order', x: enemy.x, y: enemy.y, unitClass: unit });
+                  }}
+                >
+                  Сблизиться с противником
+                </button>
+                <button
+                  className="full"
                   onClick={() =>
                     void send({ type: world.battle?.status === 'active' ? 'retreat' : 'leave' })
                   }
                 >
-                  {world.battle?.status === 'active' ? 'Отступить' : 'Вернуться на карту'}
+                  {world.battle.status === 'active' ? 'Отступить' : 'Вернуться на карту'}
                 </button>
+                <small>Погибшие бойцы — реальные жители мира. Потери сохраняются после боя.</small>
               </section>
             )}
-            {tab === 'place' && s && (
+            {tab === 'history' && (
+              <div className="chronicle">
+                <span className="eyebrow">ЛЕТОПИСЬ МИРА</span>
+                {world.events
+                  .slice(-5)
+                  .reverse()
+                  .map((e) => (
+                    <p key={e.id}>
+                      <time>{date(e.day)}</time>
+                      {e.text}
+                    </p>
+                  ))}
+              </div>
+            )}
+            {tab === 'place' && s && p!.scene !== 'battle' && (
               <>
                 <span className="eyebrow">{world.states[s.state].name}</span>
                 <h2>{s.name}</h2>
+                <img
+                  className="place-portrait"
+                  src={artwork(s.kind === 'ruins' ? 'ruins' : s.central ? 'castle' : 'house')}
+                  alt=""
+                />
                 <p className="muted">
-                  {s.kind} · {s.biome} · {s.central ? 'Центр области' : 'Поселение'}
+                  {{ city: 'Город', town: 'Городок', village: 'Деревня', ruins: 'Руины' }[s.kind] ??
+                    s.kind}{' '}
+                  ·{' '}
+                  {{ forest: 'Лес', mountain: 'Горы', plains: 'Равнина', marsh: 'Болота' }[s.biome]}{' '}
+                  · {s.central ? 'Центр области' : 'Поселение'}
                 </p>
                 <div className="metrics">
                   <div>
@@ -382,6 +490,37 @@ function App() {
                 )}
                 {p!.visited.includes(s.id) || s.id === hero!.settlement ? (
                   <>
+                    {p!.scene === 'settlement' && (
+                      <div className="settlement-actions">
+                        <button
+                          onClick={() =>
+                            document
+                              .getElementById('market-panel')
+                              ?.scrollIntoView({ block: 'start' })
+                          }
+                        >
+                          Посетить рынок
+                        </button>
+                        <button
+                          onClick={() =>
+                            document
+                              .getElementById('recruit-panel')
+                              ?.scrollIntoView({ block: 'start' })
+                          }
+                        >
+                          Нанять воинов
+                        </button>
+                        <button
+                          onClick={() =>
+                            document
+                              .getElementById('quests-panel')
+                              ?.scrollIntoView({ block: 'start' })
+                          }
+                        >
+                          Доступные задания
+                        </button>
+                      </div>
+                    )}
                     <h3>Местный склад</h3>
                     <table>
                       <thead>
@@ -410,9 +549,9 @@ function App() {
                 )}
                 {s.id === hero!.settlement && p!.scene === 'settlement' && (
                   <>
-                    <h3>Торговля</h3>
+                    <h3 id="market-panel">Торговля</h3>
                     <Trade send={send} />
-                    <h3>Отряд и поселение</h3>
+                    <h3 id="recruit-panel">Отряд и поселение</h3>
                     <div className="actions">
                       <button onClick={() => void send({ type: 'recruit', count: 5 })}>
                         Нанять 5 бойцов · 50◈
@@ -430,7 +569,7 @@ function App() {
                         Просить признания
                       </button>
                     </div>
-                    <h3>Контракты</h3>
+                    <h3 id="quests-panel">Контракты</h3>
                     {world.quests
                       .filter(
                         (q) => q.settlement === s.id && ['open', 'accepted'].includes(q.status),
@@ -479,6 +618,7 @@ function App() {
               <>
                 <span className="eyebrow">ДИНАСТИЯ</span>
                 <h2>{p!.name}</h2>
+                <img className="hero-portrait" src={artwork('hero')} alt="Герой" />
                 <p>
                   {p!.title} · Легитимность {fmt(p!.legitimacy)}
                 </p>
@@ -648,6 +788,28 @@ function App() {
           </div>
         </aside>
       </main>
+      <nav className="bottom-nav" aria-label="Разделы игры">
+        {[
+          ['place', 'Мир'],
+          ['hero', 'Герой и отряд'],
+          ['states', 'Державы'],
+          ['history', 'Летопись'],
+          ['saves', 'Сохранения'],
+          ['admin', 'Диагностика'],
+        ].map(([id, label]) => (
+          <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+            {label}
+          </button>
+        ))}
+        <button
+          onClick={() => {
+            setMenu(true);
+            if (world.speed !== 0) void send({ type: 'speed', value: 0 });
+          }}
+        >
+          Меню
+        </button>
+      </nav>
     </div>
   );
 }
@@ -723,76 +885,98 @@ function Biography({
   );
   return (
     <form
+      className="biography-form"
       onSubmit={(e) => {
         e.preventDefault();
         void onStart(seed, b);
       }}
     >
-      <div className="bio-grid">
-        <label>
-          Имя
-          <input
-            required
-            maxLength={40}
-            value={b.name}
-            onChange={(e) => setB({ ...b, name: e.target.value })}
-          />
-        </label>
-        <label>
-          Seed мира
-          <input required maxLength={100} value={seed} onChange={(e) => setSeed(e.target.value)} />
-        </label>
-        {select(
-          'race',
-          'Происхождение',
-          RACES.map((r, i) => [r, raceNames[i]]),
-        )}
-        {select('sex', 'Пол', [
-          ['male', 'Мужской'],
-          ['female', 'Женский'],
-        ])}
-        {select(
-          'birthplace',
-          'Место рождения',
-          Array.from({ length: 10 }, (_, i) => [
-            String(i * 30),
-            `Град ${i * 5 + 1}-1 · Держава ${i + 1}`,
-          ]),
-        )}
-        {select('origin', 'Семья', [
-          ['peasants', 'Крестьяне'],
-          ['merchants', 'Купцы'],
-          ['nobles', 'Мелкая знать'],
-        ])}
-        {select('childhood', 'Детство', [
-          ['fields', 'Работа в полях'],
-          ['books', 'Книги и наставник'],
-          ['streets', 'Улицы города'],
-        ])}
-        {select('youth', 'Юность', [
-          ['militia', 'Ополчение'],
-          ['caravan', 'Торговый караван'],
-          ['temple', 'Храм'],
-        ])}
-        {select('training', 'Обучение', [
-          ['warrior', 'Воин'],
-          ['trader', 'Торговец'],
-          ['healer', 'Лекарь'],
-        ])}
-        {select('turningPoint', 'Важное событие', [
-          ['rescue', 'Спасение соседей'],
-          ['inheritance', 'Наследство'],
-          ['loss', 'Потеря дома'],
-        ])}
-        {select('reason', 'Причина странствий', [
-          ['fortune', 'Поиск удачи'],
-          ['knowledge', 'Познание мира'],
-          ['duty', 'Долг перед семьёй'],
-        ])}
+      <div className="biography-fields">
+        <div className="bio-grid">
+          <label>
+            Имя
+            <input
+              required
+              maxLength={40}
+              value={b.name}
+              onChange={(e) => setB({ ...b, name: e.target.value })}
+            />
+          </label>
+          <label>
+            Seed мира
+            <input
+              required
+              maxLength={100}
+              value={seed}
+              onChange={(e) => setSeed(e.target.value)}
+            />
+          </label>
+          {select(
+            'race',
+            'Происхождение',
+            RACES.map((r, i) => [r, raceNames[i]]),
+          )}
+          {select('sex', 'Пол', [
+            ['male', 'Мужской'],
+            ['female', 'Женский'],
+          ])}
+          {select(
+            'birthplace',
+            'Место рождения',
+            Array.from({ length: 10 }, (_, i) => [
+              String(i * 30),
+              `Град ${i * 5 + 1}-1 · Держава ${i + 1}`,
+            ]),
+          )}
+          {select('origin', 'Семья', [
+            ['peasants', 'Крестьяне'],
+            ['merchants', 'Купцы'],
+            ['nobles', 'Мелкая знать'],
+          ])}
+          {select('childhood', 'Детство', [
+            ['fields', 'Работа в полях'],
+            ['books', 'Книги и наставник'],
+            ['streets', 'Улицы города'],
+          ])}
+          {select('youth', 'Юность', [
+            ['militia', 'Ополчение'],
+            ['caravan', 'Торговый караван'],
+            ['temple', 'Храм'],
+          ])}
+          {select('training', 'Обучение', [
+            ['warrior', 'Воин'],
+            ['trader', 'Торговец'],
+            ['healer', 'Лекарь'],
+          ])}
+          {select('turningPoint', 'Важное событие', [
+            ['rescue', 'Спасение соседей'],
+            ['inheritance', 'Наследство'],
+            ['loss', 'Потеря дома'],
+          ])}
+          {select('reason', 'Причина странствий', [
+            ['fortune', 'Поиск удачи'],
+            ['knowledge', 'Познание мира'],
+            ['duty', 'Долг перед семьёй'],
+          ])}
+        </div>
+        <button className="primary full" disabled={busy}>
+          {busy ? 'Создаётся мир…' : 'Войти в мир →'}
+        </button>
       </div>
-      <button className="primary full" disabled={busy}>
-        {busy ? 'Создаётся мир…' : 'Начать историю →'}
-      </button>
+      <div className="biography-portrait">
+        <span className="eyebrow">
+          {raceNames[RACES.indexOf(b.race)]} ·{' '}
+          {{ warrior: 'Воин', trader: 'Торговец', healer: 'Лекарь' }[b.training]}
+        </span>
+        <img src={artwork('hero')} alt="Образ героя" />
+        <h2>{b.name || 'Ваш герой'}</h2>
+        <p>Первая глава вашей истории</p>
+        <small>
+          Общий образ персонажа.
+          <br />
+          Внешность пока не зависит от расы и пола.
+        </small>
+      </div>
     </form>
   );
 }
