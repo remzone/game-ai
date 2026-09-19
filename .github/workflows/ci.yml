@@ -1,0 +1,43 @@
+name: verify
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rpg
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: rpg
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U rpg -d rpg" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://rpg:testpassword@localhost:5432/rpg?schema=public
+      TEST_POSTGRES: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run db:migrate
+      - run: npm run check
+      - run: npm run bench -- 100000 30
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up --build -d
+      - run: curl --fail --retry 30 --retry-delay 2 --retry-connrefused http://localhost:3000/api/health
+      - run: docker compose exec -T app node scripts/smoke.mjs
+      - if: always()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down
