@@ -6,6 +6,7 @@ import { ART } from './art';
 type Bridge = {
   world: View;
   selected: number;
+  onTalk: (id: number) => void;
   onSelect: (id: number) => void;
   send: (c: Command) => void;
   unit: 'all' | 'infantry' | 'spearmen' | 'archers' | 'cavalry' | 'mages';
@@ -15,11 +16,11 @@ const noise = (x: number, y: number, salt = 0) => {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 74.7) * 43758.5453;
   return n - Math.floor(n);
 };
-export function Game({ world, selected, onSelect, send, unit }: Bridge) {
+export function Game({ world, selected, onSelect, send, unit, onTalk }: Bridge) {
   const host = useRef<HTMLDivElement>(null),
     gameRef = useRef<Phaser.Game | null>(null);
-  const bridge = useRef<Bridge>({ world, selected, onSelect, send, unit });
-  bridge.current = { world, selected, onSelect, send, unit };
+  const bridge = useRef<Bridge>({ world, selected, onSelect, send, unit, onTalk });
+  bridge.current = { world, selected, onSelect, send, unit, onTalk };
   useEffect(() => {
     if (!host.current) return;
     const current = () => bridge.current;
@@ -201,10 +202,16 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
           return;
         }
         if (this.last !== b.world || this.lastSelected !== b.selected || this.lastUnit !== b.unit) {
+          const selectedChanged = this.lastSelected !== -1 && this.lastSelected !== b.selected;
           this.last = b.world;
           this.lastSelected = b.selected;
           this.lastUnit = b.unit;
           this.draw();
+          if (selectedChanged && this.scene.key === 'World') {
+            const s = b.world.settlements[b.selected],
+              p = this.xy(s.x, s.y);
+            this.cameras.main.centerOn(p.x, p.y);
+          }
         }
         // Cosmetic pulse only; never advances world time or spends simulation RNG.
         this.overlay.setAlpha(this.reducedMotion ? 1 : 0.93 + Math.sin(time * 0.002) * 0.06);
@@ -383,12 +390,17 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
         const locals = w.locals.filter((p) => p.id !== w.hero!.id).slice(0, 12);
         for (const [n, person] of locals.entries()) {
           const p = this.xy(5.8 + (n % 3) * 0.65, 2 + Math.floor(n / 3) * 1.6);
-          this.stamp(
+          const npcSprite = this.stamp(
             person.profession === 'soldier' ? 'soldier' : 'citizen',
             p.x,
             p.y,
             this.sx * 1.25,
           );
+          npcSprite.setInteractive({ useHandCursor: true });
+          npcSprite.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+            if (Math.hypot(pointer.x - this.down.x, pointer.y - this.down.y) <= 8)
+              current().onTalk(person.id);
+          });
         }
         const player = this.xy(7, 9);
         this.stamp('hero', player.x, player.y, this.sx * 1.65);
@@ -455,6 +467,8 @@ export function Game({ world, selected, onSelect, send, unit }: Bridge) {
             .setOrigin(0.5, 0.91)
             .setDisplaySize(size, size);
           const health = this.add.graphics();
+          if (!hero && f.side === 'player' && f.unitClass === 'archers') sprite.setTint(0x98b9a3);
+          if (!hero && f.side === 'player' && f.unitClass === 'cavalry') sprite.setTint(0xb7a5d2);
           actor.add([ring, sprite, health]);
           if (f.hp <= 0) {
             sprite

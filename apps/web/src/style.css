@@ -842,3 +842,129 @@ pre {
     transition: none !important;
   }
 }
+/* Playable services and conversations share the same palette as the game HUD. */
+fieldset {
+  border: 1px solid var(--line);
+  padding: 14px;
+  margin: 20px 0;
+  min-width: 0;
+}
+fieldset:disabled {
+  opacity: 0.55;
+}
+legend {
+  color: var(--gold);
+  padding: 0 8px;
+}
+.dialogue-window {
+  width: min(1280px, 94vw);
+  max-height: 90dvh;
+  overflow: auto;
+  color: #e5e0cd;
+  background: #111f25;
+  border: 1px solid #9b895b;
+  border-radius: 5px;
+  padding: 24px 30px;
+}
+.dialogue-window::backdrop {
+  background: #08151cbb;
+  backdrop-filter: blur(3px);
+}
+.dialogue-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.dialogue-heading button {
+  font-size: 22px;
+  padding: 5px 14px;
+}
+.dialogue-body {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.5fr);
+  gap: 38px;
+  padding-top: 26px;
+}
+.dialogue-portrait {
+  text-align: center;
+  background: #192b30;
+  border: 1px solid #3f5550;
+  border-radius: 4px;
+  padding: 24px;
+  align-self: start;
+}
+.dialogue-portrait img {
+  display: block;
+  width: min(100%, 340px);
+  margin: 15px auto;
+}
+.dialogue-body h2 {
+  color: var(--gold);
+}
+.dialogue-choices {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+.dialogue-choices button {
+  text-align: left;
+  padding: 14px 18px;
+}
+.dialogue-choices small {
+  margin-top: 6px;
+}
+.command-pending {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: #34413a;
+  color: var(--gold);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 12px;
+  pointer-events: none;
+}
+.travel-panel {
+  margin-bottom: 22px;
+}
+.place-results {
+  display: grid;
+  gap: 6px;
+  max-height: 230px;
+  overflow: auto;
+}
+.place-results button {
+  font-size: 12px;
+  text-align: left;
+}
+.trade-summary {
+  grid-column: 1/-1;
+  color: var(--muted);
+  font-size: 12px;
+}
+.bottom-nav {
+  gap: 0;
+}
+.bottom-nav button {
+  min-width: 85px;
+  padding: 12px;
+}
+@media (max-width: 760px) {
+  .dialogue-window {
+    padding: 16px;
+  }
+  .dialogue-body {
+    display: block;
+  }
+  .dialogue-portrait {
+    display: none;
+  }
+  .dialogue-body > div > h2 {
+    margin-top: 0;
+  }
+}

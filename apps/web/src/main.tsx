@@ -1,4 +1,4 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   date,
@@ -12,6 +12,7 @@ import {
 import { api, ApiError } from './api';
 import type { View } from './types';
 import './style.css';
+import { Dialogue, ArmyPanel, QuestJournal, TravelPanel, Guide, troopNames } from './play';
 import { ART } from './art';
 const artwork = (key: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ART[key]);
 const Game = lazy(() => import('./game').then((m) => ({ default: m.Game })));
@@ -27,6 +28,9 @@ const goods: Record<string, string> = {
 const raceNames = ['Человек', 'Эльф', 'Тёмный эльф', 'Орк', 'Дворф', 'Гоблин'];
 const fmt = (n: number) => Math.floor(n).toLocaleString('ru');
 function App() {
+  const sending = useRef(false);
+  const [pending, setPending] = useState(false),
+    [dialogue, setDialogue] = useState<number | null>(null);
   const [world, setWorld] = useState<View | null>(null),
     [loaded, setLoaded] = useState(false),
     [error, setError] = useState(''),
@@ -92,12 +96,33 @@ function App() {
       socket?.close();
     };
   }, [locked, authVersion]);
-  async function send(c: Command) {
-    await action(async () => setWorld(await api('/command', c)));
+  async function send(c: Command): Promise<boolean> {
+    if (sending.current) return false;
+    sending.current = true;
+    setPending(true);
+    let ok = false;
+    await action(async () => {
+      setWorld(await api('/command', c));
+      ok = true;
+    });
+    sending.current = false;
+    setPending(false);
+    return ok;
   }
+  const locate = (id: number) => {
+    setSelected(id);
+    setTab('place');
+    if (world?.player?.scene === 'settlement') void send({ type: 'leave' });
+  };
+  const talk = (id: number) => {
+    if (world?.speed) void send({ type: 'speed', value: 0 });
+    setDialogue(id);
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).matches('input,select,textarea')) return;
+      if (document.querySelector('dialog[open]')) return;
       if (e.key === 'Escape') {
         if (!menu && world?.speed) void send({ type: 'speed', value: 0 });
         setMenu((v) => !v);
@@ -153,7 +178,17 @@ function App() {
         </div>
       </div>
     );
-  if (!loaded) return <div className="entry">{error || 'Подключение к миру…'}</div>;
+  if (!loaded)
+    return (
+      <div className="entry">
+        <div>
+          <p>{error || 'Подключение к миру…'}</p>
+          {error && (
+            <button onClick={() => setAuthVersion((v) => v + 1)}>Повторить подключение</button>
+          )}
+        </div>
+      </div>
+    );
   if (menu && !newGame)
     return (
       <div className="entry title-screen">
@@ -170,7 +205,18 @@ function App() {
             Какой след оставит ваша династия?
           </p>
           <div className="title-actions">
-            <button className="primary" onClick={() => setNewGame(true)}>
+            <button
+              className="primary"
+              onClick={() => {
+                if (
+                  !world?.player ||
+                  window.confirm(
+                    'Начать новый мир? Текущее автосохранение будет заменено. Ручные слоты сохранятся.',
+                  )
+                )
+                  setNewGame(true);
+              }}
+            >
               Начать новую историю →
             </button>
             <button
@@ -293,7 +339,9 @@ function App() {
         </span>
         <span>◈ {fmt(p!.gold)} монет</span>
         <span>⚑ {army?.members.length ?? 0} бойцов</span>
-        <span>Население: {fmt(world.population.alive)}</span>
+        <span>
+          Зерно: {fmt(p!.inventory.grain)} · Отряд: {Math.floor(army?.food ?? 0)} пайков
+        </span>
       </div>
       {error && (
         <div className="error" role="alert" onClick={() => setError('')}>
@@ -303,6 +351,16 @@ function App() {
       {notice && (
         <div className="notice" onClick={() => setNotice('')}>
           {notice}
+        </div>
+      )}
+      {world.saveError && (
+        <div role="alert" className="error">
+          {world.saveError}
+        </div>
+      )}
+      {pending && (
+        <div className="command-pending" role="status">
+          Выполняется действие…
         </div>
       )}
       <main>
@@ -336,6 +394,7 @@ function App() {
               }}
               send={(c) => void send(c)}
               unit={unit}
+              onTalk={talk}
             />
           </Suspense>
           <div className="map-footer">
@@ -399,6 +458,8 @@ function App() {
                   <option value="all">Все бойцы</option>
                   <option value="infantry">Герой / пехота</option>
                   <option value="spearmen">Копейщики</option>
+                  <option value="archers">Лучники</option>
+                  <option value="cavalry">Конница</option>
                 </select>
                 <p className="muted">
                   Нажмите на поле, чтобы задать позицию выбранным бойцам. В пределах досягаемости
@@ -407,15 +468,20 @@ function App() {
                 <button
                   className="primary full"
                   disabled={world.battle.status !== 'active'}
-                  onClick={() => {
-                    const enemy = world.battle!.fighters.find(
-                      (f) => f.side === 'enemy' && f.hp > 0,
-                    );
-                    if (enemy)
-                      void send({ type: 'battle_order', x: enemy.x, y: enemy.y, unitClass: unit });
-                  }}
+                  onClick={() =>
+                    void send({ type: 'battle_tactic', tactic: 'attack', unitClass: unit })
+                  }
                 >
-                  Сблизиться с противником
+                  Атаковать
+                </button>
+                <button
+                  className="full"
+                  disabled={world.battle.status !== 'active'}
+                  onClick={() =>
+                    void send({ type: 'battle_tactic', tactic: 'hold', unitClass: unit })
+                  }
+                >
+                  Держать позицию
                 </button>
                 <button
                   className="full"
@@ -428,11 +494,24 @@ function App() {
                 <small>Погибшие бойцы — реальные жители мира. Потери сохраняются после боя.</small>
               </section>
             )}
+            {tab === 'army' && <ArmyPanel world={world} send={send} />}
+            {tab === 'quests' && <QuestJournal world={world} send={send} onLocate={locate} />}
+            {tab === 'guide' && <Guide world={world} />}
+            {tab === 'market' && (
+              <>
+                <h2>Рынок</h2>
+                {p!.scene === 'settlement' && local ? (
+                  <Trade send={send} world={world} />
+                ) : (
+                  <p>Войдите в поселение для торговли.</p>
+                )}
+              </>
+            )}
             {tab === 'history' && (
               <div className="chronicle">
                 <span className="eyebrow">ЛЕТОПИСЬ МИРА</span>
                 {world.events
-                  .slice(-5)
+                  .slice(-40)
                   .reverse()
                   .map((e) => (
                     <p key={e.id}>
@@ -444,6 +523,7 @@ function App() {
             )}
             {tab === 'place' && s && p!.scene !== 'battle' && (
               <>
+                <TravelPanel world={world} selected={selected} onSelect={locate} />
                 <span className="eyebrow">{world.states[s.state].name}</span>
                 <h2>{s.name}</h2>
                 <img
@@ -550,7 +630,27 @@ function App() {
                 {s.id === hero!.settlement && p!.scene === 'settlement' && (
                   <>
                     <h3 id="market-panel">Торговля</h3>
-                    <Trade send={send} />
+                    <Trade send={send} world={world} />
+                    <h3>Постой и работа</h3>
+                    <p className="muted">
+                      Отдых: {5 + (army?.members.length ?? 0)} монет за день. Герою и каждому бойцу
+                      нужен 1 паёк в день.
+                    </p>
+                    <div className="actions">
+                      <button onClick={() => void send({ type: 'rest', days: 1 })}>
+                        Отдохнуть день
+                      </button>
+                      <button onClick={() => void send({ type: 'rest', days: 3 })}>
+                        Отдохнуть три дня
+                      </button>
+                      <button onClick={() => void send({ type: 'work', job: 'farm' })}>
+                        Работать в поле · +10 монет / день
+                      </button>
+                      <button onClick={() => void send({ type: 'work', job: 'smith' })}>
+                        Работать в кузнице · +16 монет / день
+                      </button>
+                      <button onClick={() => setTab('army')}>Управление отрядом</button>
+                    </div>
                     <h3 id="recruit-panel">Отряд и поселение</h3>
                     <div className="actions">
                       <button onClick={() => void send({ type: 'recruit', count: 5 })}>
@@ -583,6 +683,7 @@ function App() {
                           </b>
                           <p>{q.reason}</p>
                           <span>Награда: {q.reward}◈</span>
+                          {q.objectiveMet && <p>Цель выполнена — получите награду.</p>}
                           <button
                             onClick={() =>
                               void send({
@@ -601,6 +702,7 @@ function App() {
                         <summary>
                           {person.npc?.name ?? `Житель ${person.id}`} · {person.profession}
                         </summary>
+                        <button onClick={() => talk(person.id)}>Поговорить</button>
                         <p>
                           Возраст: {Math.floor((world.day - person.born) / 360)}. Дети:{' '}
                           {person.children.length}. {person.npc?.traits.join(', ')}
@@ -716,6 +818,12 @@ function App() {
                         disabled={!saved}
                         onClick={() =>
                           void action(async () => {
+                            if (
+                              !window.confirm(
+                                'Загрузить сохранение? Несохранённые изменения текущего мира будут потеряны.',
+                              )
+                            )
+                              return;
                             const next = await api<View>(`/saves/${slot}/load`, {});
                             setWorld(next);
                             setSelected(next.hero?.settlement ?? 0);
@@ -728,7 +836,19 @@ function App() {
                     </div>
                   );
                 })}
-                <button onClick={() => setNewGame(true)}>Новая игра…</button>
+                <button
+                  onClick={() => {
+                    if (
+                      !world?.player ||
+                      window.confirm(
+                        'Начать новый мир? Текущее автосохранение будет заменено. Ручные слоты сохранятся.',
+                      )
+                    )
+                      setNewGame(true);
+                  }}
+                >
+                  Новая игра…
+                </button>
                 <p className="muted">
                   Новая игра заменяет автосохранение. Ручные слоты сохраняются.
                 </p>
@@ -791,7 +911,10 @@ function App() {
       <nav className="bottom-nav" aria-label="Разделы игры">
         {[
           ['place', 'Мир'],
-          ['hero', 'Герой и отряд'],
+          ['hero', 'Герой'],
+          ['army', 'Отряд'],
+          ['quests', 'Задания'],
+          ['guide', 'Помощь'],
           ['states', 'Державы'],
           ['history', 'Летопись'],
           ['saves', 'Сохранения'],
@@ -810,12 +933,22 @@ function App() {
           Меню
         </button>
       </nav>
+      {dialogue !== null && p!.scene === 'settlement' && (
+        <Dialogue
+          person={dialogue}
+          send={send}
+          onClose={() => setDialogue(null)}
+          onPanel={setTab}
+        />
+      )}
     </div>
   );
 }
-function Trade({ send }: { send: (c: Command) => Promise<void> }) {
+function Trade({ send, world }: { send: (c: Command) => Promise<boolean>; world: View }) {
   const [good, setGood] = useState<(typeof GOODS)[number]>('grain'),
     [quantity, setQuantity] = useState(10);
+  const price = world.settlements[world.hero!.settlement].prices[good];
+  const own = world.player!.inventory[good];
   return (
     <div className="trade">
       <select
@@ -838,11 +971,15 @@ function Trade({ send }: { send: (c: Command) => Promise<void> }) {
         onChange={(e) => setQuantity(Number(e.target.value))}
       />
       <button onClick={() => void send({ type: 'trade', side: 'buy', good, quantity })}>
-        Купить
+        Купить · {(price * quantity).toFixed(1)}◈
       </button>
       <button onClick={() => void send({ type: 'trade', side: 'sell', good, quantity })}>
-        Продать
+        Продать · {(price * quantity * 0.8).toFixed(1)}◈
       </button>
+      <p className="trade-summary">
+        У вас: {Math.floor(own)}. Монет: {world.player!.gold.toFixed(1)}. Цена продажи составляет
+        80% цены покупки.
+      </p>
     </div>
   );
 }
