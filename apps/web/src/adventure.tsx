@@ -44,6 +44,14 @@ export function Adventure({ world, send }: Props) {
         disabled={pending || !hero.alive || !!p.journey || world.battle?.status === 'active'}
       >
         <h3>Поход и осада</h3>
+        {world.sieges.some(
+          (v) => v.status === 'active' && v.settlement === s.id && v.attacker !== army.id,
+        ) &&
+          army.state === s.state && (
+            <button onClick={() => void act({ type: 'defend_siege' })}>
+              Защитить поселение · вылазка гарнизона
+            </button>
+          )}
         <p>
           Укрепления: {s.fortification}/5. При штурме они снижают получаемый защитниками урон. Осада
           блокирует все дороги поселения.
@@ -52,8 +60,19 @@ export function Adventure({ world, send }: Props) {
           <>
             <p>
               Осада {world.settlements[siege.settlement].name}: {world.day - siege.started} дн. ·
-              давление {siege.pressure}/60
+              давление {Math.floor(siege.pressure)}/60 · машин {siege.engines ?? 0}
             </p>
+            <button
+              disabled={
+                (siege.engines ?? 0) >= 3 ||
+                p.inventory.wood < 30 ||
+                p.inventory.iron < 10 ||
+                p.inventory.tools < 5
+              }
+              onClick={() => void act({ type: 'siege_engine' })}
+            >
+              Осадная машина · 30 дерева, 10 железа, 5 инструментов
+            </button>
             <button onClick={() => void act({ type: 'assault' })}>Начать штурм</button>
             <button onClick={() => void act({ type: 'lift_siege' })}>Снять осаду</button>
           </>
