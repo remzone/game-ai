@@ -7,6 +7,8 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import {
   BiographySchema,
+  conversation,
+  adult,
   command,
   createWorld,
   stepBattle,
@@ -26,9 +28,14 @@ export function worldView(w: World) {
     events: w.events.slice(-80),
     chronicles: w.chronicles.slice(-20),
     caravans: w.caravans.filter((c) => c.status === 'traveling').slice(-150),
-    quests: w.quests
-      .filter((q) => q.status === 'open' || q.status === 'accepted' || q.settlement === here)
-      .slice(-150),
+    quests: [
+      ...w.quests.filter((q) => q.status === 'accepted'),
+      ...w.quests.filter((q) => q.status !== 'accepted').slice(-150),
+    ],
+    party:
+      w.armies
+        .find((a) => a.id === w.player?.army)
+        ?.members.map((id) => ({ ...w.people[id], npc: w.npcs[id] })) ?? [],
     population: {
       total: w.people.length,
       alive: w.settlements.reduce((n, s) => n + s.population, 0),
@@ -37,7 +44,7 @@ export function worldView(w: World) {
     heirs: w.player?.heirs.map((id) => w.people[id]) ?? [],
     locals: w.settlements[here].residents
       .map((id) => w.people[id])
-      .filter((p) => p.alive)
+      .filter((p) => p.alive && adult(w, p))
       .slice(0, 20)
       .map((p) => ({ ...p, npc: w.npcs[p.id] })),
     rulers: w.states.map((s) => w.npcs[s.ruler]),
@@ -80,7 +87,7 @@ export async function createApp(
   }
   function broadcast() {
     if (!w || !clients.size) return;
-    const data = JSON.stringify(worldView(w));
+    const data = JSON.stringify({ ...worldView(w), saveError: lastError });
     for (const c of clients)
       try {
         c.send(data);
@@ -137,7 +144,7 @@ export async function createApp(
     return { ok: true };
   });
   app.get('/api/health', async () => ({ ok: true }));
-  app.get('/api/world', async () => (w ? worldView(w) : null));
+  app.get('/api/world', async () => (w ? { ...worldView(w), saveError: lastError } : null));
   app.post('/api/new', async (req) => {
     const input = z
       .object({ seed: z.string().trim().min(1).max(100), biography: BiographySchema })
@@ -152,19 +159,41 @@ export async function createApp(
       generation++;
       w = next;
       steps = 0;
+      lastError = null;
       broadcast();
-      return worldView(next);
+      return { ...worldView(next), saveError: null };
     });
   });
   app.post('/api/command', async (req, reply) =>
-    serial(() => {
+    serial(async () => {
       if (!w) return reply.code(409).send({ error: 'Создайте мир' });
       const result = command(w, req.body);
       if (!result.ok) return reply.code(400).send({ error: result.error });
+      const type = (req.body as { type?: string }).type;
+      if (!['battle_order', 'battle_tactic', 'speed', 'talk'].includes(type ?? '')) {
+        try {
+          await storage.save(0, w);
+          lastError = null;
+        } catch (error) {
+          app.log.error(error);
+          lastError =
+            'Автосохранение недоступно. Действие выполнено; сохраните мир вручную и проверьте хранилище.';
+        }
+      }
       broadcast();
-      return worldView(w);
+      return { ...worldView(w), saveError: lastError };
     }),
   );
+  app.post('/api/dialogue', async (req, reply) => {
+    const body = z.object({ person: z.number().int().nonnegative() }).strict().parse(req.body);
+    return serial(() => {
+      if (!w?.player) return reply.code(409).send({ error: 'Создайте героя' });
+      const result = command(w, { type: 'talk', person: body.person });
+      if (!result.ok) return reply.code(400).send({ error: result.error });
+      broadcast();
+      return conversation(w, body.person);
+    });
+  });
   app.get('/api/saves', async () => storage.list());
   const slot = z.coerce.number().int().min(0).max(5);
   app.post('/api/saves/:slot', async (req, reply) => {
@@ -172,6 +201,7 @@ export async function createApp(
     return serial(async () => {
       if (!w) return reply.code(409).send({ error: 'Нет мира' });
       await storage.save(n, w);
+      lastError = null;
       return { ok: true };
     });
   });
@@ -183,8 +213,9 @@ export async function createApp(
       generation++;
       w = loaded;
       steps = 0;
+      lastError = null;
       broadcast();
-      return worldView(w);
+      return { ...worldView(w), saveError: null };
     });
   });
   app.get('/api/admin', async () => ({
@@ -249,6 +280,7 @@ export async function createApp(
         const start = performance.now();
         if (w.battle?.status === 'active') {
           stepBattle(w, 0.25);
+          if (w.battle.status !== 'active') await storage.save(0, w);
         } else if (++steps % 4 === 0) {
           const days = w.speed;
           for (let i = 0; i < days; i++) {
@@ -273,7 +305,8 @@ export async function createApp(
           });
         }
       }).catch((error) => {
-        lastError = String(error);
+        lastError =
+          'Симуляция приостановлена из-за ошибки. Сохраните мир вручную и проверьте журнал сервера.';
         if (w) w.speed = 0;
         app.log.error(error);
       });

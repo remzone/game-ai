@@ -18,7 +18,7 @@ interface Snapshot extends Slot {
 export function encode(w: World) {
   const bytes = Buffer.from(JSON.stringify(w));
   return {
-    version: 1,
+    version: w.version,
     seed: w.seed,
     day: w.day,
     checksum: createHash('sha256').update(bytes).digest('hex'),
@@ -26,13 +26,26 @@ export function encode(w: World) {
   };
 }
 export function decode(s: { version: number; checksum: string; compressed: Uint8Array }): World {
-  if (s.version !== 1) throw new Error('Неподдерживаемая версия сохранения');
+  if (s.version !== 1 && s.version !== 2) throw new Error('Неподдерживаемая версия сохранения');
   const bytes = gunzipSync(s.compressed, { maxOutputLength: 1024 * 1024 * 1024 });
   if (createHash('sha256').update(bytes).digest('hex') !== s.checksum)
     throw new Error('Сохранение повреждено');
-  const w = JSON.parse(bytes.toString()) as World;
+  const raw = JSON.parse(bytes.toString());
+  if (raw.version === 1) {
+    for (const army of raw.armies ?? []) army.mounts ??= 0;
+    for (const fighter of raw.battle?.fighters ?? []) fighter.order ??= 'move';
+    for (const q of raw.quests ?? [])
+      if (
+        q.status === 'accepted' &&
+        q.type === 'hunt' &&
+        raw.settlements[q.settlement]?.monsters === 0
+      )
+        q.objectiveMet = true;
+    raw.version = 2;
+  }
+  const w = raw as World;
   if (
-    w.version !== 1 ||
+    w.version !== 2 ||
     !Array.isArray(w.people) ||
     !Array.isArray(w.settlements) ||
     !Number.isInteger(w.rng)
