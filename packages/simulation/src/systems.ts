@@ -6,6 +6,10 @@ import {
   type Settlement,
   type Army,
 } from './model.js';
+import { ecologyDay, monsterNames } from './ecology.js';
+import { polityDay } from './polity.js';
+import { campaignDay } from './campaign.js';
+import { estateProduction } from './property.js';
 import { localGovernance } from './governance.js';
 import { random, pick, integer } from './rng.js';
 import {
@@ -35,6 +39,21 @@ export function economy(w: World) {
     s.stocks.wood -= forged * 2;
     s.stocks.tools += forged * 0.6;
     s.stocks.weapons += forged * 0.4;
+    estateProduction(w, s, {
+      grain: production,
+      iron: s.workers.miner * (s.biome === 'mountain' ? 0.4 : 0),
+      weapons: forged * 0.4,
+    });
+    if (
+      w.day % 90 === 0 &&
+      s.biome === 'plains' &&
+      s.stocks.horses >= 2 &&
+      s.stocks.grain >= 20 &&
+      s.workers.farmer > 0
+    ) {
+      s.stocks.grain -= 20;
+      s.stocks.horses += Math.min(3, Math.floor(s.stocks.horses / 2));
+    }
     const needed = s.population - s.workers.soldier,
       consumed = Math.min(s.stocks.grain, needed);
     s.stocks.grain -= consumed;
@@ -53,6 +72,13 @@ export function economy(w: World) {
     w.regions[s.region].treasury += tax * 0.3;
     state.treasury += tax * 0.35;
     s.loyalty = Math.max(0, s.loyalty - Math.max(0, state.tax + s.governance.localTax - 0.2) * 2);
+    if (!state.laws.tolerance) {
+      const minority = s.residents.reduce(
+        (n, id) => n + Number(w.people[id].alive && w.people[id].faith !== state.laws.religion),
+        0,
+      );
+      s.loyalty = Math.max(0, s.loyalty - (minority / Math.max(1, s.population)) * 0.3);
+    }
     for (const good of GOODS) {
       const desired =
         good === 'grain' ? Math.max(1, s.population * 7) : Math.max(5, s.population * 0.4);
@@ -99,8 +125,27 @@ export function logistics(w: World) {
     if (c.status !== 'traveling') continue;
     const j = c.journey,
       current = w.settlements[j.route[j.leg]];
-    if (current.monsters > 0 && random(w) < Math.min(0.3, current.monsters * 0.008)) {
+    const escort = w.player?.escort?.caravan === c.id ? w.player : null;
+    const guarded =
+      !!escort &&
+      w.people[escort.person].alive &&
+      w.people[escort.person].settlement === current.id &&
+      escort.journey?.leg === j.leg &&
+      escort.journey.remaining === j.remaining;
+    if (escort?.escort && !guarded) {
+      w.settlements[c.from].treasury += escort.escort.reward;
+      escort.escort = undefined;
+    }
+    const guards = guarded ? (w.armies.find((a) => a.id === escort!.army)?.members.length ?? 0) : 0;
+    if (
+      current.monsters > 0 &&
+      random(w) < Math.min(0.3, current.monsters * 0.008) / (1 + guards)
+    ) {
       c.status = 'lost';
+      if (escort?.escort) {
+        w.settlements[c.from].treasury += escort.escort.reward;
+        escort.escort = undefined;
+      }
       event(
         w,
         'caravan_lost',
@@ -113,6 +158,14 @@ export function logistics(w: World) {
     if (advanceJourney(w, j) === 'arrived') {
       w.settlements[c.to].stocks[c.good] += c.amount;
       c.status = 'delivered';
+      if (escort?.escort) {
+        if (guarded) {
+          escort.gold += escort.escort.reward;
+          escort.reputation[`settlement:${c.to}`] =
+            (escort.reputation[`settlement:${c.to}`] ?? 0) + 10;
+        } else w.settlements[c.from].treasury += escort.escort.reward;
+        escort.escort = undefined;
+      }
       event(
         w,
         'caravan_delivered',
@@ -168,6 +221,64 @@ export function logistics(w: World) {
       break;
     }
   }
+  // Non-food supply chains share the same physical shipments and road traversal.
+  let industrialBudget = 10;
+  for (const to of w.settlements) {
+    if (!industrialBudget) break;
+    for (const good of ['iron', 'wood', 'stone', 'tools', 'weapons', 'horses'] as const) {
+      const desired = Math.max(5, to.population * 0.1);
+      if (
+        to.stocks[good] >= desired ||
+        w.caravans.some((c) => c.to === to.id && c.good === good && c.status === 'traveling')
+      )
+        continue;
+      const from = w.settlements
+        .filter(
+          (s) => s.id !== to.id && s.stocks[good] > Math.max(10, s.population * 0.5) + desired,
+        )
+        .sort(
+          (a, b) =>
+            Math.abs(a.x - to.x) +
+            Math.abs(a.y - to.y) -
+            Math.abs(b.x - to.x) -
+            Math.abs(b.y - to.y),
+        )[0];
+      if (!from) continue;
+      const path = route(w, from.id, to.id);
+      if (path.length < 2) continue;
+      const agreement = w.treaties.some(
+        (t) =>
+          t.type === 'trade' &&
+          t.until > w.day &&
+          ((t.a === from.state && t.b === to.state) || (t.b === from.state && t.a === to.state)),
+      );
+      const price = from.prices[good] * (agreement ? 0.9 : 1);
+      const amount = Math.floor(
+        Math.min(
+          desired * 2,
+          to.treasury / price,
+          from.stocks[good] - Math.max(10, from.population * 0.5),
+        ),
+      );
+      if (amount < 1) continue;
+      const paid = amount * price;
+      from.stocks[good] -= amount;
+      to.treasury -= paid;
+      from.treasury += paid;
+      w.caravans.push({
+        id: nextId(w, 'caravan'),
+        from: from.id,
+        to: to.id,
+        good,
+        amount,
+        paid,
+        journey: makeJourney(w, path),
+        status: 'traveling',
+      });
+      industrialBudget--;
+      break;
+    }
+  }
   for (const road of w.roads)
     if (road.traffic > 30 && road.days > 1) {
       const a = w.settlements[road.a];
@@ -191,6 +302,7 @@ export function demography(w: World) {
   for (let id = w.day % 30; id < populationAtStart; id += 30) {
     const p = w.people[id];
     if (!p.alive) continue;
+    p.mana = Math.min(20 + p.potential * 5, p.mana + 10);
     const s = w.settlements[p.settlement],
       age = (w.day - p.born) / 360,
       lifespan = p.ancestry.reduce((v, a, i) => v + a * [80, 260, 220, 65, 160, 50][i], 0);
@@ -229,7 +341,7 @@ export function demography(w: World) {
                   !p.children.includes(other.id) &&
                   !other.parents.some((id) => p.parents.includes(id)),
               );
-      if (father?.alive && father.settlement === p.settlement) {
+      if (father?.alive && father.sex === 'male' && father.settlement === p.settlement) {
         const child = addPerson(w, s.id, 0, blended(p.ancestry, father.ancestry), [
           p.id,
           father.id,
@@ -281,7 +393,8 @@ export function levy(w: World, settlement: number, count: number, player = false
         adult(w, p) &&
         p.profession !== 'soldier' &&
         p.id !== w.player?.person &&
-        !w.states.some((st) => st.ruler === p.id),
+        !w.states.some((st) => st.ruler === p.id) &&
+        !w.regions.some((r) => r.governor === p.id),
     );
   const n = Math.min(
     count,
@@ -292,6 +405,7 @@ export function levy(w: World, settlement: number, count: number, player = false
   const members = candidates.slice(0, n);
   for (const p of members) {
     p.homeProfession = p.profession;
+    p.unitClass = undefined;
     profession(w, p, 'soldier');
   }
   s.stocks.weapons -= n;
@@ -312,7 +426,10 @@ export function levy(w: World, settlement: number, count: number, player = false
 export function supply(w: World) {
   for (const a of w.armies) {
     a.members = a.members.filter((id) => w.people[id].alive);
-    a.mounts = Math.min(a.mounts ?? 0, a.members.length);
+    a.mounts = Math.min(
+      a.mounts ?? 0,
+      a.members.filter((id) => (w.people[id].unitClass ?? a.unitClass) === 'cavalry').length,
+    );
     if (!a.members.length) continue;
     const moving = a.player && w.player?.journey;
     const s = w.settlements[a.settlement];
@@ -323,7 +440,7 @@ export function supply(w: World) {
       );
       w.player.inventory.grain -= take;
       a.food += take;
-    } else if (!moving) {
+    } else if (!moving && !a.journey && s.state === a.state) {
       const take = Math.min(Math.max(0, a.members.length * 7 - a.food), s.stocks.grain);
       s.stocks.grain -= take;
       a.food += take;
@@ -337,7 +454,8 @@ export function supply(w: World) {
       a.morale = Math.max(0, a.morale - 10);
       if (a.morale < 30) {
         const id = a.members.pop()!;
-        if (a.unitClass === 'cavalry') a.mounts = Math.max(0, (a.mounts ?? 0) - 1);
+        if ((w.people[id].unitClass ?? a.unitClass) === 'cavalry')
+          a.mounts = Math.max(0, (a.mounts ?? 0) - 1);
         profession(w, w.people[id], w.people[id].homeProfession ?? 'farmer');
         event(w, 'desertion', `Солдат ${id} покинул голодный отряд.`, [`person:${id}`, a.id]);
       }
@@ -346,28 +464,8 @@ export function supply(w: World) {
 }
 export function politics(w: World) {
   localGovernance(w);
+  polityDay(w);
   for (const s of w.states) {
-    if (!w.people[s.ruler]?.alive) {
-      const previous = w.people[s.ruler];
-      const successor =
-        previous?.children
-          .map((id) => w.people[id])
-          .filter((p) => p.alive && adult(w, p) && p.state === s.id)
-          .sort((a, b) => a.born - b.born)[0] ??
-        w.people.find((p) => p.alive && p.state === s.id && adult(w, p));
-      if (successor) {
-        s.ruler = successor.id;
-        promote(w, successor.id).titles.push('Правитель');
-        s.legitimacy = Math.max(30, s.legitimacy - 15);
-        event(
-          w,
-          'succession',
-          `${s.name}: власть перешла к ${w.npcs[successor.id].name}.`,
-          [`person:${successor.id}`, `state:${s.id}`],
-          true,
-        );
-      }
-    }
     if (w.day % 30 !== 0) continue;
     const towns = w.settlements.filter((t) => t.state === s.id);
     if (!towns.length) continue;
@@ -391,6 +489,15 @@ export function politics(w: World) {
         w.settlements[border.a].state === s.id ? w.settlements[border.a] : w.settlements[border.b],
       target =
         w.settlements[border.a].state === s.id ? w.settlements[border.b] : w.settlements[border.a];
+    if (
+      w.treaties.some(
+        (t) =>
+          t.until > w.day &&
+          ['peace', 'alliance'].includes(t.type) &&
+          ((t.a === s.id && t.b === target.state) || (t.b === s.id && t.a === target.state)),
+      )
+    )
+      continue;
     const troops = levy(w, source.id, 8);
     if (troops.members.length < 3) {
       for (const id of troops.members)
@@ -424,6 +531,13 @@ export function politics(w: World) {
     );
   }
   for (const war of w.wars.filter((v) => v.active)) {
+    if (
+      war.campaign ||
+      w.sieges.some(
+        (s) => s.status === 'active' && w.armies.find((a) => a.id === s.attacker)?.state === war.a,
+      )
+    )
+      continue;
     if (w.day % 7 !== 0) continue;
     const a = w.armies.find((a) => !a.player && a.state === war.a && a.members.length),
       b = w.armies.find(
@@ -496,7 +610,7 @@ export function quests(w: World) {
       reason:
         type === 'deliver'
           ? `Нехватка еды уже ${s.shortageDays} дней`
-          : `В окрестностях ${s.monsters} волков`,
+          : `В окрестностях: ${monsterNames[s.monsterKind]} — ${s.monsters}`,
     });
   }
 }
@@ -518,6 +632,7 @@ export function tickDay(w: World) {
   demography(w);
   supply(w);
   politics(w);
+  campaignDay(w);
   const p = w.player;
   if (p?.journey && w.people[p.person].alive) {
     const result = advanceJourney(w, p.journey);
@@ -539,8 +654,6 @@ export function tickDay(w: World) {
       event(w, 'route_blocked', 'Путь перекрыт войной. Выберите другой маршрут.');
     }
   }
-  if (w.day % 30 === 0)
-    for (const s of w.settlements)
-      if (s.monsters > 0 && s.monsters < 20 && random(w) < 0.35) s.monsters++;
+  ecologyDay(w);
   quests(w);
 }

@@ -8,6 +8,7 @@ import {
   type Ancestry,
   type GameEvent,
 } from './model.js';
+import { initializeExpansion } from './expansion-state.js';
 import { seedHash, integer, pick, random } from './rng.js';
 export function nextId(w: World, prefix: string): string {
   return `${prefix}${w.nextId++}`;
@@ -79,6 +80,22 @@ export function addPerson(
     state: s.state,
     wealth: integer(w, 0, 20),
     experience: 0,
+    potential: parents.length
+      ? Math.max(
+          0,
+          Math.min(
+            20,
+            Math.round(
+              parents.reduce((n, id) => n + w.people[id].potential, 0) / parents.length +
+                integer(w, -1, 1),
+            ),
+          ),
+        )
+      : (Math.imul(w.people.length + 1, 2654435761) >>> 0) % 100 < 5
+        ? 8
+        : w.people.length % 3,
+    mana: 20,
+    faith: parents.length ? w.people[parents[0]].faith : s.state % 3,
   };
   w.people.push(p);
   s.residents.push(p.id);
@@ -104,7 +121,7 @@ export function death(w: World, p: Person, reason: string) {
 }
 export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
   const w: World = {
-    version: 3,
+    version: 4,
     seed,
     rng: seedHash(seed),
     nextId: 1,
@@ -133,6 +150,11 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
       lastDay: -30,
     },
     directorLogs: [],
+    estates: [],
+    sieges: [],
+    treaties: [],
+    religions: [],
+    organizations: [],
   };
   const colors = [
     '#b77858',
@@ -170,6 +192,10 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
       legitimacy: 75,
       tax: 0.12,
       treasury: 3000,
+      electionDay: 360,
+      unrestDays: 0,
+      ballots: [],
+      laws: { inheritance: i < 3 ? 'eldest' : 'equal', tolerance: true, religion: i % 3 },
       claims: [],
       relations: Object.fromEntries(
         Array.from({ length: 10 }, (_, j) => [j, j === i ? 100 : integer(w, -15, 25)]),
@@ -184,6 +210,7 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
         name: `Марка ${region + 1}`,
         capital: w.settlements.length,
         treasury: 0,
+        governor: null,
       });
       for (let v = 0; v < 6; v++) {
         const id = w.settlements.length,
@@ -216,10 +243,21 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
           prices: { ...BASE_PRICES },
           treasury: 1000,
           loyalty: 80,
+          fortification: v === 0 ? 2 : 0,
+          occupation: null,
           governance: { steward: null, localTax: 0, unrestDays: 0, eligibleDay: 0 },
           infrastructure: 1,
           shortageDays: 0,
-          monsters: id % 17 === 0 ? integer(w, 3, 7) : 0,
+          monsterKind:
+            id > 0 && id % 97 === 0
+              ? 'dragon'
+              : id > 0 && id % 53 === 0
+                ? 'troll'
+                : id % 5 === 0 && id > 0
+                  ? 'spider'
+                  : 'wolf',
+          monsters:
+            id > 0 && (id % 97 === 0 || id % 53 === 0) ? 1 : id % 17 === 0 ? integer(w, 3, 7) : 0,
         });
       }
     }
@@ -265,6 +303,7 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
     s.ruler = w.settlements[s.capital].residents[0];
     promote(w, s.ruler).titles.push('Правитель');
   }
+  initializeExpansion(w);
   event(
     w,
     'foundation',
@@ -287,7 +326,7 @@ export function movePerson(w: World, p: Person, to: number) {
   }
   s.residents.push(p.id);
   p.settlement = to;
-  p.state = s.state;
+  if (p.profession !== 'soldier') p.state = s.state;
 }
 export function route(w: Pick<World, 'roads'>, from: number, to: number): number[] {
   const distance = new Map<number, number>([[from, 0]]),

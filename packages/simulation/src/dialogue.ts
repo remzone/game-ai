@@ -1,3 +1,4 @@
+import { monsterNames } from './ecology.js';
 import type { World } from './model.js';
 import type { Command } from './commands.js';
 export interface Conversation {
@@ -31,7 +32,9 @@ export function conversation(w: World, id: number): Conversation {
   const role = w.states.some((st) => st.ruler === id) ? 'Правитель' : jobs[person.profession];
   const lines = [`Меня зовут ${npc.name}. Я живу в ${s.name}.`];
   if (s.monsters > 0)
-    lines.push(`В окрестностях ${s.monsters} волков. Караваны рискуют потерять груз.`);
+    lines.push(
+      `В окрестностях: ${monsterNames[s.monsterKind]} — ${s.monsters}. Караваны рискуют потерять груз.`,
+    );
   if (s.shortageDays > 0)
     lines.push(
       `Не хватает еды уже ${s.shortageDays} дней. Зерно стоит ${s.prices.grain.toFixed(1)} монеты.`,
@@ -60,7 +63,7 @@ export function conversation(w: World, id: number): Conversation {
     if (q.status === 'accepted' && !ready) {
       lines.push(
         q.type === 'hunt'
-          ? 'Вы уже обещали помочь с волками. Мы ждём новостей.'
+          ? 'Вы уже обещали устранить угрозу. Мы ждём новостей.'
           : `По вашему контракту нужно привезти ${q.need} зерна.`,
       );
       continue;
@@ -69,7 +72,7 @@ export function conversation(w: World, id: number): Conversation {
       label:
         q.status === 'open'
           ? q.type === 'hunt'
-            ? 'Я возьмусь за волков.'
+            ? 'Я возьмусь за опасных существ.'
             : `Я привезу ${q.need} зерна.`
           : 'Я выполнил контракт. Вот результат.',
       detail: `Награда: ${q.reward} монет`,

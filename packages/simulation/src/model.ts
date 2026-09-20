@@ -24,6 +24,10 @@ export interface Person {
   experience: number;
   spouse?: number;
   lastBirth?: number;
+  unitClass?: UnitClass;
+  potential: number;
+  mana: number;
+  faith: number;
 }
 export interface NPC {
   person: number;
@@ -33,6 +37,9 @@ export interface NPC {
   memory: string[];
   titles: string[];
   relationships: Record<number, number>;
+  possessions?: Stocks;
+  skills?: Record<string, number>;
+  recognizedHeirs?: number[];
 }
 export interface Settlement {
   id: number;
@@ -53,7 +60,10 @@ export interface Settlement {
   loyalty: number;
   infrastructure: number;
   shortageDays: number;
+  monsterKind: 'wolf' | 'spider' | 'troll' | 'dragon';
   monsters: number;
+  fortification: number;
+  occupation: { state: number; until: number } | null;
   governance: { steward: number | null; localTax: number; unrestDays: number; eligibleDay: number };
 }
 export interface State {
@@ -69,8 +79,13 @@ export interface State {
   treasury: number;
   claims: number[];
   relations: Record<number, number>;
+  electionDay: number;
+  unrestDays: number;
+  laws: { inheritance: 'equal' | 'eldest'; tolerance: boolean; religion: number };
+  ballots: { elector: number; candidate: number }[];
 }
 export interface Region {
+  governor: number | null;
   id: number;
   state: number;
   name: string;
@@ -110,8 +125,11 @@ export interface Army {
   morale: number;
   player: boolean;
   mounts?: number;
+  journey?: Journey;
+  commander?: number;
 }
 export interface War {
+  campaign?: boolean;
   id: string;
   a: number;
   b: number;
@@ -159,6 +177,7 @@ export interface Player {
   title: string;
   army: string;
   biography: Record<string, string>;
+  escort?: { caravan: string; reward: number };
   journey?: Journey;
   visited: number[];
   scene: 'world' | 'settlement' | 'battle';
@@ -185,6 +204,8 @@ export interface Battle {
   fighters: Fighter[];
   status: 'active' | 'victory' | 'defeat' | 'retreated';
   elapsed: number;
+  enemyArmy?: string;
+  siege?: string;
 }
 export interface DirectorSettings {
   enabled: boolean;
@@ -203,7 +224,7 @@ export interface DirectorLog {
   reason: string;
 }
 export interface World {
-  version: 3;
+  version: 4;
   seed: string;
   rng: number;
   nextId: number;
@@ -225,6 +246,11 @@ export interface World {
   battle: Battle | null;
   director: DirectorSettings;
   directorLogs: DirectorLog[];
+  estates: Estate[];
+  sieges: Siege[];
+  treaties: Treaty[];
+  religions: { id: number; name: string; doctrine: string }[];
+  organizations: { id: string; name: string; state: number; leader: number; members: number[] }[];
 }
 export const emptyStocks = (): Stocks => ({
   grain: 0,
@@ -258,4 +284,31 @@ export function season(day: number): string {
 }
 export function date(day: number): string {
   return `${(day % 30) + 1}.${Math.floor((day % 360) / 30) + 1}.${Math.floor(day / 360) + 1}`;
+}
+
+export interface Estate {
+  id: string;
+  settlement: number;
+  owner: number;
+  kind: 'farm' | 'mine' | 'workshop';
+  workers: number[];
+  stocks: Stocks;
+  treasury: number;
+}
+export interface Siege {
+  id: string;
+  settlement: number;
+  attacker: string;
+  defender: string;
+  started: number;
+  status: 'active' | 'captured' | 'lifted';
+  pressure: number;
+  blockedRoads: { a: number; b: number }[];
+}
+export interface Treaty {
+  id: string;
+  a: number;
+  b: number;
+  type: 'peace' | 'alliance' | 'trade' | 'access';
+  until: number;
 }

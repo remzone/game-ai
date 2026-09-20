@@ -6,3 +6,7 @@ export * from './commands.js';
 export * from './combat.js';
 export * from './director.js';
 export * from './dialogue.js';
+export * from './expansion-state.js';
+export * from './polity.js';
+export * from './campaign.js';
+export * from './ecology.js';

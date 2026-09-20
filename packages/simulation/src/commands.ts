@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ExpansionSchemas, expansionCommand } from './expansion-commands.js';
 import { officeTitle, revokeOffice } from './governance.js';
 import { GOODS, RACES, emptyStocks, type World, type Ancestry } from './model.js';
 import { addPerson, event, makeJourney, nextId, profession, promote, route } from './world.js';
@@ -21,6 +22,7 @@ export const BiographySchema = z
   })
   .strict();
 export const CommandSchema = z.discriminatedUnion('type', [
+  ...ExpansionSchemas,
   z.object({ type: z.literal('create_player'), biography: BiographySchema }).strict(),
   z
     .object({
@@ -99,6 +101,7 @@ function ensure(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
 function apply(w: World, c: Command) {
+  if (expansionCommand(w, c)) return;
   if (c.type === 'create_player') {
     ensure(!w.player, 'Персонаж уже создан');
     const b = c.biography,
@@ -149,7 +152,7 @@ function apply(w: World, c: Command) {
         intelligence: b.childhood === 'books' ? 12 : 10,
         charisma: b.origin === 'nobles' ? 12 : 10,
         willpower: b.reason === 'duty' ? 12 : 10,
-        magicalPotential: b.race === 'Elf' ? 5 : 1,
+        magicalPotential: hero.potential,
       },
       reputation: { [`settlement:${s.id}`]: b.turningPoint === 'rescue' ? 10 : 0 },
       legitimacy: 0,
@@ -179,16 +182,48 @@ function apply(w: World, c: Command) {
     ensure(p.heirs.includes(c.person), 'Это не наследник');
     const heir = w.people[c.person];
     ensure(heir?.alive && adult(w, heir), 'Наследник должен быть живым и взрослым');
-    const heirs = p.heirs.filter((id) => w.people[id].alive),
-      share = heirs.length;
-    for (const id of heirs) if (id !== heir.id) w.people[id].wealth += p.gold / share;
-    p.gold /= share;
-    for (const g of GOODS) p.inventory[g] /= share;
+    const heirs = p.heirs
+      .map((id) => w.people[id])
+      .filter((q) => q?.alive)
+      .sort((a, b) => a.born - b.born || a.id - b.id);
+    const law = w.states[person.state]?.laws.inheritance ?? 'equal';
+    const recipients = law === 'eldest' ? heirs.slice(0, 1) : heirs;
+    const oldNpc = promote(w, person.id);
+    oldNpc.skills = { ...p.skills };
+    for (const recipient of recipients) {
+      recipient.wealth += p.gold / recipients.length;
+      const npc = promote(w, recipient.id);
+      npc.possessions ??= emptyStocks();
+      for (const g of GOODS) npc.possessions[g] += p.inventory[g] / recipients.length;
+    }
+    w.estates
+      .filter((e) => e.owner === person.id)
+      .forEach((e, i) => {
+        e.owner = recipients[i % recipients.length].id;
+      });
+    const heirNpc = promote(w, heir.id);
+    p.gold = heir.wealth;
+    heir.wealth = 0;
+    p.inventory = { ...(heirNpc.possessions ?? emptyStocks()) };
+    heirNpc.possessions = emptyStocks();
+    p.skills = {
+      ...(heirNpc.skills ?? { melee: 1, trade: 1, medicine: 1, command: 1, diplomacy: 1 }),
+    };
+    p.attributes = {
+      strength: 10,
+      agility: 10,
+      endurance: 10,
+      intelligence: 10,
+      charisma: 10,
+      willpower: 10,
+      magicalPotential: heir.potential,
+    };
     p.person = heir.id;
     p.name = promote(w, heir.id).name;
-    p.heirs = [...heir.children];
+    p.heirs = [...new Set([...heir.children, ...(heirNpc.recognizedHeirs ?? [])])];
     p.gameOver = false;
-    p.title = 'Наследник';
+    const realm = w.states.find((s) => s.ruler === heir.id);
+    p.title = realm ? `Правитель ${realm.name}` : 'Наследник';
     p.legitimacy *= 0.5;
     for (const key of Object.keys(p.reputation)) p.reputation[key] *= 0.3;
     p.scene = 'world';
@@ -266,6 +301,10 @@ function apply(w: World, c: Command) {
     return;
   }
   if (c.type === 'enter') {
+    ensure(
+      !w.sieges.some((v) => v.status === 'active' && v.settlement === s.id),
+      'Поселение в осаде: доступен штурм или снятие блокады',
+    );
     p.scene = 'settlement';
     for (const id of s.residents.filter((id) => w.people[id].alive).slice(0, 12)) promote(w, id);
     return;
@@ -346,12 +385,15 @@ function apply(w: World, c: Command) {
   }
   if (c.type === 'train') {
     ensure(army.members.length > 0, 'Нет бойцов для обучения');
-    ensure(army.unitClass !== c.unitClass, 'Отряд уже обучен этому классу');
+    ensure(
+      army.members.some((id) => (w.people[id].unitClass ?? army.unitClass) !== c.unitClass),
+      'Отряд уже обучен этому классу',
+    );
     const cost = army.members.length * (c.unitClass === 'cavalry' ? 25 : 10);
     ensure(p.gold >= cost, `Нужно ${cost} монет на обучение`);
     if (c.unitClass === 'cavalry')
       ensure(
-        p.inventory.horses >= army.members.length,
+        p.inventory.horses + (army.mounts ?? 0) >= army.members.length,
         'Нужна одна лошадь из инвентаря на каждого бойца',
       );
     p.gold -= cost;
@@ -360,6 +402,7 @@ function apply(w: World, c: Command) {
     army.mounts = c.unitClass === 'cavalry' ? army.members.length : 0;
     p.inventory.horses -= army.mounts;
     army.unitClass = c.unitClass;
+    for (const id of army.members) w.people[id].unitClass = undefined;
     event(w, 'training', `${p.name} переобучил отряд: ${c.unitClass}.`, [army.id]);
     return;
   }
@@ -404,7 +447,8 @@ function apply(w: World, c: Command) {
         q.alive &&
         adult(w, q) &&
         q.profession !== 'soldier' &&
-        !w.states.some((st) => st.ruler === id)
+        !w.states.some((st) => st.ruler === id) &&
+        !w.regions.some((r) => r.governor === id)
       );
     });
     ensure(eligible.length >= c.count, 'Недостаточно взрослых жителей для набора');
