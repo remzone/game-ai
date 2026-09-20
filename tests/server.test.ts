@@ -50,6 +50,29 @@ it('smoke: new game → settlement → trade → recruit → save → load, with
     });
     expect(dialogue.statusCode).toBe(200);
     expect(dialogue.json().choices.length).toBeGreaterThan(0);
+    expect(dialogue.json().choices.some((c: any) => c.panel === 'states')).toBe(true);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/api/command',
+          payload: { type: 'local_tax', value: 0.2 },
+        })
+      ).statusCode,
+    ).toBe(400);
+    const relief = await app.inject({
+      method: 'POST',
+      url: '/api/command',
+      payload: { type: 'relief', quantity: 10 },
+    });
+    expect(relief.statusCode).toBe(200);
+    expect(relief.json().player.inventory.grain).toBe(current.player.inventory.grain - 10);
+    expect(relief.json().settlements[0].stocks.grain).toBe(
+      current.settlements[0].stocks.grain + 10,
+    );
+    const autosave = await new FileStorage(dir).load(0);
+    expect(autosave.version).toBe(3);
+    expect(autosave.player!.inventory.grain).toBe(relief.json().player.inventory.grain);
     expect(
       (await app.inject({ method: 'POST', url: '/api/dialogue', payload: { person: 999999999 } }))
         .statusCode,
