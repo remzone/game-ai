@@ -14,6 +14,7 @@ import type { View } from './types';
 import './style.css';
 import { Dialogue, ArmyPanel, QuestJournal, TravelPanel, Guide, troopNames } from './play';
 import { ART } from './art';
+import { GovernancePanel } from './governance';
 const artwork = (key: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ART[key]);
 const Game = lazy(() => import('./game').then((m) => ({ default: m.Game })));
 const goods: Record<string, string> = {
@@ -760,6 +761,7 @@ function App() {
             )}
             {tab === 'states' && (
               <>
+                <GovernancePanel world={world} send={send} />
                 <h2>Державы</h2>
                 {world.states.map((state) => (
                   <details key={state.id}>
