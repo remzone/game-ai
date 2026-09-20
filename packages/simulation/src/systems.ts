@@ -498,15 +498,6 @@ export function politics(w: World) {
       )
     )
       continue;
-    const troops = levy(w, source.id, 8);
-    if (troops.members.length < 3) {
-      for (const id of troops.members)
-        profession(w, w.people[id], w.people[id].homeProfession ?? 'farmer');
-      source.stocks.weapons += troops.members.length;
-      source.stocks.grain += troops.food;
-      w.armies = w.armies.filter((a) => a !== troops);
-      continue;
-    }
     const reason = `Голод в ${starving.name}, спор за продовольствие ${target.name}`;
     s.claims.push(target.id);
     s.relations[target.state] = -80;
@@ -519,9 +510,8 @@ export function politics(w: World) {
       reason,
       started: w.day,
       active: true,
+      campaign: true,
     });
-    levy(w, target.id, 8);
-    border.blocked = true;
     event(
       w,
       'war',

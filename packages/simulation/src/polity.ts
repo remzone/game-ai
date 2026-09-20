@@ -191,9 +191,31 @@ export function polityDay(w: World) {
             id !== w.states[r.state].ruler,
         ) ?? null;
     }
-  for (const t of w.settlements)
-    if (t.occupation && w.day >= t.occupation.until)
-      transferSettlement(w, t.id, t.occupation.state);
+  for (const t of w.settlements) {
+    if (!t.occupation) continue;
+    const occupier = t.occupation.state;
+    if (w.settlements[w.regions[t.region].capital].state !== occupier) {
+      t.occupation = null;
+      continue;
+    }
+    if (w.day < t.occupation.until) continue;
+    const defenders = w.armies
+      .filter((a) => a.state === t.state && a.settlement === t.id)
+      .reduce((n, a) => n + a.members.filter((id) => w.people[id].alive).length, 0);
+    const occupiers = w.armies
+      .filter((a) => a.state === occupier && a.settlement === t.id)
+      .reduce((n, a) => n + a.members.filter((id) => w.people[id].alive).length, 0);
+    if (defenders > 0 || t.loyalty >= 60) {
+      t.occupation.until = w.day + 7;
+      if (!defenders && occupiers >= 5) t.loyalty = Math.max(0, t.loyalty - 5);
+      event(
+        w,
+        'resistance',
+        `${t.name}: жители сохраняют верность прежней державе${defenders ? ', гарнизон удерживает поселение' : ''}.`,
+        [`settlement:${t.id}`, `state:${t.state}`, `state:${occupier}`],
+      );
+    } else transferSettlement(w, t.id, occupier);
+  }
   for (const s of [...w.states]) {
     const towns = w.settlements.filter((t) => t.state === s.id);
     if (!towns.length) continue;

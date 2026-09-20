@@ -206,6 +206,7 @@ export interface Battle {
   elapsed: number;
   enemyArmy?: string;
   siege?: string;
+  defending?: boolean;
 }
 export interface DirectorSettings {
   enabled: boolean;
@@ -296,6 +297,7 @@ export interface Estate {
   treasury: number;
 }
 export interface Siege {
+  engines?: number;
   id: string;
   settlement: number;
   attacker: string;

@@ -11,17 +11,24 @@ const stats: Record<UnitClass, { range: number; damage: number; speed: number }>
   cavalry: { range: 1.7, damage: 16, speed: 2.8 },
   mages: { range: 6, damage: 22, speed: 1.1 },
 };
-export function startBattle(w: World, enemyArmy?: string, siege?: string) {
+export function startBattle(w: World, enemyArmy?: string, siege?: string, defending = false) {
   const p = w.player!,
     at = w.people[p.person].settlement,
     s = w.settlements[at],
     army = w.armies.find((a) => a.id === p.army)!;
-  const people = [p.person, ...army.members];
+  const garrison = defending
+    ? w.armies.find((a) => a.id === w.sieges.find((v) => v.id === siege)?.defender)
+    : undefined;
+  const people = [...new Set([p.person, ...army.members, ...(garrison?.members ?? [])])];
   const fighters: Fighter[] = people.map((id, i) => ({
     id: `person:${id}`,
     person: id,
     side: 'player',
-    unitClass: id === p.person ? 'infantry' : (w.people[id].unitClass ?? army.unitClass),
+    unitClass:
+      id === p.person
+        ? 'infantry'
+        : (w.people[id].unitClass ??
+          (garrison?.members.includes(id) ? garrison.unitClass : army.unitClass)),
     hp: w.people[id].health,
     maxHp: 100,
     x: 1 + (i % 8) * 0.6,
@@ -69,6 +76,7 @@ export function startBattle(w: World, enemyArmy?: string, siege?: string) {
     elapsed: 0,
     enemyArmy,
     siege,
+    defending,
   };
   p.scene = 'battle';
   w.speed = 1;
@@ -115,7 +123,13 @@ export function finishBattle(w: World, result: 'victory' | 'defeat' | 'retreated
     const enemy = w.armies.find((a) => a.id === b.enemyArmy);
     if (enemy) enemy.members = enemy.members.filter((id) => w.people[id].alive);
     const siege = w.sieges.find((s) => s.id === b.siege);
-    if (siege) endSiege(w, siege, result === 'victory');
+    if (siege) {
+      const garrison = w.armies.find((a) => a.id === siege.defender);
+      if (garrison) garrison.members = garrison.members.filter((id) => w.people[id].alive);
+      if (b.defending && result === 'victory' && enemy) enemy.morale = 10;
+      if (!b.defending || result !== 'retreated')
+        endSiege(w, siege, b.defending ? result === 'defeat' : result === 'victory');
+    }
   }
   if (!w.people[p.person].alive) {
     p.gameOver = !p.heirs.some((id) => w.people[id]?.alive && adult(w, w.people[id]));
@@ -174,7 +188,7 @@ export function stepBattle(w: World, dt = 0.25) {
             race *
             experience *
             skill *
-            (target.side === 'enemy' && b.siege
+            (target.side === (b.defending ? 'player' : 'enemy') && b.siege
               ? 1 / (1 + w.settlements[b.settlement].fortification * 0.15)
               : 1) *
             (0.85 + random(w) * 0.3),

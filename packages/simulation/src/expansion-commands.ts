@@ -4,7 +4,7 @@ import { promote, event } from './world.js';
 import { nextId, makeJourney, route, movePerson } from './world.js';
 import { adult, levy, tickDay } from './systems.js';
 import { governments, succession, crown } from './polity.js';
-import { endSiege } from './campaign.js';
+import { endSiege, beginSiege, militaryRoute } from './campaign.js';
 import { startBattle } from './combat.js';
 const id = z.number().int().nonnegative();
 export const ExpansionSchemas = [
@@ -57,6 +57,8 @@ export const ExpansionSchemas = [
   z.object({ type: z.literal('march'), army: z.string().max(80), settlement: id }).strict(),
   z.object({ type: z.literal('besiege') }).strict(),
   z.object({ type: z.literal('assault') }).strict(),
+  z.object({ type: z.literal('defend_siege') }).strict(),
+  z.object({ type: z.literal('siege_engine') }).strict(),
   z.object({ type: z.literal('lift_siege') }).strict(),
   z.object({ type: z.literal('fortify') }).strict(),
   z.object({ type: z.literal('buy_estate'), kind: z.enum(['farm', 'mine', 'workshop']) }).strict(),
@@ -119,10 +121,36 @@ export function expansionCommand(w: World, input: unknown): boolean {
   const siege = w.sieges.find(
     (v) => v.status === 'active' && v.attacker === a.id && v.settlement === s.id,
   );
+  if (c.type === 'defend_siege') {
+    const blockade = w.sieges.find((v) => v.status === 'active' && v.settlement === s.id);
+    const attacker = w.armies.find((v) => v.id === blockade?.attacker);
+    ensure(
+      blockade && attacker && a.state === s.state && attacker.state !== a.state,
+      'Нужна осада поселения вашей державы',
+    );
+    startBattle(w, attacker.id, blockade.id, true);
+    return true;
+  }
   if (c.type === 'lift_siege' || c.type === 'assault') {
     ensure(siege, 'Вы не ведёте здесь осаду');
     if (c.type === 'lift_siege') endSiege(w, siege, false);
     else startBattle(w, siege.defender, siege.id);
+    return true;
+  }
+  if (c.type === 'siege_engine') {
+    ensure(siege && (siege.engines ?? 0) < 3, 'Нужна активная осада; максимум 3 машины');
+    ensure(
+      a.members.length >= 5 &&
+        p.inventory.wood >= 30 &&
+        p.inventory.iron >= 10 &&
+        p.inventory.tools >= 5,
+      'Нужны 5 бойцов, 30 дерева, 10 железа и 5 инструментов',
+    );
+    p.inventory.wood -= 30;
+    p.inventory.iron -= 10;
+    p.inventory.tools -= 5;
+    siege.engines = (siege.engines ?? 0) + 1;
+    event(w, 'siege_engine', `${p.name}: построена осадная машина у ${s.name}.`, [siege.id], true);
     return true;
   }
   if (c.type === 'besiege') {
@@ -142,26 +170,7 @@ export function expansionCommand(w: World, input: unknown): boolean {
       ),
       'Здесь уже осада или ваш отряд занят',
     );
-    const defender = levy(w, s.id, Math.min(30, 5 + s.fortification * 5));
-    const blockedRoads = w.roads.filter((r) => !r.blocked && (r.a === s.id || r.b === s.id));
-    for (const r of blockedRoads) r.blocked = true;
-    w.sieges.push({
-      id: nextId(w, 'siege'),
-      settlement: s.id,
-      attacker: a.id,
-      defender: defender.id,
-      started: w.day,
-      status: 'active',
-      pressure: 0,
-      blockedRoads: blockedRoads.map(({ a, b }) => ({ a, b })),
-    });
-    event(
-      w,
-      'siege_start',
-      `${p.name} блокировал дороги ${s.name}.`,
-      [`settlement:${s.id}`, `state:${a.state}`],
-      true,
-    );
+    beginSiege(w, a);
     w.speed = 0;
     p.scene = 'world';
     return true;
@@ -532,17 +541,12 @@ export function expansionCommand(w: World, input: unknown): boolean {
       'Армия уже идёт или цель недоступна',
     );
     ensure(
-      target.state === army.state ||
-        w.treaties.some(
-          (t) =>
-            t.until > w.day &&
-            ['access', 'alliance'].includes(t.type) &&
-            ((t.a === army.state && t.b === target.state) ||
-              (t.b === army.state && t.a === target.state)),
-        ),
-      'Нет права прохода',
+      !w.sieges.some(
+        (v) => v.status === 'active' && (v.attacker === army.id || v.defender === army.id),
+      ),
+      'Армия занята осадой',
     );
-    const path = route(w, army.settlement, target.id);
+    const path = militaryRoute(w, army.state, army.settlement, target.id);
     ensure(path.length > 1, 'Дорога закрыта');
     army.journey = makeJourney(w, path);
   } else if (c.type === 'fortify') {
