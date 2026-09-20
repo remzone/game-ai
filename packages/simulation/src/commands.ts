@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { officeTitle, revokeOffice } from './governance.js';
 import { GOODS, RACES, emptyStocks, type World, type Ancestry } from './model.js';
 import { addPerson, event, makeJourney, nextId, profession, promote, route } from './world.js';
 import { adult, levy, quests, tickDay } from './systems.js';
@@ -74,6 +75,11 @@ export const CommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('marry'), person: id }).strict(),
   z.object({ type: z.literal('inherit'), person: id }).strict(),
   z.object({ type: z.literal('petition') }).strict(),
+  z.object({ type: z.literal('seek_office') }).strict(),
+  z.object({ type: z.literal('resign_office') }).strict(),
+  z.object({ type: z.literal('local_tax'), value: z.number().min(0).max(0.2) }).strict(),
+  z.object({ type: z.literal('public_build') }).strict(),
+  z.object({ type: z.literal('relief'), quantity: z.number().int().min(1).max(500) }).strict(),
   z.object({ type: z.literal('build') }).strict(),
   z.object({ type: z.literal('tax'), value: z.number().min(0).max(0.6) }).strict(),
 ]);
@@ -489,16 +495,107 @@ function apply(w: World, c: Command) {
     );
     return;
   }
+  if (c.type === 'seek_office') {
+    ensure(s.governance.steward === null, 'В поселении уже есть управляющий');
+    ensure(
+      w.day >= s.governance.eligibleDay,
+      `Совет рассмотрит назначение с дня ${s.governance.eligibleDay}`,
+    );
+    ensure((p.reputation[`settlement:${s.id}`] ?? 0) >= 60, 'Нужна местная репутация 60');
+    ensure(
+      w.npcs[p.person]?.titles.includes(`Защитник ${s.name}`),
+      'Сначала получите признание защитником',
+    );
+    ensure(army.members.length >= 5, 'Нужен отряд из 5 бойцов');
+    ensure(
+      s.loyalty >= 50 && s.shortageDays < 3,
+      'Совет требует лояльность 50 и прекращение затяжного голода',
+    );
+    s.governance.steward = p.person;
+    s.governance.unrestDays = 0;
+    p.title = officeTitle(s);
+    p.legitimacy = Math.max(p.legitimacy, 30);
+    const npc = promote(w, p.person);
+    if (!npc.titles.includes(p.title)) npc.titles.push(p.title);
+    event(
+      w,
+      'appointment',
+      `${s.name}: совет назначил ${p.name} управляющим за службу поселению.`,
+      [`settlement:${s.id}`, `person:${p.person}`],
+      true,
+    );
+    return;
+  }
+  if (c.type === 'local_tax' || c.type === 'public_build' || c.type === 'resign_office') {
+    ensure(
+      s.governance.steward === p.person,
+      'Нужен действующий мандат управляющего этого поселения',
+    );
+    if (c.type === 'resign_office') {
+      revokeOffice(w, s, 'добровольная отставка');
+    } else if (c.type === 'local_tax') {
+      ensure(s.governance.localTax !== c.value, 'Этот сбор уже установлен');
+      s.governance.localTax = c.value;
+      event(
+        w,
+        'local_tax',
+        `${s.name}: местный сбор установлен в ${Math.round(c.value * 100)}%.`,
+        [`settlement:${s.id}`, `person:${p.person}`],
+        true,
+      );
+    } else {
+      ensure(s.infrastructure < 10, 'Хозяйство уже достигло предела развития');
+      ensure(
+        s.stocks.wood >= 100 && s.stocks.stone >= 50 && s.treasury >= 200,
+        'В поселении нужно 100 дерева, 50 камня и 200 монет',
+      );
+      // Pay the actual adult civilian workforce, rather than the player's purse.
+      const workers = s.residents
+        .map((id) => w.people[id])
+        .filter((q) => q.alive && adult(w, q) && q.profession !== 'soldier');
+      ensure(workers.length > 0, 'В поселении нет работников');
+      s.stocks.wood -= 100;
+      s.stocks.stone -= 50;
+      s.treasury -= 200;
+      for (const worker of workers) worker.wealth += 200 / workers.length;
+      s.infrastructure++;
+      p.skills.governance = (p.skills.governance ?? 0) + 0.5;
+      event(
+        w,
+        'public_construction',
+        `${p.name}: общественное строительство в ${s.name}.`,
+        [`settlement:${s.id}`, `person:${p.person}`],
+        true,
+      );
+    }
+    return;
+  }
+  if (c.type === 'relief') {
+    ensure(p.inventory.grain >= c.quantity, 'Недостаточно личного зерна');
+    const deficit = Math.max(0, s.population - s.workers.soldier - s.stocks.grain);
+    p.inventory.grain -= c.quantity;
+    s.stocks.grain += c.quantity;
+    const help = Math.min(deficit, c.quantity) / Math.max(1, s.population - s.workers.soldier);
+    s.loyalty = Math.min(100, s.loyalty + help * 5);
+    p.reputation[`settlement:${s.id}`] = (p.reputation[`settlement:${s.id}`] ?? 0) + help * 5;
+    event(w, 'relief', `${p.name} передал ${c.quantity} зерна поселению ${s.name}.`, [
+      `settlement:${s.id}`,
+      `person:${p.person}`,
+    ]);
+    return;
+  }
   if (c.type === 'petition') {
     ensure((p.reputation[`settlement:${s.id}`] ?? 0) >= 40, 'Нужна репутация 40 в этом поселении');
     ensure(army.members.length >= 5, 'Нужен отряд из 5 бойцов');
-    p.title = `Защитник ${s.name}`;
+    const title = `Защитник ${s.name}`;
+    if (!w.settlements.some((t) => t.governance.steward === p.person)) p.title = title;
     p.legitimacy = Math.max(p.legitimacy, 20);
     const npc = promote(w, p.person);
-    if (!npc.titles.includes(p.title)) npc.titles.push(p.title);
+    if (!npc.titles.includes(title)) npc.titles.push(title);
     return;
   }
   if (c.type === 'build') {
+    ensure(s.infrastructure < 10, 'Хозяйство уже достигло предела развития');
     ensure(
       p.inventory.wood >= 20 && p.inventory.stone >= 20 && p.gold >= 50,
       'Нужно 20 дерева, 20 камня и 50 монет',

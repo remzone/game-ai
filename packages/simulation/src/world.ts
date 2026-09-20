@@ -104,7 +104,7 @@ export function death(w: World, p: Person, reason: string) {
 }
 export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
   const w: World = {
-    version: 2,
+    version: 3,
     seed,
     rng: seedHash(seed),
     nextId: 1,
@@ -216,6 +216,7 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
           prices: { ...BASE_PRICES },
           treasury: 1000,
           loyalty: 80,
+          governance: { steward: null, localTax: 0, unrestDays: 0, eligibleDay: 0 },
           infrastructure: 1,
           shortageDays: 0,
           monsters: id % 17 === 0 ? integer(w, 3, 7) : 0,

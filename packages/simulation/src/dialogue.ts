@@ -10,7 +10,7 @@ export interface Conversation {
     label: string;
     detail: string;
     command?: Command;
-    panel?: 'market' | 'army' | 'quests';
+    panel?: 'market' | 'army' | 'quests' | 'states';
   }[];
 }
 /** Every line is derived from this settlement; the dialogue never creates a world problem. */
@@ -38,7 +38,20 @@ export function conversation(w: World, id: number): Conversation {
     );
   if (!s.monsters && !s.shortageDays)
     lines.push('Сейчас в поселении спокойно. Можно торговать, работать и готовиться к дороге.');
-  const choices: Conversation['choices'] = [];
+  lines.push(
+    `Лояльность совету: ${Math.floor(s.loyalty)}. Местный сбор: ${Math.round(s.governance.localTax * 100)}%.`,
+  );
+  if (s.governance.unrestDays > 0)
+    lines.push(
+      `Недоверие управляющему длится ${s.governance.unrestDays} дней. На четырнадцатый совет отзовёт мандат.`,
+    );
+  const choices: Conversation['choices'] = [
+    {
+      label: 'Как мне служить поселению?',
+      detail: 'Совет, назначение управляющим, налоги и общественное хозяйство',
+      panel: 'states',
+    },
+  ];
   for (const q of w.quests.filter(
     (q) => q.settlement === s.id && ['open', 'accepted'].includes(q.status),
   )) {

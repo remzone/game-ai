@@ -6,6 +6,7 @@ import {
   type Settlement,
   type Army,
 } from './model.js';
+import { localGovernance } from './governance.js';
 import { random, pick, integer } from './rng.js';
 import {
   addPerson,
@@ -48,10 +49,10 @@ export function economy(w: World) {
     }
     const state = w.states[s.state],
       tax = production * BASE_PRICES.grain * state.tax;
-    s.treasury += tax * 0.35;
+    s.treasury += tax * 0.35 + production * BASE_PRICES.grain * s.governance.localTax;
     w.regions[s.region].treasury += tax * 0.3;
     state.treasury += tax * 0.35;
-    s.loyalty = Math.max(0, s.loyalty - Math.max(0, state.tax - 0.2) * 2);
+    s.loyalty = Math.max(0, s.loyalty - Math.max(0, state.tax + s.governance.localTax - 0.2) * 2);
     for (const good of GOODS) {
       const desired =
         good === 'grain' ? Math.max(1, s.population * 7) : Math.max(5, s.population * 0.4);
@@ -344,6 +345,7 @@ export function supply(w: World) {
   }
 }
 export function politics(w: World) {
+  localGovernance(w);
   for (const s of w.states) {
     if (!w.people[s.ruler]?.alive) {
       const previous = w.people[s.ruler];

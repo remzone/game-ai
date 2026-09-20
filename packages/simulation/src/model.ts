@@ -54,6 +54,7 @@ export interface Settlement {
   infrastructure: number;
   shortageDays: number;
   monsters: number;
+  governance: { steward: number | null; localTax: number; unrestDays: number; eligibleDay: number };
 }
 export interface State {
   id: number;
@@ -202,7 +203,7 @@ export interface DirectorLog {
   reason: string;
 }
 export interface World {
-  version: 2;
+  version: 3;
   seed: string;
   rng: number;
   nextId: number;
