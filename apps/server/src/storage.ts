@@ -26,7 +26,7 @@ export function encode(w: World) {
   };
 }
 export function decode(s: { version: number; checksum: string; compressed: Uint8Array }): World {
-  if (s.version !== 1 && s.version !== 2) throw new Error('Неподдерживаемая версия сохранения');
+  if (![1, 2, 3].includes(s.version)) throw new Error('Неподдерживаемая версия сохранения');
   const bytes = gunzipSync(s.compressed, { maxOutputLength: 1024 * 1024 * 1024 });
   if (createHash('sha256').update(bytes).digest('hex') !== s.checksum)
     throw new Error('Сохранение повреждено');
@@ -43,9 +43,14 @@ export function decode(s: { version: number; checksum: string; compressed: Uint8
         q.objectiveMet = true;
     raw.version = 2;
   }
+  if (raw.version === 2) {
+    for (const settlement of raw.settlements ?? [])
+      settlement.governance = { steward: null, localTax: 0, unrestDays: 0, eligibleDay: 0 };
+    raw.version = 3;
+  }
   const w = raw as World;
   if (
-    w.version !== 2 ||
+    w.version !== 3 ||
     !Array.isArray(w.people) ||
     !Array.isArray(w.settlements) ||
     !Number.isInteger(w.rng)
