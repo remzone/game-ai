@@ -6,9 +6,9 @@ if (
   requested < 300 ||
   !Number.isSafeInteger(days) ||
   days < 1 ||
-  days > 360
+  days > 3600
 )
-  throw new Error('Usage: npm run bench -- <population >=300> <days 1..360>');
+  throw new Error('Usage: npm run bench -- <population >=300> <days 1..3600>');
 const started = performance.now(),
   w = createWorld('benchmark', Math.ceil(requested / 300)),
   creationMs = performance.now() - started;
