@@ -218,6 +218,39 @@ export async function createApp(
       return { ...worldView(w), saveError: null };
     });
   });
+  app.get('/api/history', async (req, reply) => {
+    const query = z
+      .object({
+        offset: z.coerce.number().int().min(0).default(0),
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+      })
+      .parse(req.query);
+    if (!w) return reply.code(409).send({ error: 'Создайте мир' });
+    return {
+      total: w.events.length,
+      items: w.events
+        .slice(
+          Math.max(0, w.events.length - query.offset - query.limit),
+          Math.max(0, w.events.length - query.offset),
+        )
+        .reverse(),
+    };
+  });
+  app.get('/api/admin/people', async (req, reply) => {
+    const query = z
+      .object({
+        offset: z.coerce.number().int().min(0).default(0),
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+      })
+      .parse(req.query);
+    if (!w) return reply.code(409).send({ error: 'Создайте мир' });
+    return {
+      total: w.people.length,
+      items: w.people
+        .slice(query.offset, query.offset + query.limit)
+        .map((p) => ({ ...p, npc: w!.npcs[p.id] })),
+    };
+  });
   app.get('/api/admin', async () => ({
     day: w?.day,
     seed: w?.seed,

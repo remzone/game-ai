@@ -3,7 +3,7 @@ import { gzipSync, gunzipSync } from 'node:zlib';
 import { mkdir, readFile, writeFile, rename, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
-import type { World } from '@living-world/simulation';
+import { initializeExpansion, type World } from '@living-world/simulation';
 export interface Slot {
   slot: number;
   seed: string;
@@ -26,7 +26,7 @@ export function encode(w: World) {
   };
 }
 export function decode(s: { version: number; checksum: string; compressed: Uint8Array }): World {
-  if (![1, 2, 3].includes(s.version)) throw new Error('Неподдерживаемая версия сохранения');
+  if (![1, 2, 3, 4].includes(s.version)) throw new Error('Неподдерживаемая версия сохранения');
   const bytes = gunzipSync(s.compressed, { maxOutputLength: 1024 * 1024 * 1024 });
   if (createHash('sha256').update(bytes).digest('hex') !== s.checksum)
     throw new Error('Сохранение повреждено');
@@ -48,9 +48,13 @@ export function decode(s: { version: number; checksum: string; compressed: Uint8
       settlement.governance = { steward: null, localTax: 0, unrestDays: 0, eligibleDay: 0 };
     raw.version = 3;
   }
+  if (raw.version === 3) {
+    initializeExpansion(raw);
+    raw.version = 4;
+  }
   const w = raw as World;
   if (
-    w.version !== 3 ||
+    w.version !== 4 ||
     !Array.isArray(w.people) ||
     !Array.isArray(w.settlements) ||
     !Number.isInteger(w.rng)
