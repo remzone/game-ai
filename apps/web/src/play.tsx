@@ -126,7 +126,7 @@ export function ArmyPanel({ world, send }: { world: View; send: Send }) {
   return (
     <>
       <span className="eyebrow">ВАШИ СПУТНИКИ</span>
-      <h2>{troopNames[army.unitClass]}</h2>
+      <h2>Смешанный отряд</h2>
       <div className="metrics">
         <div>
           <b>{army.members.length}/60</b>бойцов
@@ -206,11 +206,38 @@ export function ArmyPanel({ world, send }: { world: View; send: Send }) {
         </button>
       </fieldset>
       <h3>Люди в отряде</h3>
+      <p>
+        Личное обучение: 10 монет, конница — 25 и лошадь, маг — 60 и 3 дня. Для мага нужны потенциал
+        ≥ 4, учитель и еда. Классы можно смешивать.
+      </p>
       {world.party?.map((person) => (
         <div className="stat" key={person.id}>
           <span>
             {person.npc?.name ?? `Боец ${person.id}`}
-            <small>Опыт: {person.experience}</small>
+            <small>
+              Опыт: {person.experience} · потенциал {person.potential}
+            </small>
+            <select
+              aria-label={`Класс бойца ${person.id}`}
+              disabled={!here}
+              value={person.unitClass ?? army.unitClass}
+              onChange={(e) =>
+                void send({
+                  type: 'train_soldier',
+                  person: person.id,
+                  unitClass: e.target.value as Extract<
+                    Command,
+                    { type: 'train_soldier' }
+                  >['unitClass'],
+                })
+              }
+            >
+              {Object.entries(troopNames).map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </select>
           </span>
           <b>{Math.round(person.health)} ♥</b>
         </div>
@@ -254,7 +281,7 @@ export function QuestJournal({
           world.hero?.settlement === q.settlement && world.player?.scene === 'settlement';
         return (
           <div className="quest" key={q.id}>
-            <b>{q.type === 'hunt' ? 'Устранить угрозу волков' : `Доставить ${q.need} зерна`}</b>
+            <b>{q.type === 'hunt' ? 'Устранить угрозу существ' : `Доставить ${q.need} зерна`}</b>
             <p>
               {world.settlements[q.settlement].name} · {q.reason}
             </p>

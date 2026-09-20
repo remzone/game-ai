@@ -71,3 +71,16 @@ export const ART: Record<string, string> = {
       '<path d="m27 109 9-24 28-16 32 17 8 25-41 11z" fill="#63716e"/><path d="m64 69-8 29 7 24 41-11-8-25z" fill="#46565b"/><path d="m36 85 28-16-8 29-29 11z" fill="#88928a"/>',
   ),
 };
+
+ART.spider = svg(
+  shadow +
+    '<path d="m55 78-26-26-18 15m43 17-31-9-15 20m49-6-30 11-12 14m58-36 25-26 19 16m-42 18 30-8 18 20m-45-8 29 12 12 14" fill="none" stroke="#403c50" stroke-width="7"/><ellipse cx="63" cy="70" rx="22" ry="28" fill="#474352" stroke="#817080" stroke-width="2"/><ellipse cx="64" cy="96" rx="16" ry="14" fill="#302d40"/><path d="m57 106-6 9m18-9 6 9" stroke="#b9a992" stroke-width="3"/><circle cx="58" cy="93" r="3" fill="#ec9967"/><circle cx="70" cy="93" r="3" fill="#ec9967"/>',
+);
+ART.troll = svg(
+  shadow +
+    '<path d="m48 87-9 30h20l7-28m7-1 8 29h17L85 83" fill="#45554b"/><path d="M41 48 26 88l18 9 5-17-2 23 43 1-3-29 12 16 13-10-26-35z" fill="#617263" stroke="#394a41" stroke-width="3"/><path d="M51 48 47 29q18-27 35 0l-4 24z" fill="#7a8870"/><path d="m48 27-12-11 15 6m29 5 12-15-5 21" stroke="#b2aa8a" stroke-width="5"/><path d="M55 32h7m7 0h7" stroke="#e5bd75" stroke-width="3"/><path d="m58 45 6 7 9-6" stroke="#28372f" stroke-width="4"/><path d="m104 108-8-57" stroke="#6e543c" stroke-width="9"/><path d="m84 50 19-6 9 24-22 6z" fill="#777a6e"/>',
+);
+ART.dragon = svg(
+  shadow +
+    '<path d="M63 70 29 22 5 20 15 66l25-5-9 25 31 3m5-15 31-53 23 12-5 40-22-4 7 23-34-5" fill="#593d49" stroke="#9b6a6e" stroke-width="2"/><path d="m59 52-15 39 15 17 20-13-7-40" fill="#495b58" stroke="#233d3b" stroke-width="3"/><path d="m61 61-4-32 11-17 13 16-9 34" fill="#718075"/><path d="m67 16-6-12m14 14 8-12" stroke="#bbad83" stroke-width="4"/><path d="m63 33 6 4 6-5" stroke="#ecb55d" stroke-width="3"/><path d="m49 88-12 27m39-26 19 23" stroke="#697b70" stroke-width="8"/><path d="M65 99q-15 24 22 23l26-20" fill="none" stroke="#4e655b" stroke-width="7"/>',
+);

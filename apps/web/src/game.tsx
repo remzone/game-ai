@@ -291,6 +291,7 @@ export function Game({ world, selected, onSelect, send, unit, onTalk }: Bridge) 
           }
         }
         for (const state of w.states) {
+          if (state.capital < 0 || !w.settlements[state.capital]) continue;
           const cap = w.settlements[state.capital],
             p = this.xy(cap.x + 2, cap.y - 0.25);
           this.label(p.x, p.y - this.sx * 1.45, state.name, 15, '#c6b995');
@@ -299,6 +300,18 @@ export function Game({ world, selected, onSelect, send, unit, onTalk }: Bridge) 
           const a = w.settlements[c.journey.route[c.journey.leg]],
             p = this.xy(a.x, a.y);
           this.stamp('cart', p.x, p.y + 7, this.sx * 1.1, 10000);
+        }
+        for (const a of w.armies.filter((a) => !a.player && a.members.length)) {
+          const town = w.settlements[a.settlement],
+            pos = this.xy(town.x, town.y);
+          this.stamp('soldier', pos.x - 12, pos.y - 4, this.sx * 1.2, 15000);
+          this.label(pos.x - 12, pos.y + 22, String(a.members.length), 11, '#d9b57c');
+        }
+        for (const siege of w.sieges.filter((s) => s.status === 'active')) {
+          const town = w.settlements[siege.settlement],
+            pos = this.xy(town.x, town.y);
+          this.overlay.lineStyle(3, 0xd76852, 0.9);
+          this.overlay.strokeEllipse(pos.x, pos.y, this.sx * 2.1, this.sy * 1.8);
         }
         if (w.hero) {
           const s = w.settlements[w.hero.settlement],
@@ -463,7 +476,15 @@ export function Game({ world, selected, onSelect, send, unit, onTalk }: Bridge) 
             ring.strokeEllipse(0, 2, this.sx * 0.8, this.sy * 0.7);
           }
           const sprite = this.add
-            .image(0, 0, f.side === 'enemy' ? 'wolf' : hero ? 'hero' : 'soldier')
+            .image(
+              0,
+              0,
+              f.side === 'enemy' && f.person === undefined
+                ? w.settlements[b!.settlement].monsterKind
+                : hero
+                  ? 'hero'
+                  : 'soldier',
+            )
             .setOrigin(0.5, 0.91)
             .setDisplaySize(size, size);
           const health = this.add.graphics();

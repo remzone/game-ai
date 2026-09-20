@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
+  monsterNames,
   date,
+  adult,
   season,
   RACES,
   GOODS,
@@ -14,6 +16,8 @@ import type { View } from './types';
 import './style.css';
 import { Dialogue, ArmyPanel, QuestJournal, TravelPanel, Guide, troopNames } from './play';
 import { ART } from './art';
+import { Archive } from './archive';
+import { Adventure, SpellPanel } from './adventure';
 import { GovernancePanel } from './governance';
 const artwork = (key: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ART[key]);
 const Game = lazy(() => import('./game').then((m) => ({ default: m.Game })));
@@ -336,7 +340,21 @@ function App() {
         <b>{p!.name}</b>
         <span>{p!.title}</span>
         <span className="health">
-          Здоровье <meter min="0" max="100" value={hero!.health} /> {fmt(hero!.health)}
+          Здоровье{' '}
+          <meter
+            min="0"
+            max="100"
+            value={
+              world.battle?.status === 'active'
+                ? (world.battle.fighters.find((f) => f.person === p!.person)?.hp ?? hero!.health)
+                : hero!.health
+            }
+          />{' '}
+          {fmt(
+            world.battle?.status === 'active'
+              ? (world.battle.fighters.find((f) => f.person === p!.person)?.hp ?? hero!.health)
+              : hero!.health,
+          )}
         </span>
         <span>◈ {fmt(p!.gold)} монет</span>
         <span>⚑ {army?.members.length ?? 0} бойцов</span>
@@ -414,7 +432,7 @@ function App() {
                   {p!.gameOver ? 'Нет допустимого наследника.' : 'Выберите взрослого наследника.'}
                 </p>
                 {world.heirs
-                  .filter((h) => h.alive)
+                  .filter((h) => h.alive && adult(world as unknown as World, h))
                   .map((h) => (
                     <button key={h.id} onClick={() => void send({ type: 'inherit', person: h.id })}>
                       Продолжить за наследника {h.id}
@@ -427,7 +445,9 @@ function App() {
                 <span className="eyebrow">ТАКТИЧЕСКИЙ БОЙ</span>
                 <h2>
                   {world.battle.status === 'active'
-                    ? 'Схватка с волками'
+                    ? world.battle.enemyArmy
+                      ? 'Штурм укреплений'
+                      : 'Бой: ' + monsterNames[local!.monsterKind]
                     : { victory: 'Победа', defeat: 'Поражение', retreated: 'Отступление' }[
                         world.battle.status
                       ]}
@@ -441,7 +461,13 @@ function App() {
                   return (
                     <div className={`force-meter ${side}`} key={side}>
                       <div>
-                        <span>{side === 'player' ? 'Ваш отряд и герой' : 'Волки'}</span>
+                        <span>
+                          {side === 'player'
+                            ? 'Ваш отряд и герой'
+                            : world.battle?.enemyArmy
+                              ? 'Гарнизон'
+                              : monsterNames[local!.monsterKind]}
+                        </span>
                         <b>
                           {alive} / {all.length}
                         </b>
@@ -450,6 +476,7 @@ function App() {
                     </div>
                   );
                 })}
+                <SpellPanel world={world} send={send} />
                 <h3>Приказ отряду</h3>
                 <select
                   aria-label="Отряд для приказа"
@@ -498,6 +525,7 @@ function App() {
             {tab === 'army' && <ArmyPanel world={world} send={send} />}
             {tab === 'quests' && <QuestJournal world={world} send={send} onLocate={locate} />}
             {tab === 'guide' && <Guide world={world} />}
+            {tab === 'adventure' && <Adventure world={world} send={send} />}
             {tab === 'market' && (
               <>
                 <h2>Рынок</h2>
@@ -508,20 +536,7 @@ function App() {
                 )}
               </>
             )}
-            {tab === 'history' && (
-              <div className="chronicle">
-                <span className="eyebrow">ЛЕТОПИСЬ МИРА</span>
-                {world.events
-                  .slice(-40)
-                  .reverse()
-                  .map((e) => (
-                    <p key={e.id}>
-                      <time>{date(e.day)}</time>
-                      {e.text}
-                    </p>
-                  ))}
-              </div>
-            )}
+            {tab === 'history' && <Archive />}
             {tab === 'place' && s && p!.scene !== 'battle' && (
               <>
                 <TravelPanel world={world} selected={selected} onSelect={locate} />
@@ -857,6 +872,12 @@ function App() {
               </>
             )}
             {tab === 'admin' && (
+              <details>
+                <summary>Жители мира (постранично)</summary>
+                <Archive people />
+              </details>
+            )}
+            {tab === 'admin' && (
               <>
                 <h2>Диагностика</h2>
                 <button onClick={() => void action(async () => setAdmin(await api('/admin')))}>
@@ -916,6 +937,7 @@ function App() {
           ['hero', 'Герой'],
           ['army', 'Отряд'],
           ['quests', 'Задания'],
+          ['adventure', 'Жизнь и власть'],
           ['guide', 'Помощь'],
           ['states', 'Державы'],
           ['history', 'Летопись'],
