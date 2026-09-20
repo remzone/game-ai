@@ -176,7 +176,7 @@ describe('Complete player loops', () => {
     const legacy = structuredClone(w) as unknown as { version: number };
     legacy.version = 1;
     const migrated = decode(encode(legacy as unknown as World));
-    expect(migrated.version).toBe(3);
+    expect(migrated.version).toBe(4);
     expect(migrated.rng).toBe(w.rng);
     command(w, { type: 'recruit', count: 3 });
     command(w, { type: 'battle' });

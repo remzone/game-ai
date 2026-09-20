@@ -164,7 +164,7 @@ describe('Local governance', () => {
       legacy.version = version;
       for (const s of legacy.settlements) delete s.governance;
       const restored = decode(encode(legacy));
-      expect(restored.version).toBe(3);
+      expect(restored.version).toBe(4);
       expect(restored.rng).toBe(w.rng);
       expect(restored.settlements.every((s) => s.governance.steward === null)).toBe(true);
     }

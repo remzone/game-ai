@@ -71,7 +71,7 @@ it('smoke: new game → settlement → trade → recruit → save → load, with
       current.settlements[0].stocks.grain + 10,
     );
     const autosave = await new FileStorage(dir).load(0);
-    expect(autosave.version).toBe(3);
+    expect(autosave.version).toBe(4);
     expect(autosave.player!.inventory.grain).toBe(relief.json().player.inventory.grain);
     expect(
       (await app.inject({ method: 'POST', url: '/api/dialogue', payload: { person: 999999999 } }))
