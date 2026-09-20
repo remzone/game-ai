@@ -40,6 +40,21 @@ it('smoke: new game → settlement → trade → recruit → save → load, with
       expect((await app.inject({ method: 'POST', url: '/api/command', payload })).statusCode).toBe(
         200,
       );
+    const current = (await app.inject('/api/world')).json();
+    expect(current.party).toHaveLength(5);
+    const npc = current.locals.find((p: any) => p.id !== current.hero.id);
+    const dialogue = await app.inject({
+      method: 'POST',
+      url: '/api/dialogue',
+      payload: { person: npc.id },
+    });
+    expect(dialogue.statusCode).toBe(200);
+    expect(dialogue.json().choices.length).toBeGreaterThan(0);
+    expect(
+      (await app.inject({ method: 'POST', url: '/api/dialogue', payload: { person: 999999999 } }))
+        .statusCode,
+    ).toBe(400);
+    expect((await app.inject('/api/saves')).json().some((s: any) => s.slot === 0)).toBe(true);
     expect(
       (await app.inject({ method: 'POST', url: '/api/saves/1', payload: {} })).statusCode,
     ).toBe(200);
@@ -173,3 +188,33 @@ it.skipIf(!process.env.TEST_POSTGRES)(
     }
   },
 );
+
+it('reports autosave failure without reporting a successful command as failed', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'rpg-save-error-')),
+    store = new FileStorage(dir),
+    app = await createApp(store, { timers: false });
+  try {
+    await app.inject({
+      method: 'POST',
+      url: '/api/new',
+      payload: { seed: 'save-error', biography },
+    });
+    const save = vi.spyOn(store, 'save').mockRejectedValueOnce(new Error('disk full'));
+    const enter = await app.inject({
+      method: 'POST',
+      url: '/api/command',
+      payload: { type: 'enter' },
+    });
+    expect(enter.statusCode).toBe(200);
+    expect(enter.json().player.scene).toBe('settlement');
+    expect(enter.json().saveError).toContain('Автосохранение');
+    save.mockRestore();
+    expect(
+      (await app.inject({ method: 'POST', url: '/api/saves/1', payload: {} })).statusCode,
+    ).toBe(200);
+    expect((await app.inject('/api/world')).json().saveError).toBeNull();
+  } finally {
+    await app.close();
+    await rm(dir, { recursive: true, force: true });
+  }
+});
