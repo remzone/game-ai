@@ -213,6 +213,7 @@ it('blockade prevents deliveries and a real assault reconciles defenders and cap
   expect(ids.every((id) => !w.people[id].alive)).toBe(true);
   expect(route(w, 0, 1).length).toBeGreaterThan(0);
   expect(w.settlements[1].occupation?.state).toBe(1);
+  w.settlements[1].loyalty = 40;
   w.day += 14;
   polityDay(w);
   expect(w.settlements[1].state).toBe(1);
@@ -488,4 +489,22 @@ it('ecological migration preserves the total population except explicit reproduc
   expect(w.settlements.filter((s) => s.monsters > 0).every((s) => s.monsterKind === 'troll')).toBe(
     true,
   );
+});
+
+it('siege engineering spends physical materials, rejects duplicate excess, and increases pressure', () => {
+  const w = siegeGame(),
+    p = w.player!,
+    siege = w.sieges[0];
+  p.inventory.wood = 90;
+  p.inventory.iron = 30;
+  p.inventory.tools = 15;
+  for (let i = 0; i < 3; i++) expect(command(w, { type: 'siege_engine' }).ok).toBe(true);
+  expect(p.inventory.wood).toBe(0);
+  expect(p.inventory.iron).toBe(0);
+  expect(p.inventory.tools).toBe(0);
+  const saved = JSON.stringify(w);
+  expect(command(w, { type: 'siege_engine' }).ok).toBe(false);
+  expect(JSON.stringify(w)).toBe(saved);
+  campaignDay(w);
+  expect(siege.pressure).toBe(4);
 });
