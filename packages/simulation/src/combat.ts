@@ -1,5 +1,6 @@
 import type { World, Fighter, UnitClass } from './model.js';
 import { death, event, nextId } from './world.js';
+import { adult } from './systems.js';
 import { random } from './rng.js';
 const stats: Record<UnitClass, { range: number; damage: number; speed: number }> = {
   infantry: { range: 1.4, damage: 12, speed: 1.5 },
@@ -21,8 +22,9 @@ export function startBattle(w: World) {
     unitClass: id === p.person ? 'infantry' : army.unitClass,
     hp: w.people[id].health,
     maxHp: 100,
-    x: 2 + (i % 4),
-    y: 3 + Math.floor(i / 4),
+    x: 1 + (i % 8) * 0.6,
+    y: 2 + Math.floor(i / 8) * 1.3,
+    order: 'attack',
     targetX: 8,
     targetY: 5,
     cooldown: 0,
@@ -62,14 +64,18 @@ export function finishBattle(w: World, result: 'victory' | 'defeat' | 'retreated
     }
   const army = w.armies.find((a) => a.id === p.army)!;
   army.members = army.members.filter((id) => w.people[id].alive);
+  army.mounts = Math.min(army.mounts ?? 0, army.members.length);
   if (result === 'victory') {
+    for (const q of w.quests)
+      if (q.settlement === b.settlement && q.type === 'hunt' && q.status === 'accepted')
+        q.objectiveMet = true;
     p.skills.command++;
     p.skills.melee++;
     p.reputation[`settlement:${b.settlement}`] =
       (p.reputation[`settlement:${b.settlement}`] ?? 0) + 10;
   }
   if (!w.people[p.person].alive) {
-    p.gameOver = !p.heirs.some((id) => w.people[id]?.alive);
+    p.gameOver = !p.heirs.some((id) => w.people[id]?.alive && adult(w, w.people[id]));
   }
   event(
     w,
@@ -107,11 +113,22 @@ export function stepBattle(w: World, dt = 0.25) {
               (n, a, i) => n + a * [1, 0.9, 0.95, 1.2, 1.15, 0.8][i],
               0,
             );
-      target.hp = Math.max(0, target.hp - cfg.damage * bonus * race * (0.85 + random(w) * 0.3));
+      const experience =
+        f.person === undefined ? 1 : 1 + Math.min(0.3, w.people[f.person].experience * 0.015);
+      const skill =
+        w.player && f.person === w.player.person
+          ? 1 + Math.min(0.4, (w.player.skills.melee ?? 0) * 0.02)
+          : 1;
+      target.hp = Math.max(
+        0,
+        target.hp - cfg.damage * bonus * race * experience * skill * (0.85 + random(w) * 0.3),
+      );
       f.cooldown = 1;
     } else if (distance > cfg.range) {
-      const tx = f.side === 'enemy' ? target.x : f.targetX,
-        ty = f.side === 'enemy' ? target.y : f.targetY;
+      if (f.order === 'hold' && f.side === 'player') continue;
+      const chase = f.side === 'enemy' || f.order === 'attack';
+      const tx = chase ? target.x : f.targetX,
+        ty = chase ? target.y : f.targetY;
       const dx = tx - f.x,
         dy = ty - f.y,
         len = Math.hypot(dx, dy);

@@ -311,10 +311,18 @@ export function levy(w: World, settlement: number, count: number, player = false
 export function supply(w: World) {
   for (const a of w.armies) {
     a.members = a.members.filter((id) => w.people[id].alive);
+    a.mounts = Math.min(a.mounts ?? 0, a.members.length);
     if (!a.members.length) continue;
     const moving = a.player && w.player?.journey;
     const s = w.settlements[a.settlement];
-    if (!moving) {
+    if (a.player && w.player) {
+      const take = Math.min(
+        Math.max(0, a.members.length * 7 - a.food),
+        Math.max(0, w.player.inventory.grain - 3),
+      );
+      w.player.inventory.grain -= take;
+      a.food += take;
+    } else if (!moving) {
       const take = Math.min(Math.max(0, a.members.length * 7 - a.food), s.stocks.grain);
       s.stocks.grain -= take;
       a.food += take;
@@ -328,6 +336,7 @@ export function supply(w: World) {
       a.morale = Math.max(0, a.morale - 10);
       if (a.morale < 30) {
         const id = a.members.pop()!;
+        if (a.unitClass === 'cavalry') a.mounts = Math.max(0, (a.mounts ?? 0) - 1);
         profession(w, w.people[id], w.people[id].homeProfession ?? 'farmer');
         event(w, 'desertion', `Солдат ${id} покинул голодный отряд.`, [`person:${id}`, a.id]);
       }
@@ -453,6 +462,7 @@ export function quests(w: World) {
     for (const q of w.quests.filter(
       (q) => q.settlement === s.id && (q.status === 'open' || q.status === 'accepted'),
     )) {
+      if (q.objectiveMet) continue;
       if (
         (q.type === 'deliver' && s.stocks.grain > s.population * 5) ||
         (q.type === 'hunt' && s.monsters === 0)
@@ -518,10 +528,12 @@ export function tickDay(w: World) {
     }
     if (result === 'arrived') {
       p.journey = undefined;
+      w.speed = 0;
       if (!p.visited.includes(at)) p.visited.push(at);
       event(w, 'arrival', `${p.name} прибыл в ${w.settlements[at].name}.`, [`person:${p.person}`]);
     } else if (result === 'blocked') {
       p.journey = undefined;
+      w.speed = 0;
       event(w, 'route_blocked', 'Путь перекрыт войной. Выберите другой маршрут.');
     }
   }

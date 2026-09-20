@@ -108,6 +108,7 @@ export interface Army {
   food: number;
   morale: number;
   player: boolean;
+  mounts?: number;
 }
 export interface War {
   id: string;
@@ -127,6 +128,7 @@ export interface Quest {
   reward: number;
   created: number;
   reason: string;
+  objectiveMet?: boolean;
 }
 export interface GameEvent {
   id: string;
@@ -174,6 +176,7 @@ export interface Fighter {
   targetX: number;
   targetY: number;
   cooldown: number;
+  order?: 'move' | 'attack' | 'hold';
 }
 export interface Battle {
   id: string;
@@ -199,7 +202,7 @@ export interface DirectorLog {
   reason: string;
 }
 export interface World {
-  version: 1;
+  version: 2;
   seed: string;
   rng: number;
   nextId: number;

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { GOODS, RACES, emptyStocks, type World, type Ancestry } from './model.js';
 import { addPerson, event, makeJourney, nextId, profession, promote, route } from './world.js';
-import { adult, levy, quests } from './systems.js';
+import { adult, levy, quests, tickDay } from './systems.js';
 import { finishBattle, startBattle } from './combat.js';
 const id = z.number().int().nonnegative(),
   text = z.string().trim().min(1).max(80);
@@ -40,6 +40,25 @@ export const CommandSchema = z.discriminatedUnion('type', [
     .strict(),
   z.object({ type: z.literal('recruit'), count: z.number().int().min(1).max(20) }).strict(),
   z.object({ type: z.literal('dismiss') }).strict(),
+  z.object({ type: z.literal('talk'), person: id }).strict(),
+  z.object({ type: z.literal('rest'), days: z.number().int().min(1).max(3) }).strict(),
+  z.object({ type: z.literal('work'), job: z.enum(['farm', 'wood', 'smith']) }).strict(),
+  z.object({ type: z.literal('supply'), quantity: z.number().int().min(1).max(500) }).strict(),
+  z
+    .object({
+      type: z.literal('train'),
+      unitClass: z.enum(['infantry', 'spearmen', 'archers', 'cavalry']),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('battle_tactic'),
+      tactic: z.enum(['attack', 'hold']),
+      unitClass: z.enum(['all', 'infantry', 'spearmen', 'archers', 'cavalry', 'mages']),
+    })
+    .strict(),
+  z.object({ type: z.literal('abandon_quest'), quest: text }).strict(),
+
   z.object({ type: z.literal('accept_quest'), quest: text }).strict(),
   z.object({ type: z.literal('complete_quest'), quest: text }).strict(),
   z.object({ type: z.literal('battle') }).strict(),
@@ -173,6 +192,11 @@ function apply(w: World, c: Command) {
     if (old) {
       for (const id of old.members)
         profession(w, w.people[id], w.people[id].homeProfession ?? 'farmer');
+      w.settlements[old.settlement].stocks.weapons += old.members.length;
+      w.settlements[old.settlement].stocks.grain += old.food;
+      w.settlements[old.settlement].stocks.horses += old.mounts ?? 0;
+      old.food = 0;
+      old.mounts = 0;
       old.members = [];
     }
     heir.homeProfession = heir.profession;
@@ -187,10 +211,27 @@ function apply(w: World, c: Command) {
   ensure(person.alive && !p.gameOver, 'Персонаж погиб. Выберите наследника.');
   const s = w.settlements[person.settlement],
     army = w.armies.find((a) => a.id === p.army)!;
+  if (c.type === 'battle_tactic') {
+    ensure(w.battle?.status === 'active', 'Бой не идёт');
+    for (const f of w.battle.fighters)
+      if (
+        f.side === 'player' &&
+        f.hp > 0 &&
+        (c.unitClass === 'all' || f.unitClass === c.unitClass)
+      ) {
+        f.order = c.tactic;
+        if (c.tactic === 'hold') {
+          f.targetX = f.x;
+          f.targetY = f.y;
+        }
+      }
+    return;
+  }
   if (c.type === 'battle_order') {
     ensure(w.battle?.status === 'active', 'Бой не идёт');
     for (const f of w.battle.fighters)
       if (f.side === 'player' && (c.unitClass === 'all' || c.unitClass === f.unitClass)) {
+        f.order = 'move';
         f.targetX = c.x;
         f.targetY = c.y;
       }
@@ -229,6 +270,100 @@ function apply(w: World, c: Command) {
     return;
   }
   ensure(p.scene === 'settlement', 'Войдите в поселение');
+  if (c.type === 'talk') {
+    const other = w.people[c.person];
+    ensure(
+      other?.alive && other.settlement === s.id && other.id !== person.id && adult(w, other),
+      'Собеседник недоступен',
+    );
+    const npc = promote(w, other.id),
+      memory = `Знакомство с ${p.name} (${person.id})`;
+    if (!npc.memory.includes(memory)) {
+      npc.memory.push(memory);
+      event(w, 'meeting', `${p.name} познакомился с ${npc.name}.`, [
+        `person:${other.id}`,
+        `person:${person.id}`,
+      ]);
+    }
+    return;
+  }
+  if (c.type === 'rest') {
+    const cost = c.days * (5 + army.members.length);
+    const food = c.days * (army.members.length + 1);
+    ensure(p.gold >= cost, `Нужно ${cost} монет за постой`);
+    ensure(
+      p.inventory.grain + army.food >= food && p.inventory.grain >= c.days,
+      'Купите зерно для героя и отряда',
+    );
+    p.gold -= cost;
+    s.treasury += cost;
+    for (let d = 0; d < c.days && person.alive; d++) {
+      tickDay(w);
+      for (const id of [person.id, ...army.members])
+        if (w.people[id].alive)
+          w.people[id].health = Math.min(100, w.people[id].health + 8 + (p.skills.medicine ?? 0));
+    }
+    w.speed = 0;
+    event(w, 'rest', `${p.name}: отдых ${c.days} дн., постой ${cost} монет.`, [
+      `person:${person.id}`,
+    ]);
+    return;
+  }
+  if (c.type === 'work') {
+    const wages = c.job === 'smith' ? 16 : 10;
+    ensure(s.treasury >= wages, 'В казне нет денег на оплату работы');
+    ensure(person.health >= 20, 'Сначала восстановите здоровье');
+    if (c.job === 'smith')
+      ensure(s.stocks.iron >= 2 && s.stocks.wood >= 2, 'Кузнице нужны 2 железа и 2 дерева');
+    s.treasury -= wages;
+    p.gold += wages;
+    if (c.job === 'smith') {
+      s.stocks.iron -= 2;
+      s.stocks.wood -= 2;
+      s.stocks.tools += 1;
+      p.skills.crafting = (p.skills.crafting ?? 0) + 0.2;
+    } else s.stocks[c.job === 'farm' ? 'grain' : 'wood'] += c.job === 'farm' ? 12 : 4;
+    tickDay(w);
+    w.speed = 0;
+    event(w, 'work', `${p.name} заработал ${wages} монет за день работы.`, [
+      `person:${person.id}`,
+      `settlement:${s.id}`,
+    ]);
+    return;
+  }
+  if (c.type === 'supply') {
+    ensure(army.members.length > 0, 'Сначала наберите отряд');
+    ensure(p.inventory.grain >= c.quantity, 'Недостаточно зерна в инвентаре');
+    p.inventory.grain -= c.quantity;
+    army.food += c.quantity;
+    return;
+  }
+  if (c.type === 'train') {
+    ensure(army.members.length > 0, 'Нет бойцов для обучения');
+    ensure(army.unitClass !== c.unitClass, 'Отряд уже обучен этому классу');
+    const cost = army.members.length * (c.unitClass === 'cavalry' ? 25 : 10);
+    ensure(p.gold >= cost, `Нужно ${cost} монет на обучение`);
+    if (c.unitClass === 'cavalry')
+      ensure(
+        p.inventory.horses >= army.members.length,
+        'Нужна одна лошадь из инвентаря на каждого бойца',
+      );
+    p.gold -= cost;
+    s.treasury += cost;
+    p.inventory.horses += army.mounts ?? 0;
+    army.mounts = c.unitClass === 'cavalry' ? army.members.length : 0;
+    p.inventory.horses -= army.mounts;
+    army.unitClass = c.unitClass;
+    event(w, 'training', `${p.name} переобучил отряд: ${c.unitClass}.`, [army.id]);
+    return;
+  }
+  if (c.type === 'abandon_quest') {
+    const q = w.quests.find((q) => q.id === c.quest);
+    ensure(q?.status === 'accepted', 'Контракт не принят');
+    ensure(!q.objectiveMet, 'Задание уже выполнено — получите награду');
+    q.status = 'open';
+    return;
+  }
   if (c.type === 'trade') {
     const price = s.prices[c.good] * (c.side === 'sell' ? 0.8 : 1),
       total = price * c.quantity;
@@ -267,8 +402,14 @@ function apply(w: World, c: Command) {
       );
     });
     ensure(eligible.length >= c.count, 'Недостаточно взрослых жителей для набора');
+    if (army.unitClass === 'cavalry')
+      ensure(p.inventory.horses >= c.count, 'Нужны лошади для пополнения конницы');
     const recruits = levy(w, s.id, c.count, true);
     army.members.push(...recruits.members);
+    if (army.unitClass === 'cavalry') {
+      p.inventory.horses -= c.count;
+      army.mounts = (army.mounts ?? 0) + c.count;
+    }
     army.food += recruits.food;
     w.armies = w.armies.filter((a) => a !== recruits);
     p.gold -= c.count * 10;
@@ -286,6 +427,8 @@ function apply(w: World, c: Command) {
       profession(w, w.people[id], w.people[id].homeProfession ?? 'farmer');
     s.stocks.weapons += army.members.length;
     s.stocks.grain += army.food;
+    p.inventory.horses += army.mounts ?? 0;
+    army.mounts = 0;
     army.members = [];
     army.food = 0;
     return;
@@ -303,7 +446,7 @@ function apply(w: World, c: Command) {
         ensure(p.inventory.grain >= q.need, 'Недостаточно зерна');
         p.inventory.grain -= q.need;
         s.stocks.grain += q.need;
-      } else ensure(s.monsters === 0, 'Угроза ещё не устранена');
+      } else ensure(q.objectiveMet || s.monsters === 0, 'Угроза ещё не устранена');
       s.treasury -= q.reward;
       p.gold += q.reward;
       q.status = 'completed';
@@ -351,7 +494,8 @@ function apply(w: World, c: Command) {
     ensure(army.members.length >= 5, 'Нужен отряд из 5 бойцов');
     p.title = `Защитник ${s.name}`;
     p.legitimacy = Math.max(p.legitimacy, 20);
-    promote(w, p.person).titles.push(p.title);
+    const npc = promote(w, p.person);
+    if (!npc.titles.includes(p.title)) npc.titles.push(p.title);
     return;
   }
   if (c.type === 'build') {

@@ -104,7 +104,7 @@ export function death(w: World, p: Person, reason: string) {
 }
 export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
   const w: World = {
-    version: 1,
+    version: 2,
     seed,
     rng: seedHash(seed),
     nextId: 1,
@@ -288,7 +288,7 @@ export function movePerson(w: World, p: Person, to: number) {
   p.settlement = to;
   p.state = s.state;
 }
-export function route(w: World, from: number, to: number): number[] {
+export function route(w: Pick<World, 'roads'>, from: number, to: number): number[] {
   const distance = new Map<number, number>([[from, 0]]),
     prev = new Map<number, number>(),
     open = new Set([from]);
