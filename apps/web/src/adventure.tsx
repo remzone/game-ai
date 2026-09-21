@@ -1,3 +1,12 @@
+import { Lore } from './lore';
+import {
+  SCHOOLS,
+  schoolInfo,
+  isSpellTarget,
+  spellCost,
+  type School,
+} from '@living-world/simulation';
+import { Statecraft } from './statecraft';
 import { useState } from 'react';
 import { governments, GOODS, type Command } from '@living-world/simulation';
 import type { View } from './types';
@@ -195,14 +204,13 @@ export function Adventure({ world, send }: Props) {
             Обучение в областном городе: 60 монет и 3 дня. Заклинание требует 10 маны и цель в
             радиусе 8 клеток.
           </p>
-          {(['elemental', 'healing'] as const).map((school) => (
+          {SCHOOLS.map((school) => (
             <button
               key={school}
               disabled={!s.central || hero.potential < 1 || p.gold < 60}
               onClick={() => void act({ type: 'study', school })}
             >
-              Изучать {school === 'elemental' ? 'стихии' : 'лечение'} · навык{' '}
-              {(p.skills[school] ?? 0).toFixed(1)}
+              Изучать {schoolInfo[school].name} · навык {(p.skills[school] ?? 0).toFixed(1)}
             </button>
           ))}
           <p>Ваш путь: {world.religions[hero.faith]?.name}</p>
@@ -445,6 +453,8 @@ export function Adventure({ world, send }: Props) {
           </details>
         )}
       </fieldset>
+      <Lore world={world} send={send} />
+      <Statecraft key={world.hero!.state} world={world} send={send} />
       <details>
         <summary>Действующие договоры</summary>
         {world.treaties
@@ -460,7 +470,7 @@ export function Adventure({ world, send }: Props) {
   );
 }
 export function SpellPanel({ world, send }: Props) {
-  const [school, setSchool] = useState<'elemental' | 'healing'>('elemental');
+  const [school, setSchool] = useState<School>('elemental');
   const p = world.player!,
     b = world.battle;
   if (!b || b.status !== 'active') return null;
@@ -472,16 +482,21 @@ export function SpellPanel({ world, send }: Props) {
         value={school}
         onChange={(e) => setSchool(e.target.value as typeof school)}
       >
-        <option value="elemental">Стихийный удар</option>
-        <option value="healing">Лечение</option>
+        {SCHOOLS.map((id) => (
+          <option key={id} value={id}>
+            {schoolInfo[id].name}
+          </option>
+        ))}
       </select>
-      <p>Выберите цель. Цена: 10 маны, радиус: 8 клеток.</p>
+      <p>
+        {schoolInfo[school].description} Цена: {spellCost(world, school)} маны, радиус: 8 клеток.
+      </p>
       {b.fighters
-        .filter((f) => f.hp > 0 && f.side === (school === 'healing' ? 'player' : 'enemy'))
+        .filter((f) => isSpellTarget(f, school, p.person))
         .map((f) => (
           <button
             key={f.id}
-            disabled={world.hero!.mana < 10 || !(p.skills[school] >= 1)}
+            disabled={world.hero!.mana < spellCost(world, school) || !(p.skills[school] >= 1)}
             onClick={() => void send({ type: 'spell', school, target: f.id })}
           >
             {f.person === p.person ? 'Герой' : f.id} · {Math.ceil(f.hp)} HP

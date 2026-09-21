@@ -84,3 +84,11 @@ ART.dragon = svg(
   shadow +
     '<path d="M63 70 29 22 5 20 15 66l25-5-9 25 31 3m5-15 31-53 23 12-5 40-22-4 7 23-34-5" fill="#593d49" stroke="#9b6a6e" stroke-width="2"/><path d="m59 52-15 39 15 17 20-13-7-40" fill="#495b58" stroke="#233d3b" stroke-width="3"/><path d="m61 61-4-32 11-17 13 16-9 34" fill="#718075"/><path d="m67 16-6-12m14 14 8-12" stroke="#bbad83" stroke-width="4"/><path d="m63 33 6 4 6-5" stroke="#ecb55d" stroke-width="3"/><path d="m49 88-12 27m39-26 19 23" stroke="#697b70" stroke-width="8"/><path d="M65 99q-15 24 22 23l26-20" fill="none" stroke="#4e655b" stroke-width="7"/>',
 );
+
+ART.spirit = svg(
+  '<ellipse cx="64" cy="110" rx="35" ry="10" fill="#619cad" opacity=".25"/><path d="M30 108q24-28 14-61 2-32 20-34 29 4 19 43-8 22 21 50l-25-8-14 20-14-16z" fill="#99d5d4" opacity=".65" stroke="#d5f2e6" stroke-width="2"/><path d="m55 42 7 3m7-3 7-3" stroke="#243548" stroke-width="4"/>',
+);
+ART.undead = person('#374c45').replace(
+  '</svg>',
+  '<path d="m56 29 5 1m8-1 5-1" stroke="#a4e4a0" stroke-width="3"/></svg>',
+);

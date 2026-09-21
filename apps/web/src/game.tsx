@@ -479,17 +479,24 @@ export function Game({ world, selected, onSelect, send, unit, onTalk }: Bridge) 
             .image(
               0,
               0,
-              f.side === 'enemy' && f.person === undefined
-                ? w.settlements[b!.settlement].monsterKind
-                : hero
-                  ? 'hero'
-                  : 'soldier',
+              f.summonedUntil !== undefined
+                ? 'spirit'
+                : f.undead
+                  ? 'undead'
+                  : f.side === 'enemy' && f.person === undefined
+                    ? w.settlements[b!.settlement].monsterKind
+                    : hero
+                      ? 'hero'
+                      : 'soldier',
             )
             .setOrigin(0.5, 0.91)
             .setDisplaySize(size, size);
           const health = this.add.graphics();
           if (!hero && f.side === 'player' && f.unitClass === 'archers') sprite.setTint(0x98b9a3);
           if (!hero && f.side === 'player' && f.unitClass === 'cavalry') sprite.setTint(0xb7a5d2);
+          if ((f.rootedUntil ?? 0) > b.elapsed)
+            ring.lineStyle(3, 0x6fa976, 0.9).strokeEllipse(0, 2, this.sx, this.sy);
+          if ((f.weakenedUntil ?? 0) > b.elapsed) sprite.setTint(0xb79cd4);
           actor.add([ring, sprite, health]);
           if (f.hp <= 0) {
             sprite

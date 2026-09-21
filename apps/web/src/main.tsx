@@ -1,3 +1,4 @@
+import { emblems } from '@living-world/simulation';
 import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -780,7 +781,9 @@ function App() {
                 <h2>Державы</h2>
                 {world.states.map((state) => (
                   <details key={state.id}>
-                    <summary style={{ color: state.color }}>{state.name}</summary>
+                    <summary style={{ color: state.color }}>
+                      {emblems[state.emblem ?? 'tower']} {state.name}
+                    </summary>
                     <p>{state.government}</p>
                     <p>
                       Правитель:{' '}
