@@ -373,7 +373,10 @@ it('founds a village by moving identities and transferring resources instead of 
   const people = w.people.length,
     pop = w.settlements.reduce((n, s) => n + s.population, 0),
     grain = w.settlements.reduce((n, s) => n + s.stocks.grain, 0);
+  w.settlements[0].essence = 5;
   expect(command(w, { type: 'found_settlement', name: 'Новый очаг' }).ok).toBe(true);
+  expect(w.settlements.at(-1)!.essence).toBe(0);
+  expect(w.settlements[0].essence).toBe(5);
   const town = w.settlements.at(-1)!;
   expect(town.population).toBe(10);
   expect(w.people.length).toBe(people);
