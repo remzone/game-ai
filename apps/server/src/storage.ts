@@ -3,7 +3,12 @@ import { gzipSync, gunzipSync } from 'node:zlib';
 import { mkdir, readFile, writeFile, rename, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
-import { initializeExpansion, type World } from '@living-world/simulation';
+import {
+  initializeExpansion,
+  initializeMagic,
+  initializeLore,
+  type World,
+} from '@living-world/simulation';
 export interface Slot {
   slot: number;
   seed: string;
@@ -60,6 +65,8 @@ export function decode(s: { version: number; checksum: string; compressed: Uint8
     !Number.isInteger(w.rng)
   )
     throw new Error('Некорректное состояние мира');
+  initializeMagic(w);
+  initializeLore(w);
   return w;
 }
 export interface Storage {
