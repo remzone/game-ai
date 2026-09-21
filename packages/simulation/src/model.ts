@@ -8,6 +8,8 @@ export type Profession =
   'farmer' | 'woodcutter' | 'miner' | 'smith' | 'merchant' | 'child' | 'soldier';
 export type UnitClass = 'infantry' | 'spearmen' | 'archers' | 'cavalry' | 'mages';
 export interface Person {
+  undead?: boolean;
+  undeadMaster?: number;
   id: number;
   parents: number[];
   children: number[];
@@ -42,6 +44,8 @@ export interface NPC {
   recognizedHeirs?: number[];
 }
 export interface Settlement {
+  essence?: number;
+  essenceReserve?: number;
   id: number;
   name: string;
   region: number;
@@ -67,6 +71,9 @@ export interface Settlement {
   governance: { steward: number | null; localTax: number; unrestDays: number; eligibleDay: number };
 }
 export interface State {
+  emblem?: 'tower' | 'sun' | 'star' | 'moon' | 'cross';
+  rulerTitle?: string;
+  raceRights?: Partial<Record<(typeof RACES)[number], 'equal' | 'restricted'>>;
   id: number;
   name: string;
   color: string;
@@ -129,6 +136,7 @@ export interface Army {
   commander?: number;
 }
 export interface War {
+  defenseOf?: string;
   campaign?: boolean;
   id: string;
   a: number;
@@ -185,6 +193,10 @@ export interface Player {
   gameOver: boolean;
 }
 export interface Fighter {
+  undead?: boolean;
+  rootedUntil?: number;
+  weakenedUntil?: number;
+  summonedUntil?: number;
   id: string;
   person?: number;
   side: 'player' | 'enemy';
@@ -224,7 +236,18 @@ export interface DirectorLog {
   accepted: boolean;
   reason: string;
 }
+export interface LoreItem {
+  id: string;
+  name: string;
+  kind: 'book' | 'artifact';
+  school: 'elemental' | 'healing' | 'nature' | 'illusion' | 'necromancy' | 'summoning' | 'spatial';
+  owner: number;
+  creator: number;
+  created: number;
+  history: string[];
+}
 export interface World {
+  items?: LoreItem[];
   version: 4;
   seed: string;
   rng: number;
@@ -311,6 +334,8 @@ export interface Treaty {
   id: string;
   a: number;
   b: number;
-  type: 'peace' | 'alliance' | 'trade' | 'access';
+  type: 'peace' | 'alliance' | 'trade' | 'access' | 'vassalage' | 'guarantee' | 'tribute';
+  amount?: number;
+  nextPayment?: number;
   until: number;
 }

@@ -1,3 +1,4 @@
+import { hasCivilRights } from './statecraft.js';
 import type { World, State } from './model.js';
 import { adult } from './systems.js';
 import { event, promote } from './world.js';
@@ -32,7 +33,7 @@ export function crown(w: World, s: State, person: number, reason: string) {
   const npc = promote(w, person);
   if (!npc.titles.includes('Правитель')) npc.titles.push('Правитель');
   if (w.player?.person === person) {
-    w.player.title = `Правитель ${s.name}`;
+    w.player.title = `${s.rulerTitle ?? 'Правитель'} ${s.name}`;
     w.player.legitimacy = 60;
     w.people[person].state = s.id;
     const army = w.armies.find((a) => a.id === w.player!.army);
@@ -62,7 +63,7 @@ export function succession(w: World, s: State, election = false) {
   if (!election && rule.hereditary) {
     const heir = [...(previous?.children ?? []), ...(w.npcs[s.ruler]?.recognizedHeirs ?? [])]
       .map((id) => w.people[id])
-      .filter((p) => p?.alive && adult(w, p) && p.state === s.id)
+      .filter((p) => p?.alive && adult(w, p) && p.state === s.id && hasCivilRights(s, p))
       .sort((a, b) => a.born - b.born || a.id - b.id)[0];
     if (heir) {
       crown(w, s, heir.id, 'династическое наследование');
@@ -78,10 +79,16 @@ export function succession(w: World, s: State, election = false) {
     ]),
   ].filter(
     (id): id is number =>
-      id !== null && !!w.people[id]?.alive && adult(w, w.people[id]) && w.people[id].state === s.id,
+      id !== null &&
+      !!w.people[id]?.alive &&
+      adult(w, w.people[id]) &&
+      w.people[id].state === s.id &&
+      hasCivilRights(s, w.people[id]),
   );
   if (!candidates.length) {
-    const fallback = w.people.find((p) => p.alive && adult(w, p) && p.state === s.id);
+    const fallback = w.people.find(
+      (p) => p.alive && adult(w, p) && p.state === s.id && hasCivilRights(s, p),
+    );
     if (fallback) crown(w, s, fallback.id, 'признание уцелевших жителей');
     return;
   }
@@ -188,7 +195,8 @@ export function polityDay(w: World) {
             w.people[id].alive &&
             adult(w, w.people[id]) &&
             w.people[id].profession !== 'soldier' &&
-            id !== w.states[r.state].ruler,
+            id !== w.states[r.state].ruler &&
+            hasCivilRights(w.states[r.state], w.people[id]),
         ) ?? null;
     }
   for (const t of w.settlements) {

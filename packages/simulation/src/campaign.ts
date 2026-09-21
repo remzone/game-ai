@@ -1,3 +1,4 @@
+import { sameRealm } from './statecraft.js';
 import type { World, Siege, Army } from './model.js';
 import { advanceJourney, death, event, movePerson, profession } from './world.js';
 import { adult, levy } from './systems.js';
@@ -9,13 +10,14 @@ export function militaryRoute(w: World, state: number, from: number, to: number)
     const owner = w.settlements[id]?.state;
     return (
       owner === state ||
+      sameRealm(w, state, owner) ||
       w.wars.some(
         (v) => v.active && ((v.a === state && v.b === owner) || (v.b === state && v.a === owner)),
       ) ||
       w.treaties.some(
         (t) =>
           t.until > w.day &&
-          ['access', 'alliance'].includes(t.type) &&
+          (['access', 'alliance'].includes(t.type) || (t.type === 'guarantee' && t.a === state)) &&
           ((t.a === state && t.b === owner) || (t.b === state && t.a === owner)),
       )
     );
@@ -73,7 +75,12 @@ function strategyDay(w: World) {
   // One expedition per side and declared territorial objective. No fabricated soldiers or cargo.
   for (const war of w.wars.filter((v) => v.active && v.campaign)) {
     const target = w.settlements[war.target];
-    if (!target || target.state !== war.b || w.day - war.started >= 180) {
+    if (
+      !target ||
+      target.state !== war.b ||
+      w.day - war.started >= 180 ||
+      (war.defenseOf && !w.wars.some((v) => v.id === war.defenseOf && v.active))
+    ) {
       war.active = false;
       for (const type of ['peace', 'access'] as const)
         w.treaties.push({ id: nextId(w, 'treaty'), a: war.a, b: war.b, type, until: w.day + 90 });

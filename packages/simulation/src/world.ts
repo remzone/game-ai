@@ -40,6 +40,10 @@ export function promote(w: World, id: number) {
   return w.npcs[id];
 }
 export function profession(w: World, p: Person, job: Profession) {
+  if (p.undead && job !== 'soldier') {
+    death(w, p, 'распад освобождённой нежити');
+    return;
+  }
   const s = w.settlements[p.settlement];
   if (p.alive) {
     s.workers[p.profession]--;

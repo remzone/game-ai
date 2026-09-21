@@ -10,3 +10,6 @@ export * from './expansion-state.js';
 export * from './polity.js';
 export * from './campaign.js';
 export * from './ecology.js';
+export * from './statecraft.js';
+export * from './magic.js';
+export * from './lore.js';

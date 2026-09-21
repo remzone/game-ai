@@ -1,3 +1,5 @@
+import { LoreSchemas, loreCommand, transferItem } from './lore.js';
+import { StatecraftSchemas, statecraftCommand, hasCivilRights } from './statecraft.js';
 import { z } from 'zod';
 import { ExpansionSchemas, expansionCommand } from './expansion-commands.js';
 import { officeTitle, revokeOffice } from './governance.js';
@@ -23,6 +25,8 @@ export const BiographySchema = z
   .strict();
 export const CommandSchema = z.discriminatedUnion('type', [
   ...ExpansionSchemas,
+  ...StatecraftSchemas,
+  ...LoreSchemas,
   z.object({ type: z.literal('create_player'), biography: BiographySchema }).strict(),
   z
     .object({
@@ -101,7 +105,7 @@ function ensure(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
 function apply(w: World, c: Command) {
-  if (expansionCommand(w, c)) return;
+  if (loreCommand(w, c) || statecraftCommand(w, c) || expansionCommand(w, c)) return;
   if (c.type === 'create_player') {
     ensure(!w.player, 'Персонаж уже создан');
     const b = c.biography,
@@ -201,6 +205,11 @@ function apply(w: World, c: Command) {
       .forEach((e, i) => {
         e.owner = recipients[i % recipients.length].id;
       });
+    (w.items ?? [])
+      .filter((item) => item.owner === person.id)
+      .forEach((item, i) =>
+        transferItem(w, item, recipients[i % recipients.length].id, 'наследование'),
+      );
     const heirNpc = promote(w, heir.id);
     p.gold = heir.wealth;
     heir.wealth = 0;
@@ -540,6 +549,10 @@ function apply(w: World, c: Command) {
     return;
   }
   if (c.type === 'seek_office') {
+    ensure(
+      hasCivilRights(w.states[s.state], w.people[p.person]),
+      'Закон державы ограничивает доступ к должности',
+    );
     ensure(s.governance.steward === null, 'В поселении уже есть управляющий');
     ensure(
       w.day >= s.governance.eligibleDay,

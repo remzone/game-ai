@@ -1,3 +1,5 @@
+import { SCHOOLS, castSpell } from './magic.js';
+import { hasCivilRights, overlord, sameRealm, honorGuarantees } from './statecraft.js';
 import { z } from 'zod';
 import { emptyStocks, emptyWorkers, BASE_PRICES, GOODS, type World } from './model.js';
 import { promote, event } from './world.js';
@@ -72,11 +74,11 @@ export const ExpansionSchemas = [
     })
     .strict(),
   z.object({ type: z.literal('recognize_heir'), person: id }).strict(),
-  z.object({ type: z.literal('study'), school: z.enum(['elemental', 'healing']) }).strict(),
+  z.object({ type: z.literal('study'), school: z.enum(SCHOOLS) }).strict(),
   z
     .object({
       type: z.literal('spell'),
-      school: z.enum(['elemental', 'healing']),
+      school: z.enum(SCHOOLS),
       target: z.string().max(80),
     })
     .strict(),
@@ -99,22 +101,7 @@ export function expansionCommand(w: World, input: unknown): boolean {
     a = w.armies.find((a) => a.id === p.army)!;
   ensure(hero.alive && !p.gameOver, 'Нужен живой герой');
   if (c.type === 'spell') {
-    ensure(w.battle?.status === 'active', 'Заклинание доступно в бою');
-    const caster = w.battle.fighters.find((f) => f.person === p.person),
-      target = w.battle.fighters.find((f) => f.id === c.target);
-    ensure(caster && caster.hp > 0 && target && target.hp > 0, 'Нужны живые заклинатель и цель');
-    ensure((p.skills[c.school] ?? 0) >= 1 && hero.potential >= 1, 'Сначала изучите школу магии');
-    ensure(hero.mana >= 10, 'Нужно 10 маны');
-    ensure(Math.hypot(caster.x - target.x, caster.y - target.y) <= 8, 'Цель вне радиуса 8');
-    ensure(target.side === (c.school === 'healing' ? 'player' : 'enemy'), 'Неверная сторона цели');
-    ensure(c.school !== 'healing' || target.hp < target.maxHp, 'Цель не ранена');
-    const power = Math.min(65, 12 + hero.potential * 3 + (p.skills[c.school] ?? 0) * 2);
-    hero.mana -= 10;
-    target.hp =
-      c.school === 'healing'
-        ? Math.min(target.maxHp, target.hp + power)
-        : Math.max(0, target.hp - power);
-    p.skills[c.school] += 0.05;
+    castSpell(w, c.school, c.target);
     return true;
   }
   ensure(w.battle?.status !== 'active' && !p.journey, 'Завершите бой или путь');
@@ -267,6 +254,8 @@ export function expansionCommand(w: World, input: unknown): boolean {
       y: position[1],
       central: false,
       kind: 'village',
+      essence: 0,
+      essenceReserve: 0,
       residents: [],
       population: 0,
       workers: emptyWorkers(),
@@ -346,6 +335,7 @@ export function expansionCommand(w: World, input: unknown): boolean {
       `person:${p.person}`,
     ]);
   } else if (c.type === 'seek_region') {
+    ensure(hasCivilRights(state, hero), 'Закон державы ограничивает доступ к должности');
     const r = w.regions[s.region],
       towns = w.settlements.filter((t) => t.region === r.id);
     ensure(s.id === r.capital, 'Обратитесь в столице области');
@@ -368,6 +358,7 @@ export function expansionCommand(w: World, input: unknown): boolean {
       true,
     );
   } else if (c.type === 'seek_crown') {
+    ensure(hasCivilRights(state, hero), 'Закон державы ограничивает доступ к должности');
     ensure(s.id === state.capital, 'Нужна столица державы');
     ensure(!ruler, 'Вы уже правитель');
     const regions = w.regions.filter((r) => r.state === state.id);
@@ -435,6 +426,10 @@ export function expansionCommand(w: World, input: unknown): boolean {
       ensure(!state.claims.includes(target), 'Претензия уже заявлена');
       state.claims.push(target);
     } else if (c.action === 'war') {
+      ensure(
+        overlord(w, state.id) === undefined && !sameRealm(w, state.id, other.id),
+        'Вассальная клятва запрещает самостоятельную войну',
+      );
       ensure(!war, 'Война уже идёт');
       ensure(
         !w.treaties.some(
@@ -459,6 +454,7 @@ export function expansionCommand(w: World, input: unknown): boolean {
       });
       state.relations[other.id] = -80;
       other.relations[state.id] = -80;
+      honorGuarantees(w);
     } else if (c.action === 'peace') {
       ensure(war, 'Война не идёт');
       ensure(w.day - war.started >= 7, 'Переговоры возможны после 7 дней войны');

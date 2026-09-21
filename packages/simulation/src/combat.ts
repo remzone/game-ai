@@ -23,6 +23,7 @@ export function startBattle(w: World, enemyArmy?: string, siege?: string, defend
   const fighters: Fighter[] = people.map((id, i) => ({
     id: `person:${id}`,
     person: id,
+    undead: w.people[id].undead,
     side: 'player',
     unitClass:
       id === p.person
@@ -44,6 +45,7 @@ export function startBattle(w: World, enemyArmy?: string, siege?: string, defend
       fighters.push({
         id: `person:${id}`,
         person: id,
+        undead: w.people[id].undead,
         side: 'enemy',
         unitClass: w.people[id].unitClass ?? defenders.unitClass,
         hp: w.people[id].health,
@@ -146,6 +148,8 @@ export function stepBattle(w: World, dt = 0.25) {
   const b = w.battle;
   if (!b || b.status !== 'active') return;
   b.elapsed += dt;
+  for (const f of b.fighters)
+    if (f.summonedUntil !== undefined && f.summonedUntil <= b.elapsed) f.hp = 0;
   for (const f of b.fighters) {
     if (f.hp <= 0) continue;
     const enemies = b.fighters
@@ -185,6 +189,7 @@ export function stepBattle(w: World, dt = 0.25) {
         target.hp -
           cfg.damage *
             bonus *
+            ((f.weakenedUntil ?? 0) > b.elapsed ? 0.5 : 1) *
             race *
             experience *
             skill *
@@ -195,6 +200,7 @@ export function stepBattle(w: World, dt = 0.25) {
       );
       f.cooldown = 1;
     } else if (distance > cfg.range) {
+      if ((f.rootedUntil ?? 0) > b.elapsed) continue;
       if (f.order === 'hold' && f.side === 'player') continue;
       const chase = f.side === 'enemy' || f.order === 'attack';
       const tx = chase ? target.x : f.targetX,

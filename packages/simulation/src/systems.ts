@@ -1,3 +1,5 @@
+import { loreDay } from './lore.js';
+import { hasCivilRights, overlord, sameRealm, statecraftDay } from './statecraft.js';
 import {
   BASE_PRICES,
   GOODS,
@@ -72,6 +74,12 @@ export function economy(w: World) {
     w.regions[s.region].treasury += tax * 0.3;
     state.treasury += tax * 0.35;
     s.loyalty = Math.max(0, s.loyalty - Math.max(0, state.tax + s.governance.localTax - 0.2) * 2);
+    if (state.raceRights) {
+      const excluded = s.residents.filter(
+        (id) => w.people[id].alive && !hasCivilRights(state, w.people[id]),
+      ).length;
+      s.loyalty = Math.max(0, s.loyalty - (0.4 * excluded) / Math.max(1, s.population));
+    }
     if (!state.laws.tolerance) {
       const minority = s.residents.reduce(
         (n, id) => n + Number(w.people[id].alive && w.people[id].faith !== state.laws.religion),
@@ -293,6 +301,7 @@ export function logistics(w: World) {
 }
 export function adult(w: World, p: Person) {
   return (
+    !p.undead &&
     (w.day - p.born) / 360 >= p.ancestry.reduce((v, a, i) => v + a * [18, 35, 32, 16, 25, 12][i], 0)
   );
 }
@@ -301,7 +310,7 @@ export function demography(w: World) {
   // Each identity is processed once per 30 game days, in a stable deterministic bucket.
   for (let id = w.day % 30; id < populationAtStart; id += 30) {
     const p = w.people[id];
-    if (!p.alive) continue;
+    if (!p.alive || p.undead) continue;
     p.mana = Math.min(20 + p.potential * 5, p.mana + 10);
     const s = w.settlements[p.settlement],
       age = (w.day - p.born) / 360,
@@ -341,7 +350,12 @@ export function demography(w: World) {
                   !p.children.includes(other.id) &&
                   !other.parents.some((id) => p.parents.includes(id)),
               );
-      if (father?.alive && father.sex === 'male' && father.settlement === p.settlement) {
+      if (
+        father?.alive &&
+        !father.undead &&
+        father.sex === 'male' &&
+        father.settlement === p.settlement
+      ) {
         const child = addPerson(w, s.id, 0, blended(p.ancestry, father.ancestry), [
           p.id,
           father.id,
@@ -425,6 +439,13 @@ export function levy(w: World, settlement: number, count: number, player = false
 }
 export function supply(w: World) {
   for (const a of w.armies) {
+    for (const id of a.members) {
+      const person = w.people[id];
+      if (!person.alive || !person.undead) continue;
+      const master = person.undeadMaster === undefined ? undefined : w.people[person.undeadMaster];
+      if (master?.alive && master.mana >= 1) master.mana--;
+      else death(w, person, 'распад нежити без поддержки');
+    }
     a.members = a.members.filter((id) => w.people[id].alive);
     a.mounts = Math.min(
       a.mounts ?? 0,
@@ -445,7 +466,7 @@ export function supply(w: World) {
       s.stocks.grain -= take;
       a.food += take;
     }
-    const required = a.members.length;
+    const required = a.members.filter((id) => !w.people[id].undead).length;
     if (a.food >= required) {
       a.food -= required;
       a.morale = Math.min(100, a.morale + 1);
@@ -465,8 +486,9 @@ export function supply(w: World) {
 export function politics(w: World) {
   localGovernance(w);
   polityDay(w);
+  statecraftDay(w);
   for (const s of w.states) {
-    if (w.day % 30 !== 0) continue;
+    if (w.day % 30 !== 0 || overlord(w, s.id) !== undefined) continue;
     const towns = w.settlements.filter((t) => t.state === s.id);
     if (!towns.length) continue;
     const mean = towns.reduce((n, t) => n + t.loyalty, 0) / towns.length;
@@ -485,6 +507,7 @@ export function politics(w: World) {
       );
     });
     if (!border) continue;
+    if (sameRealm(w, w.settlements[border.a].state, w.settlements[border.b].state)) continue;
     const source =
         w.settlements[border.a].state === s.id ? w.settlements[border.a] : w.settlements[border.b],
       target =
@@ -644,6 +667,7 @@ export function tickDay(w: World) {
       event(w, 'route_blocked', 'Путь перекрыт войной. Выберите другой маршрут.');
     }
   }
+  loreDay(w);
   ecologyDay(w);
   quests(w);
 }

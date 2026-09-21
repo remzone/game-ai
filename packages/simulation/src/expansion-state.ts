@@ -1,3 +1,5 @@
+import { initializeLore } from './lore.js';
+import { initializeMagic } from './magic.js';
 import type { World } from './model.js';
 /** Deterministic defaults: legacy migration must not consume simulation RNG. */
 export function initializeExpansion(w: World) {
@@ -60,4 +62,6 @@ export function initializeExpansion(w: World) {
     npc.skills ??= { magic: 5, elemental: 3, healing: 3 };
     if (!npc.titles.includes('Учитель магии')) npc.titles.push('Учитель магии');
   }
+  initializeMagic(w);
+  initializeLore(w);
 }
