@@ -1,0 +1,216 @@
+.map-panel.has-settlement-plan {
+  overflow: auto;
+  background: #241e1b;
+}
+.has-settlement-plan .map-heading,
+.has-settlement-plan .map-footer {
+  position: static;
+}
+.has-settlement-plan .map-heading {
+  max-width: none;
+  padding: 9px 14px;
+  border: 0;
+  background: #221b19;
+}
+.local-town {
+  min-width: 0;
+}
+.local-town-plate {
+  position: relative;
+  margin: 0 12px;
+  border: 1px solid #8d704d;
+  box-shadow: 0 4px 15px #120f0c;
+  background: #292823;
+}
+.town-drawing {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 64vh;
+}
+.local-town-inscription {
+  position: absolute;
+  pointer-events: none;
+  top: 12px;
+  left: 14px;
+  display: grid;
+  gap: 3px;
+  border: 1px solid #a5825a7d;
+  padding: 8px 13px;
+  background: #2b211bd9;
+  color: #f2ddba;
+  box-shadow: 0 2px 7px #1e16169c;
+}
+.local-town-inscription span {
+  color: #d8b78a;
+  text-transform: uppercase;
+  font:
+    11px Georgia,
+    serif;
+  letter-spacing: 0.12em;
+}
+.local-town-inscription strong {
+  font:
+    clamp(1rem, 2.8vw, 2.1rem) Georgia,
+    serif;
+}
+.town-map-pin,
+.town-resident-pin {
+  cursor: pointer;
+  outline: none;
+}
+.town-pin-hit {
+  fill: transparent;
+}
+.town-pin-face {
+  fill: #2f251f;
+  stroke: #e4bd80;
+  stroke-width: 1.4;
+}
+.town-map-pin:is(:hover, :focus-visible, .is-open) .town-pin-face,
+.town-resident-pin:is(:hover, :focus-visible) .town-pin-face {
+  stroke: #fff0bf;
+  stroke-width: 2.7;
+  fill: #735237;
+}
+.town-pin-icon {
+  fill: #f8d6a4;
+  font:
+    700 15px Georgia,
+    serif;
+  pointer-events: none;
+}
+.town-pin-label {
+  paint-order: stroke;
+  fill: #f0d6ab;
+  stroke: #2a1f1b;
+  stroke-width: 3;
+  font:
+    700 13px Georgia,
+    serif;
+  pointer-events: none;
+}
+.local-town-register {
+  padding: 12px 14px;
+  display: grid;
+  gap: 9px;
+}
+.local-town-facts {
+  display: flex;
+  gap: 6px 18px;
+  flex-wrap: wrap;
+  color: #c7ae91;
+  font-size: 0.8rem;
+}
+.town-alert {
+  color: #f2a28b;
+}
+.local-town-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.local-town-tabs button {
+  min-height: 33px;
+  background: #2d241f;
+  border: 1px solid #64503a;
+  color: #e6d1b1;
+  font-size: 0.77rem;
+  padding: 4px 8px;
+}
+.local-town-tabs button[aria-pressed='true'] {
+  background: #503825;
+  border-color: #b89465;
+  color: #fff0d0;
+}
+.local-town-tabs button > span {
+  margin-right: 6px;
+  color: #ddb77b;
+}
+.local-town-detail {
+  border: 1px solid #65513c;
+  padding: 9px 13px;
+  background: #27211d;
+}
+.local-town-detail h3 {
+  font:
+    700 1.18rem Georgia,
+    serif;
+  color: #efd4ab;
+  margin: 1px 0 4px;
+}
+.local-town-detail p {
+  margin: 3px 0 6px;
+  color: #dcc8ad;
+  font-size: 0.83rem;
+}
+.local-town-detail ul {
+  list-style: none;
+  display: grid;
+  gap: 5px;
+  padding: 0;
+  margin: 6px 0 0;
+}
+.local-town-detail li {
+  border-top: 1px solid #664c37;
+  padding-top: 5px;
+}
+.local-town-detail li strong,
+.town-status {
+  color: #dbb582;
+}
+.town-status {
+  font-size: 0.74rem;
+}
+.local-town-people {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.local-town-people button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 53px;
+  background: #302620;
+  border: 1px solid #70533c;
+  color: #edd2aa;
+  text-align: left;
+}
+.local-town-people button .character-portrait {
+  width: 39px;
+  height: 39px;
+  flex: none;
+  border: 1px solid #9e7854;
+}
+.local-town-people button span {
+  display: grid;
+  gap: 3px;
+}
+.local-town-people button small {
+  color: #cfaf89;
+}
+@media (max-width: 760px) {
+  .map-panel.has-settlement-plan {
+    height: auto;
+    min-height: 0;
+  }
+  .local-town-plate {
+    margin: 0 5px;
+  }
+  .local-town-inscription {
+    top: 6px;
+    left: 6px;
+    padding: 4px 7px;
+  }
+  .local-town-inscription span {
+    font-size: 9px;
+  }
+  .town-pin-label {
+    display: none;
+  }
+  .local-town-register {
+    padding: 9px 6px;
+  }
+}

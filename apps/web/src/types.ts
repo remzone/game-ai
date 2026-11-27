@@ -1,5 +1,6 @@
 import type {
   PlayerMapView,
+  TownPlan,
   RoadActor,
   World,
   Person,
@@ -12,6 +13,7 @@ type VisualNPC = NPC & { appearance?: PortraitAppearance };
 export type View = Omit<World, 'people' | 'npcs' | 'settlements' | 'directorLogs' | 'roadLife'> & {
   settlements: Omit<Settlement, 'residents'>[];
   mapKnowledge?: PlayerMapView;
+  townPlan?: TownPlan;
   roadActors?: RoadActor[];
   saveError?: string | null;
   population: { total: number; alive: number };

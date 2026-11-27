@@ -23,6 +23,7 @@ import { Archive } from './archive';
 import { Adventure, SpellPanel } from './adventure';
 import { GovernancePanel } from './governance';
 import { Atlas } from './atlas';
+import { SettlementPlan } from './settlement-plan';
 import { FaithCodex, FoundingChronicle, StateCodex } from './codex';
 import { LoadingScreen } from './splash';
 import { Portrait, outfitNames, portraitForPerson } from './portrait';
@@ -448,7 +449,9 @@ function App() {
         </div>
       )}
       <main>
-        <section className={`map-panel ${p!.scene === 'world' ? 'has-atlas' : ''}`}>
+        <section
+          className={`map-panel ${p!.scene === 'world' ? 'has-atlas' : p!.scene === 'settlement' && world.townPlan ? 'has-settlement-plan' : ''}`}
+        >
           <div className="map-heading">
             <div>
               <span className="eyebrow">
@@ -492,6 +495,12 @@ function App() {
               onSelect={selectTown}
               onRealm={openRealm}
               send={send}
+            />
+          ) : p!.scene === 'settlement' && world.townPlan ? (
+            <SettlementPlan
+              key={world.seed + ':' + world.townPlan.settlement}
+              plan={world.townPlan}
+              onTalk={talk}
             />
           ) : (
             <Suspense
