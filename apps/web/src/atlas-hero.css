@@ -1,0 +1,22 @@
+.atlas-hero-miniature {
+  pointer-events: none;
+}
+.atlas-hero-model {
+  filter: drop-shadow(0 2px 1.4px #171013e8) drop-shadow(0 0 1px #f2ba5d);
+}
+.atlas-hero-miniature[data-moving='true'] .atlas-hero-model {
+  animation: atlas-miniature-steps 240ms ease-in-out infinite alternate;
+}
+@keyframes atlas-miniature-steps {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-1.8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-hero-miniature[data-moving='true'] .atlas-hero-model {
+    animation: none;
+  }
+}

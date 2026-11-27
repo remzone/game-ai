@@ -1,0 +1,226 @@
+.atlas.atlas-adventure .atlas-paper {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  overflow: hidden;
+  border-color: #9c7b50;
+  background: #163437;
+  box-shadow:
+    0 4px 13px #09090a82,
+    inset 0 0 18px #071515bb;
+}
+.atlas.atlas-adventure .atlas-paper svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  user-select: none;
+  touch-action: pan-y;
+}
+.atlas.atlas-adventure .atlas-paper.can-pan svg {
+  cursor: grab;
+  touch-action: none;
+}
+.atlas.atlas-adventure .atlas-paper.is-panning svg,
+.atlas.atlas-adventure .atlas-paper.is-panning svg * {
+  cursor: grabbing;
+}
+.atlas.atlas-adventure .atlas-toolbar,
+.atlas.atlas-adventure .atlas-inspector {
+  gap: 6px;
+}
+.atlas.atlas-adventure .atlas-segments {
+  flex-wrap: wrap;
+}
+.atlas.atlas-adventure .atlas-inspector select {
+  width: 100%;
+}
+.atlas.atlas-adventure .atlas-coast-line {
+  fill: none;
+  stroke-width: 2;
+  stroke: #d1b983;
+  stroke-opacity: 0.72;
+}
+.atlas.atlas-adventure .atlas-border-underlay {
+  stroke: #29231b;
+  stroke-width: 4;
+}
+.atlas.atlas-adventure .atlas-realm-line {
+  stroke: #f5dd9e;
+  stroke-width: 1.65;
+  stroke-dasharray: 4 2;
+}
+.atlas.atlas-adventure.is-terrain .atlas-border-underlay {
+  stroke: #302a1a;
+  stroke-width: 1.75;
+  opacity: 0.43;
+}
+.atlas.atlas-adventure.is-terrain .atlas-realm-line {
+  stroke: #e5cc89;
+  opacity: 0.39;
+  stroke-width: 0.85;
+  stroke-dasharray: 3 2.5;
+}
+.atlas.atlas-adventure .atlas-rivers .river-bank {
+  stroke: #32605a;
+  stroke-width: 7.9;
+  opacity: 0.9;
+}
+.atlas.atlas-adventure .atlas-rivers .river-flow {
+  stroke: #88c3b5;
+  stroke-width: 4;
+  opacity: 0.91;
+}
+.atlas.atlas-adventure .river-label {
+  fill: #dfebcb;
+  stroke: #2f5252;
+  stroke-width: 3.1;
+  font-size: 12px;
+  letter-spacing: 0.7px;
+}
+.atlas.atlas-adventure .atlas-roads {
+  stroke: #e7bc7d;
+  stroke-width: 2.25;
+  opacity: 0.92;
+}
+.atlas.atlas-adventure .atlas-trails {
+  stroke: #564229;
+  stroke-width: 1.15;
+  opacity: 0.37;
+  fill: none;
+  pointer-events: none;
+}
+.atlas.atlas-adventure .atlas-journey {
+  stroke: #fff0a9;
+  stroke-width: 2.8;
+  filter: drop-shadow(0 1px 1px #24140c);
+}
+.atlas.atlas-adventure .atlas-town-label {
+  font-size: calc(12.5px / var(--atlas-label-scale, 1));
+  fill: #fff0c4;
+  stroke: #231c12;
+  stroke-width: calc(4 / var(--atlas-label-scale, 1));
+  font-weight: 700;
+}
+.atlas.atlas-adventure .atlas-town-label.is-highlighted {
+  fill: #fffacc;
+  font-size: calc(15px / var(--atlas-label-scale, 1));
+  stroke-width: calc(4.75 / var(--atlas-label-scale, 1));
+}
+.atlas.atlas-adventure .atlas-realm-label text {
+  fill: #ffe9aa;
+  stroke: #33271b;
+  font-size: 15px;
+  stroke-width: 5;
+}
+.atlas-map-key,
+.atlas-navigator {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  z-index: 1;
+  bottom: 7px;
+  color: #efd7a2;
+  font:
+    11px Georgia,
+    serif;
+  background: #142525eb;
+  border: 1px solid #a3895baf;
+  box-shadow: 0 2px 6px #090f10a8;
+}
+.atlas-map-key {
+  left: 7px;
+  padding: 5px 8px;
+  gap: 11px;
+  pointer-events: none;
+}
+.atlas-map-key span::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 8px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  background: var(--key);
+}
+.atlas-key-mountain {
+  --key: #b7a28a;
+}
+.atlas-key-forest {
+  --key: #7b9954;
+}
+.atlas-key-water {
+  --key: #83c1b6;
+}
+.atlas-key-town {
+  --key: #e8ba74;
+}
+.atlas-key-mountain::before {
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+}
+.atlas-key-forest::before {
+  border-radius: 100% 100% 0 0;
+}
+.atlas-key-water::before {
+  height: 3px;
+  vertical-align: 2px;
+}
+.atlas-key-town::before {
+  clip-path: polygon(0 47%, 50% 0, 100% 47%, 90% 47%, 90% 100%, 10% 100%, 10% 47%);
+}
+.atlas-navigator {
+  right: 7px;
+  gap: 5px;
+  padding: 2px 5px;
+}
+.atlas-navigator span {
+  font-size: 18px;
+  line-height: 1;
+}
+.atlas-navigator button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  padding: 3px 1px;
+  color: inherit;
+}
+.atlas-navigator button:disabled {
+  opacity: 0.55;
+}
+@media (max-width: 650px) {
+  .atlas.atlas-adventure .atlas-paper {
+    margin: 0 5px;
+    min-height: clamp(280px, 44dvh, 440px);
+  }
+  .atlas.atlas-adventure .atlas-toolbar,
+  .atlas.atlas-adventure .atlas-inspector {
+    padding: 5px;
+    gap: 5px;
+  }
+  .atlas.atlas-adventure .atlas-segments {
+    gap: 3px;
+  }
+  .atlas.atlas-adventure .atlas-toolbar button {
+    padding: 5px 6px;
+    min-height: 29px;
+    font-size: 10.5px;
+  }
+  .atlas-map-key,
+  .atlas-navigator {
+    bottom: 5px;
+    font-size: 10px;
+  }
+  .atlas-map-key {
+    left: 5px;
+    gap: 6px;
+    padding: 4px 5px;
+  }
+  .atlas-navigator {
+    right: 5px;
+    padding: 2px 4px;
+  }
+  .atlas-navigator span {
+    display: none;
+  }
+}

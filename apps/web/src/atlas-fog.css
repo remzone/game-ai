@@ -1,0 +1,73 @@
+.atlas-unknown-caption {
+  position: absolute;
+  z-index: 2;
+  top: 11px;
+  left: 14px;
+  max-width: 43%;
+  pointer-events: none;
+  background: #211b17df;
+  border: 1px solid #80674b;
+  color: #e1c298;
+  padding: 5px 8px;
+  font:
+    11px Georgia,
+    serif;
+}
+.atlas-unknown-land {
+  pointer-events: none;
+}
+.atlas.atlas-adventure .atlas-war-front {
+  fill: none;
+  stroke: #92382f;
+  stroke-width: 4;
+  stroke-dasharray: 2 3;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1px #ffb08b);
+}
+.atlas-chart-offer {
+  display: grid;
+  gap: 4px;
+  margin-block: 0 10px;
+  padding: 7px 9px;
+  border: 1px solid #725333;
+  background: #45321f58;
+}
+.atlas-chart-offer small {
+  color: #c8ad86;
+}
+@media (max-width: 650px) {
+  .atlas-unknown-caption {
+    left: 8px;
+    top: 41px;
+    font-size: 9px;
+    padding: 3px 5px;
+  }
+}
+
+.atlas-key-war {
+  --key: #d57663;
+}
+.atlas-map-key .atlas-key-war::before {
+  height: 3px;
+  vertical-align: 2px;
+}
+.atlas-town-scar {
+  fill: none;
+  pointer-events: none;
+  stroke: #7e2c20;
+  stroke-width: 1.4;
+  filter: drop-shadow(0 0 0.6px #ffca8b);
+}
+.atlas-town-scar.is-ruin {
+  stroke: #382923;
+}
+.atlas-colony-flag {
+  stroke: #331b14;
+  stroke-width: 1.1;
+  fill: var(--realm-ink);
+  filter: drop-shadow(0 0 0.7px #e2be84);
+  pointer-events: none;
+}
+.atlas-place-warning {
+  color: #e1a181;
+}

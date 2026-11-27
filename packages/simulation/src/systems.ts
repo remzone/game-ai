@@ -1,3 +1,5 @@
+import { initializeRoadLife, raidCaravan, roadLifeDay } from './road-life.js';
+import { rememberMap } from './map-knowledge.js';
 import { loreDay } from './lore.js';
 import { hasCivilRights, overlord, sameRealm, statecraftDay } from './statecraft.js';
 import {
@@ -13,6 +15,11 @@ import { polityDay } from './polity.js';
 import { campaignDay } from './campaign.js';
 import { estateProduction } from './property.js';
 import { localGovernance } from './governance.js';
+import {
+  settleAbandonment,
+  canImproveSettlement,
+  completeSettlementWork,
+} from './settlement-works.js';
 import { random, pick, integer } from './rng.js';
 import {
   addPerson,
@@ -99,6 +106,7 @@ export function economy(w: World) {
     }
     if (w.day % 30 === 0) {
       const old = s.kind;
+      settleAbandonment(w, s);
       s.kind =
         s.population === 0
           ? 'ruins'
@@ -119,11 +127,18 @@ export function economy(w: World) {
           [`settlement:${s.id}`],
           true,
         );
-      if (s.stocks.wood > 200 && s.stocks.stone > 100 && s.loyalty > 60 && s.infrastructure < 10) {
+      if (
+        s.population > s.workers.soldier + s.workers.child &&
+        s.stocks.wood > 200 &&
+        s.stocks.stone > 100 &&
+        s.loyalty > 60 &&
+        canImproveSettlement(s) &&
+        !w.sieges.some((siege) => siege.settlement === s.id && siege.status === 'active')
+      ) {
         s.stocks.wood -= 100;
         s.stocks.stone -= 50;
-        s.infrastructure++;
-        event(w, 'construction', `${s.name} расширяет хозяйство.`, [`settlement:${s.id}`]);
+        if (!completeSettlementWork(w, s))
+          event(w, 'construction', `${s.name} расширяет хозяйство.`, [`settlement:${s.id}`]);
       }
     }
   }
@@ -163,6 +178,7 @@ export function logistics(w: World) {
       );
       continue;
     }
+    raidCaravan(w, c, guards);
     if (advanceJourney(w, j) === 'arrived') {
       w.settlements[c.to].stocks[c.good] += c.amount;
       c.status = 'delivered';
@@ -407,6 +423,7 @@ export function levy(w: World, settlement: number, count: number, player = false
         adult(w, p) &&
         p.profession !== 'soldier' &&
         p.id !== w.player?.person &&
+        !w.roadLife?.peddlers.some((t) => t.person === p.id) &&
         !w.states.some((st) => st.ruler === p.id) &&
         !w.regions.some((r) => r.governor === p.id),
     );
@@ -629,6 +646,7 @@ export function quests(w: World) {
 }
 export function tickDay(w: World) {
   if (w.battle?.status === 'active') return;
+  initializeRoadLife(w);
   w.day++;
   economy(w);
   logistics(w);
@@ -646,11 +664,13 @@ export function tickDay(w: World) {
   supply(w);
   politics(w);
   campaignDay(w);
+  roadLifeDay(w);
   const p = w.player;
   if (p?.journey && w.people[p.person].alive) {
     const result = advanceJourney(w, p.journey);
     const at = p.journey.route[p.journey.leg];
     movePerson(w, w.people[p.person], at);
+    rememberMap(w);
     const army = w.armies.find((a) => a.id === p.army);
     if (army) {
       army.settlement = at;

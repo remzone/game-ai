@@ -1,4 +1,3 @@
-import { emblems } from '@living-world/simulation';
 import React, { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -7,20 +6,27 @@ import {
   adult,
   season,
   RACES,
+  PORTRAIT_VARIANTS,
+  startingCapitalNames,
   GOODS,
   type Command,
   type World,
   type Race,
+  type PortraitAppearance,
+  type PortraitVariant,
 } from '@living-world/simulation';
 import { api, ApiError } from './api';
 import type { View } from './types';
 import './style.css';
 import { Dialogue, ArmyPanel, QuestJournal, TravelPanel, Guide, troopNames } from './play';
-import { ART } from './art';
 import { Archive } from './archive';
 import { Adventure, SpellPanel } from './adventure';
 import { GovernancePanel } from './governance';
-const artwork = (key: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ART[key]);
+import { Atlas } from './atlas';
+import { FaithCodex, FoundingChronicle, StateCodex } from './codex';
+import { LoadingScreen } from './splash';
+import { Portrait, outfitNames, portraitForPerson } from './portrait';
+import './presentation.css';
 const Game = lazy(() => import('./game').then((m) => ({ default: m.Game })));
 const goods: Record<string, string> = {
   grain: 'Зерно',
@@ -35,6 +41,7 @@ const raceNames = ['Человек', 'Эльф', 'Тёмный эльф', 'Ор�
 const fmt = (n: number) => Math.floor(n).toLocaleString('ru');
 function App() {
   const sending = useRef(false);
+  const sidebar = useRef<HTMLElement>(null);
   const [pending, setPending] = useState(false),
     [dialogue, setDialogue] = useState<number | null>(null);
   const [world, setWorld] = useState<View | null>(null),
@@ -51,7 +58,9 @@ function App() {
     [slots, setSlots] = useState<any[]>([]),
     [admin, setAdmin] = useState<any>(null),
     [online, setOnline] = useState(false),
-    [busy, setBusy] = useState(false),
+    [busy, setBusy] = useState<'create' | 'load' | null>(null),
+    [realm, setRealm] = useState<number | null>(null),
+    [faith, setFaith] = useState<number | null>(null),
     [authVersion, setAuthVersion] = useState(0),
     [unit, setUnit] = useState<'all' | 'infantry' | 'spearmen' | 'archers' | 'cavalry' | 'mages'>(
       'all',
@@ -116,9 +125,51 @@ function App() {
     return ok;
   }
   const locate = (id: number) => {
+    if (world?.mapKnowledge && !world.mapKnowledge.known.includes(id)) {
+      setNotice(
+        'Это место ещё вне вашей карты. Исследуйте ближайшие дороги или купите свиток в столице.',
+      );
+      return;
+    }
     setSelected(id);
     setTab('place');
     if (world?.player?.scene === 'settlement') void send({ type: 'leave' });
+  };
+  const revealSidebar = () => {
+    const panel = sidebar.current;
+    if (!panel) return;
+    panel.scrollTop = 0;
+    if (window.matchMedia('(max-width: 760px)').matches) panel.scrollIntoView({ block: 'start' });
+  };
+  const openRealm = (id: number) => {
+    setRealm(id);
+    setTab('states');
+    revealSidebar();
+  };
+  const openFaith = (id: number) => {
+    setFaith(id);
+    setTab('faiths');
+    revealSidebar();
+  };
+  const selectTown = (id: number) => {
+    if (world?.mapKnowledge && !world.mapKnowledge.known.includes(id)) return;
+    setSelected(id);
+    setTab('place');
+  };
+  const loadWorld = async (slot: number) => {
+    setBusy('load');
+    await action(async () => {
+      const next = await api<View>(`/saves/${slot}/load`, {});
+      setWorld(next);
+      setSelected(next.hero?.settlement ?? 0);
+      setRealm(null);
+      setFaith(null);
+      setTab('place');
+      setMenu(false);
+      setMenuSaves(false);
+      setNotice('Мир загружен и поставлен на паузу');
+    });
+    setBusy(null);
   };
   const talk = (id: number) => {
     if (world?.speed) void send({ type: 'speed', value: 0 });
@@ -127,6 +178,7 @@ function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (busy || !loaded || locked) return;
       if ((e.target as HTMLElement).matches('input,select,textarea')) return;
       if (document.querySelector('dialog[open]')) return;
       if (e.key === 'Escape') {
@@ -144,11 +196,14 @@ function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [world, menu, newGame]);
+  }, [world, menu, newGame, busy, loaded, locked]);
   useEffect(() => {
     if (tab === 'saves' || menuSaves) void action(async () => setSlots(await api('/saves')));
     if (tab === 'admin') void action(async () => setAdmin(await api('/admin')));
   }, [tab, menuSaves]);
+  useEffect(() => {
+    if (sidebar.current) sidebar.current.scrollTop = 0;
+  }, [tab]);
   const p = world?.player,
     hero = world?.hero,
     local = world && hero ? world.settlements[hero.settlement] : null,
@@ -156,7 +211,7 @@ function App() {
     army = world?.armies.find((a) => a.id === p?.army);
   if (locked)
     return (
-      <div className="entry">
+      <div className="entry title-screen">
         <div className="entry-card">
           <span className="eyebrow">LIVING WORLD RPG</span>
           <h1>Пепельная корона</h1>
@@ -186,33 +241,40 @@ function App() {
     );
   if (!loaded)
     return (
-      <div className="entry">
-        <div>
-          <p>{error || 'Подключение к миру…'}</p>
-          {error && (
-            <button onClick={() => setAuthVersion((v) => v + 1)}>Повторить подключение</button>
-          )}
-        </div>
-      </div>
+      <LoadingScreen
+        title="У ворот мира"
+        caption="Подключаемся к летописи континента."
+        error={error}
+        onRetry={() => setAuthVersion((v) => v + 1)}
+      />
+    );
+  if (busy === 'load')
+    return (
+      <LoadingScreen
+        title="Открывается летопись"
+        caption="Восстанавливаем героев, земли и события из сохранения."
+      />
     );
   if (menu && !newGame)
     return (
       <div className="entry title-screen">
         <div className="title-copy">
-          <span className="eyebrow">LIVING WORLD RPG · ALPHA</span>
+          <span className="title-ornament" aria-hidden="true">
+            ✧
+          </span>
+          <span className="eyebrow">РОЛЕВАЯ ИГРА · ЖИВОЙ МИР</span>
           <h1>
             Пепельная
             <br />
             <em>корона</em>
           </h1>
           <p>
-            Мир живёт своей жизнью.
-            <br />
-            Какой след оставит ваша династия?
+            Государства поднимаются и рушатся. Города помнят тех, кто их спас. Какой след оставит
+            ваша династия?
           </p>
           <div className="title-actions">
             <button
-              className="primary"
+              className="primary ornate-action"
               onClick={() => {
                 if (
                   !world?.player ||
@@ -241,18 +303,7 @@ function App() {
               <h3>Загрузить историю</h3>
               {slots.length === 0 && <p>Сохранений пока нет.</p>}
               {slots.map((slot) => (
-                <button
-                  key={slot.slot}
-                  onClick={() =>
-                    void action(async () => {
-                      const next = await api<View>(`/saves/${slot.slot}/load`, {});
-                      setWorld(next);
-                      setSelected(next.hero?.settlement ?? 0);
-                      setMenu(false);
-                      setMenuSaves(false);
-                    })
-                  }
-                >
+                <button key={slot.slot} onClick={() => void loadWorld(slot.slot)}>
                   {slot.slot === 0 ? 'Автосохранение' : `Слот ${slot.slot}`} · День {slot.day}
                 </button>
               ))}
@@ -263,15 +314,14 @@ function App() {
               {error}
             </p>
           )}
-          <small>10 держав · 300 поселений · живой мир</small>
+          <small>ОДИНОЧНАЯ КАМПАНИЯ · ALPHA</small>
         </div>
-        <img className="title-hero" src={artwork('hero')} alt="Герой у стен крепости" />
       </div>
     );
   if (!world?.player || newGame)
     return (
       <div className="entry creation-screen">
-        <div className="creation-content">
+        <div className="creation-content" inert={busy === 'create'}>
           <button
             className="back-link"
             onClick={() => {
@@ -282,20 +332,24 @@ function App() {
             ← Главное меню
           </button>
           <span className="eyebrow">СОЗДАНИЕ ГЕРОЯ</span>
-          <h2>У каждой династии есть начало</h2>
+          <h1>Кем вас запомнит мир?</h1>
+          <p className="creation-lede">
+            Происхождение и ремесло определят, с чем вы начнёте историю.
+          </p>
           <Biography
-            busy={busy}
             onStart={async (seed, biography) => {
-              setBusy(true);
+              setBusy('create');
               await action(async () => {
                 const w = await api<View>('/new', { seed, biography });
                 setWorld(w);
                 setSelected(w.hero!.settlement);
                 setTab('place');
+                setRealm(null);
+                setFaith(null);
                 setNewGame(false);
                 setMenu(false);
               });
-              setBusy(false);
+              setBusy(null);
             }}
           />
           {error && (
@@ -304,15 +358,25 @@ function App() {
             </p>
           )}
         </div>
+        {busy === 'create' && (
+          <div className="creation-loading-overlay">
+            <LoadingScreen
+              title="Рождается мир"
+              caption="Готовим континент, его жителей и предысторию. Это может занять несколько секунд."
+            />
+          </div>
+        )}
       </div>
     );
   return (
     <div className="app">
       <header>
         <div className="brand">
-          <img className="brand-art" src={artwork('castle')} alt="" />
+          <span className="brand-seal" aria-hidden="true">
+            ✧
+          </span>
           <div>
-            ПЕПЕЛЬНАЯ КОРОНА<small>LIVING WORLD RPG</small>
+            ПЕПЕЛЬНАЯ КОРОНА<small>ЛЕТОПИСЬ КОНТИНЕНТА</small>
           </div>
         </div>
         <div className="calendar">
@@ -384,7 +448,7 @@ function App() {
         </div>
       )}
       <main>
-        <section className="map-panel">
+        <section className={`map-panel ${p!.scene === 'world' ? 'has-atlas' : ''}`}>
           <div className="map-heading">
             <div>
               <span className="eyebrow">
@@ -394,37 +458,69 @@ function App() {
                     ? 'ПОЛЕ БОЯ'
                     : 'ПОСЕЛЕНИЕ'}
               </span>
-              <h2>{p!.scene === 'world' ? 'Земли десяти корон' : local?.name}</h2>
+              <h2>
+                {p!.scene === 'world'
+                  ? (world.worldLore?.continent ?? 'Земли десяти корон')
+                  : local?.name}
+              </h2>
             </div>
-            <span>
-              {p!.journey
-                ? 'В пути · ' + p!.journey.remaining + ' дн. до следующей точки'
-                : p!.scene === 'world'
-                  ? 'Выберите поселение на карте'
-                  : 'Вы на месте'}
-            </span>
+            <div className="map-heading-tools">
+              <span>
+                {p!.journey
+                  ? 'В пути · ' + p!.journey.remaining + ' дн. до следующей точки'
+                  : p!.scene === 'world'
+                    ? 'Выберите поселение на карте'
+                    : 'Вы на месте'}
+              </span>
+              {p!.scene === 'world' && world.worldLore && (
+                <button
+                  className="codex-link"
+                  onClick={() => {
+                    setTab('history');
+                    revealSidebar();
+                  }}
+                >
+                  Предыстория →
+                </button>
+              )}
+            </div>
           </div>
-          <Suspense fallback={<div className="game">Загрузка карты…</div>}>
-            <Game
+          {p!.scene === 'world' ? (
+            <Atlas
               world={world}
               selected={selected}
-              onSelect={(id) => {
-                setSelected(id);
-                setTab('place');
-              }}
-              send={(c) => void send(c)}
-              unit={unit}
-              onTalk={talk}
+              onSelect={selectTown}
+              onRealm={openRealm}
+              send={send}
             />
-          </Suspense>
+          ) : (
+            <Suspense
+              fallback={
+                <div className="scene-loading" role="status">
+                  Различаем силуэты в тумане…
+                </div>
+              }
+            >
+              <Game
+                world={world}
+                selected={selected}
+                onSelect={selectTown}
+                send={(c) => void send(c)}
+                unit={unit}
+                onTalk={talk}
+              />
+            </Suspense>
+          )}
           <div className="map-footer">
             <span>
-              ● Герой &nbsp; ▪ Караван &nbsp; <i>●</i> Угроза
+              {p!.scene === 'world'
+                ? '◆ Столица · ♟ Герой · ⚑ Армия · Штриховка: оккупация'
+                : 'Пробел: пауза'}
             </span>
             <span>Пробел — пауза · E — войти</span>
           </div>
         </section>
-        <aside>
+        <aside ref={sidebar}>
           <div className="side-content">
             {!hero!.alive && (
               <section className="card">
@@ -537,17 +633,34 @@ function App() {
                 )}
               </>
             )}
-            {tab === 'history' && <Archive />}
+            {tab === 'history' && (
+              <>
+                <FoundingChronicle world={world} />
+                <Archive />
+              </>
+            )}
             {tab === 'place' && s && p!.scene !== 'battle' && (
               <>
                 <TravelPanel world={world} selected={selected} onSelect={locate} />
-                <span className="eyebrow">{world.states[s.state].name}</span>
-                <h2>{s.name}</h2>
-                <img
-                  className="place-portrait"
-                  src={artwork(s.kind === 'ruins' ? 'ruins' : s.central ? 'castle' : 'house')}
-                  alt=""
-                />
+                {world.mapKnowledge?.chartForSale && (
+                  <div className="atlas-chart-offer">
+                    <small>Картограф нанесёт земли и дороги на ваш свиток.</small>
+                    <button
+                      disabled={pending || p!.gold < world.mapKnowledge.chartPrice}
+                      onClick={() => void send({ type: 'buy_world_chart' })}
+                    >
+                      Купить карту континента · {world.mapKnowledge.chartPrice}◈
+                    </button>
+                  </div>
+                )}
+                <div
+                  className={`settlement-card settlement-art-${s.kind === 'ruins' ? 2 : s.kind === 'city' ? 0 : 1}`}
+                >
+                  <span className="eyebrow">
+                    {world.states.find((state) => state.id === s.state)?.name ?? 'КОНТИНЕНТ'}
+                  </span>
+                  <h2>{s.name}</h2>
+                </div>
                 <p className="muted">
                   {{ city: 'Город', town: 'Городок', village: 'Деревня', ruins: 'Руины' }[s.kind] ??
                     s.kind}{' '}
@@ -555,6 +668,18 @@ function App() {
                   {{ forest: 'Лес', mountain: 'Горы', plains: 'Равнина', marsh: 'Болота' }[s.biome]}{' '}
                   · {s.central ? 'Центр области' : 'Поселение'}
                 </p>
+                {s.kind === 'ruins' ? (
+                  <p className="atlas-place-warning">Поселение лежит в руинах.</p>
+                ) : (
+                  (s.structuralDamage ?? 0) > 0 && (
+                    <p className="atlas-place-warning">
+                      Постройки повреждены войной: {s.structuralDamage}/3.
+                    </p>
+                  )
+                )}
+                {s.foundedDay !== undefined && (
+                  <p className="muted">Основано на {s.foundedDay}-й день.</p>
+                )}
                 <div className="metrics">
                   <div>
                     <b>{fmt(s.population)}</b>жителей
@@ -719,6 +844,14 @@ function App() {
                         <summary>
                           {person.npc?.name ?? `Житель ${person.id}`} · {person.profession}
                         </summary>
+                        {person.appearance && (
+                          <div className="person-preview">
+                            <Portrait
+                              value={person.appearance}
+                              label={`Портрет: ${person.npc?.name ?? 'житель'}`}
+                            />
+                          </div>
+                        )}
                         <button onClick={() => talk(person.id)}>Поговорить</button>
                         <p>
                           Возраст: {Math.floor((world.day - person.born) / 360)}. Дети:{' '}
@@ -737,7 +870,40 @@ function App() {
               <>
                 <span className="eyebrow">ДИНАСТИЯ</span>
                 <h2>{p!.name}</h2>
-                <img className="hero-portrait" src={artwork('hero')} alt="Герой" />
+                <Portrait
+                  value={portraitForPerson(hero!, hero!.appearance)}
+                  className="hero-codex-portrait"
+                  label={`Портрет: ${p!.name}`}
+                />
+                {world.wardrobe && (
+                  <fieldset
+                    className="wardrobe-controls"
+                    disabled={pending || p!.scene === 'battle' || !!p!.journey || !hero!.alive}
+                  >
+                    <legend>Гардероб</legend>
+                    <label>
+                      Надетая одежда
+                      <select
+                        value={world.wardrobe.equipped}
+                        onChange={(e) =>
+                          void send({
+                            type: 'equip_outfit',
+                            outfit: e.target.value as PortraitAppearance['outfit'],
+                          })
+                        }
+                      >
+                        {world.wardrobe.outfitIds.map((outfit) => (
+                          <option key={outfit} value={outfit}>
+                            {outfitNames[outfit]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <small className="wardrobe-note">
+                      Выбор меняет экипировку, но не иллюстрацию портрета.
+                    </small>
+                  </fieldset>
+                )}
                 <p>
                   {p!.title} · Легитимность {fmt(p!.legitimacy)}
                 </p>
@@ -777,25 +943,14 @@ function App() {
             )}
             {tab === 'states' && (
               <>
+                <StateCodex
+                  world={world}
+                  selected={realm}
+                  onSelect={setRealm}
+                  onFaith={openFaith}
+                  onLocate={locate}
+                />
                 <GovernancePanel world={world} send={send} />
-                <h2>Державы</h2>
-                {world.states.map((state) => (
-                  <details key={state.id}>
-                    <summary style={{ color: state.color }}>
-                      {emblems[state.emblem ?? 'tower']} {state.name}
-                    </summary>
-                    <p>{state.government}</p>
-                    <p>
-                      Правитель:{' '}
-                      {world.rulers.find((r) => r?.person === state.ruler)?.name ?? state.ruler}
-                    </p>
-                    <p>
-                      Легитимность {fmt(state.legitimacy)} · Налог {fmt(state.tax * 100)}%
-                    </p>
-                    <p>Казна {fmt(state.treasury)}◈</p>
-                    <p>{state.doctrines.join(', ')}</p>
-                  </details>
-                ))}
                 <h3>Войны и перемирия</h3>
                 {world.wars.map((w) => (
                   <p key={w.id}>
@@ -811,6 +966,9 @@ function App() {
                   </details>
                 ))}
               </>
+            )}
+            {tab === 'faiths' && (
+              <FaithCodex world={world} selected={faith} onSelect={setFaith} onRealm={openRealm} />
             )}
             {tab === 'saves' && (
               <>
@@ -836,20 +994,14 @@ function App() {
                       )}
                       <button
                         disabled={!saved}
-                        onClick={() =>
-                          void action(async () => {
-                            if (
-                              !window.confirm(
-                                'Загрузить сохранение? Несохранённые изменения текущего мира будут потеряны.',
-                              )
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              'Загрузить сохранение? Несохранённые изменения текущего мира будут потеряны.',
                             )
-                              return;
-                            const next = await api<View>(`/saves/${slot}/load`, {});
-                            setWorld(next);
-                            setSelected(next.hero?.settlement ?? 0);
-                            setNotice('Мир загружен и поставлен на паузу');
-                          })
-                        }
+                          )
+                            void loadWorld(slot);
+                        }}
                       >
                         Загрузить
                       </button>
@@ -943,6 +1095,7 @@ function App() {
           ['adventure', 'Жизнь и власть'],
           ['guide', 'Помощь'],
           ['states', 'Державы'],
+          ['faiths', 'Верования'],
           ['history', 'Летопись'],
           ['saves', 'Сохранения'],
           ['admin', 'Диагностика'],
@@ -1010,18 +1163,17 @@ function Trade({ send, world }: { send: (c: Command) => Promise<boolean>; world:
     </div>
   );
 }
-function Biography({
-  busy,
-  onStart,
-}: {
-  busy: boolean;
-  onStart: (seed: string, biography: any) => Promise<void>;
-}) {
-  const [seed, setSeed] = useState('ashen-crown'),
+function randomWorldCode() {
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+function Biography({ onStart }: { onStart: (seed: string, biography: any) => Promise<void> }) {
+  const [seed, setSeed] = useState(randomWorldCode),
+    [variant, setVariant] = useState<PortraitVariant>(1),
     [b, setB] = useState({
       name: 'Рем',
       race: 'Human' as Race,
-      sex: 'male',
+      sex: 'male' as PortraitAppearance['sex'],
       birthplace: 0,
       origin: 'peasants',
       childhood: 'fields',
@@ -1047,15 +1199,99 @@ function Biography({
       </select>
     </label>
   );
+  const archetypes = [
+    { id: 'warrior', name: 'Воин', description: 'Воинская выучка и жизнь в отряде.' },
+    { id: 'trader', name: 'Торговец', description: 'Рынки, ремесло сделки и дороги караванов.' },
+    { id: 'healer', name: 'Лекарь', description: 'Знания о ранах, болезнях и жизни людей.' },
+  ] as const;
+  const raceIndex = Math.max(0, RACES.indexOf(b.race));
+  const archetype = archetypes.find((entry) => entry.id === b.training) ?? archetypes[0];
   return (
     <form
       className="biography-form"
       onSubmit={(e) => {
         e.preventDefault();
-        void onStart(seed, b);
+        void onStart(seed.trim() || randomWorldCode(), { ...b, appearance: { variant } });
       }}
     >
       <div className="biography-fields">
+        <p className="eyebrow">I. ВЫБЕРИТЕ ПРОИСХОЖДЕНИЕ</p>
+        <fieldset className="race-choices">
+          <legend className="sr-only">Раса героя</legend>
+          {RACES.map((race, i) => (
+            <label key={race} title={raceNames[i]} className={b.race === race ? 'active' : ''}>
+              <input
+                type="radio"
+                name="race"
+                value={race}
+                checked={b.race === race}
+                onChange={() => setB({ ...b, race })}
+              />
+              <Portrait
+                className="race-thumb"
+                decorative
+                value={{ race, sex: b.sex, variant: 1 }}
+              />
+              <strong>{raceNames[i]}</strong>
+            </label>
+          ))}
+        </fieldset>
+        <fieldset className="training-choices body-choices">
+          <legend>Пол</legend>
+          {(
+            [
+              ['male', 'Мужской'],
+              ['female', 'Женский'],
+            ] as const
+          ).map(([sex, name]) => (
+            <label key={sex} className={b.sex === sex ? 'active' : ''}>
+              <input
+                type="radio"
+                name="sex"
+                value={sex}
+                checked={b.sex === sex}
+                onChange={() => setB({ ...b, sex })}
+              />
+              <span>{name}</span>
+            </label>
+          ))}
+        </fieldset>
+        <fieldset className="preset-choices">
+          <legend>Готовые портреты</legend>
+          {PORTRAIT_VARIANTS.map((id) => (
+            <label key={id} className={variant === id ? 'active' : ''}>
+              <input
+                type="radio"
+                name="portrait-variant"
+                value={id}
+                checked={variant === id}
+                onChange={() => setVariant(id)}
+              />
+              <Portrait
+                className="preset-thumb"
+                decorative
+                value={{ race: b.race, sex: b.sex, variant: id }}
+              />
+              <strong>Внешность {id}</strong>
+            </label>
+          ))}
+        </fieldset>
+        <fieldset className="training-choices">
+          <legend>Обучение</legend>
+          {archetypes.map((item) => (
+            <label key={item.id} className={b.training === item.id ? 'active' : ''}>
+              <input
+                type="radio"
+                name="training"
+                value={item.id}
+                checked={b.training === item.id}
+                onChange={() => setB({ ...b, training: item.id })}
+              />
+              <span>{item.name}</span>
+            </label>
+          ))}
+        </fieldset>
+        <p className="eyebrow">II. НАПИШИТЕ ПРОШЛОЕ</p>
         <div className="bio-grid">
           <label>
             Имя
@@ -1066,30 +1302,12 @@ function Biography({
               onChange={(e) => setB({ ...b, name: e.target.value })}
             />
           </label>
-          <label>
-            Seed мира
-            <input
-              required
-              maxLength={100}
-              value={seed}
-              onChange={(e) => setSeed(e.target.value)}
-            />
-          </label>
-          {select(
-            'race',
-            'Происхождение',
-            RACES.map((r, i) => [r, raceNames[i]]),
-          )}
-          {select('sex', 'Пол', [
-            ['male', 'Мужской'],
-            ['female', 'Женский'],
-          ])}
           {select(
             'birthplace',
             'Место рождения',
-            Array.from({ length: 10 }, (_, i) => [
+            startingCapitalNames(seed.trim() || 'ashen-crown').map((name, i) => [
               String(i * 30),
-              `Град ${i * 5 + 1}-1 · Держава ${i + 1}`,
+              name,
             ]),
           )}
           {select('origin', 'Семья', [
@@ -1107,11 +1325,6 @@ function Biography({
             ['caravan', 'Торговый караван'],
             ['temple', 'Храм'],
           ])}
-          {select('training', 'Обучение', [
-            ['warrior', 'Воин'],
-            ['trader', 'Торговец'],
-            ['healer', 'Лекарь'],
-          ])}
           {select('turningPoint', 'Важное событие', [
             ['rescue', 'Спасение соседей'],
             ['inheritance', 'Наследство'],
@@ -1123,23 +1336,41 @@ function Biography({
             ['duty', 'Долг перед семьёй'],
           ])}
         </div>
-        <button className="primary full" disabled={busy}>
-          {busy ? 'Создаётся мир…' : 'Войти в мир →'}
-        </button>
+        <details className="seed-settings">
+          <summary>Код мира</summary>
+          <p>
+            Для новой игры код выбирается случайно. Введите прежний код, чтобы повторить географию.
+          </p>
+          <label>
+            Код географии и симуляции
+            <input
+              required
+              maxLength={100}
+              value={seed}
+              onChange={(e) => setSeed(e.target.value)}
+            />
+          </label>
+          <button type="button" onClick={() => setSeed(randomWorldCode())}>
+            Другой код
+          </button>
+        </details>
+        <button className="primary full ornate-action">Начать историю →</button>
       </div>
       <div className="biography-portrait">
-        <span className="eyebrow">
-          {raceNames[RACES.indexOf(b.race)]} ·{' '}
-          {{ warrior: 'Воин', trader: 'Торговец', healer: 'Лекарь' }[b.training]}
-        </span>
-        <img src={artwork('hero')} alt="Образ героя" />
-        <h2>{b.name || 'Ваш герой'}</h2>
-        <p>Первая глава вашей истории</p>
-        <small>
-          Общий образ персонажа.
-          <br />
-          Внешность пока не зависит от расы и пола.
-        </small>
+        <Portrait
+          value={{ race: b.race, sex: b.sex, variant }}
+          className="forge-portrait"
+          label={`Облик расы: ${raceNames[raceIndex]}`}
+          eager
+        />
+        <div className="forge-caption">
+          <p className="eyebrow">
+            {raceNames[raceIndex]} · {archetype.name}
+          </p>
+          <h2>{b.name.trim() || 'Безымянный'}</h2>
+          <p>Внешность {variant}</p>
+          <small>{archetype.description}</small>
+        </div>
       </div>
     </form>
   );

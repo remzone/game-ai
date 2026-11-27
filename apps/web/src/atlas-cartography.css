@@ -1,0 +1,571 @@
+/* Drawn campaign atlas; deliberately no bitmap stamps in cartographic modes. */
+.atlas.atlas-adventure.is-ink-map .atlas-paper {
+  background: #324b58;
+  border: 1px solid #b18d59;
+  outline: 1px solid #36281b;
+  outline-offset: -4px;
+  box-shadow: inset 0 0 12px #172835;
+}
+.ink-shelf-outer,
+.ink-shelf-inner {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.ink-shelf-outer {
+  stroke: #81a1a1;
+  stroke-width: 23;
+  stroke-opacity: 0.24;
+}
+.ink-shelf-inner {
+  stroke: #a5b6a6;
+  stroke-width: 9.5;
+  stroke-opacity: 0.56;
+}
+.ink-surf {
+  fill: none;
+  stroke: #d1d8b8;
+  stroke-width: 0.62;
+  stroke-linecap: round;
+  opacity: 0.58;
+}
+.ink-forest {
+  fill: #7d8759;
+  fill-opacity: 0.5;
+  stroke: #526344;
+  stroke-width: 0.8;
+  stroke-opacity: 0.5;
+}
+.ink-marsh {
+  fill: #81947d;
+  fill-opacity: 0.39;
+}
+.ink-contour,
+.ink-stipple,
+.ink-hachure,
+.ink-ridge-folds,
+.ink-ridge-spine {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.ink-stipple {
+  stroke: #364f35;
+  stroke-width: 0.63;
+  opacity: 0.69;
+}
+.ink-contour {
+  stroke: #805b3e;
+  stroke-width: 0.55;
+}
+.ink-hachure {
+  opacity: 0.28;
+  stroke-width: 0.63;
+  stroke: #684d39;
+}
+.ink-ridge-shadow {
+  fill: #77554079;
+}
+.ink-ridge-folds {
+  stroke: #573b2d;
+  stroke-width: 0.72;
+  opacity: 0.72;
+}
+.ink-ridge-spine {
+  stroke: #604737;
+  opacity: 0.85;
+  stroke-width: 0.84;
+}
+.ink-grain {
+  mix-blend-mode: multiply;
+  opacity: 0.21;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-coast-line {
+  stroke: #514f3a;
+  stroke-width: 1.6;
+  stroke-opacity: 0.96;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-rivers .river-bank {
+  stroke: #567477;
+  stroke-width: 5.2;
+  opacity: 0.68;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-rivers .river-flow {
+  stroke: #486f7c;
+  stroke-width: 2.65;
+  opacity: 0.92;
+}
+.atlas.atlas-adventure.is-ink-map .river-label {
+  fill: #294e5c;
+  stroke: #e4ce9b;
+  stroke-opacity: 0.9;
+  font:
+    italic 10.5px Georgia,
+    serif;
+  stroke-width: 2.3;
+  letter-spacing: 0.9px;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-border-underlay {
+  stroke: #eed8a5;
+  stroke-width: 3;
+  opacity: 0.64;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-realm-line {
+  stroke: #704636;
+  stroke-width: 1.4;
+  stroke-dasharray: 5 2 1.2 2;
+  opacity: 0.94;
+}
+.atlas.atlas-adventure.is-ink-map.is-terrain .atlas-border-underlay {
+  display: none;
+}
+.atlas.atlas-adventure.is-ink-map.is-terrain .atlas-realm-line {
+  stroke-width: 0.83;
+  opacity: 0.25;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-roads {
+  stroke: #655039;
+  opacity: 0.64;
+  stroke-width: 1.1;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-trails {
+  stroke: #846547;
+  opacity: 0.37;
+  stroke-width: 0.63;
+  stroke-dasharray: 2.7 2.6;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-town-label {
+  font:
+    600 calc(12.5px / var(--atlas-label-scale, 1)) Georgia,
+    serif;
+  fill: #3b2d22;
+  stroke: #f1dca9;
+  stroke-width: calc(3px / var(--atlas-label-scale, 1));
+  stroke-opacity: 0.88;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-town-label.is-highlighted {
+  font-size: calc(15px / var(--atlas-label-scale, 1));
+  fill: #291a10;
+  stroke: #ffebbb;
+  stroke-width: calc(4px / var(--atlas-label-scale, 1));
+}
+.atlas.atlas-adventure.is-ink-map .atlas-realm-label text {
+  font:
+    small-caps 600 16px Georgia,
+    serif;
+  fill: #4b2822;
+  stroke: #f0d9a5;
+  stroke-width: 3.8;
+  letter-spacing: 1px;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-realm-label:hover text {
+  fill: #642727;
+  stroke: #fae9bd;
+}
+.ink-town-capital,
+.ink-town-port,
+.ink-town-village {
+  fill: #eed7a2;
+  stroke: #564031;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ink-town-village {
+  fill: #685036;
+  stroke: #ecd5a1;
+  stroke-width: 0.5;
+}
+.ink-town-port {
+  fill: none;
+  stroke: #345c68;
+  stroke-width: 1.3;
+}
+.ink-region-name,
+.ink-sea-name {
+  font:
+    italic 16px Georgia,
+    serif;
+  letter-spacing: 2.3px;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
+}
+.ink-region-name {
+  fill: #6a4937;
+  stroke: #e5c99b;
+  stroke-opacity: 0.76;
+  stroke-width: 3.3;
+  opacity: 0.85;
+}
+.ink-region-name.is-woods {
+  fill: #53644e;
+}
+.ink-sea-name {
+  fill: #c9ceba;
+  opacity: 0.76;
+  letter-spacing: 3.1px;
+}
+.ink-map-title {
+  font:
+    small-caps 34px Georgia,
+    serif;
+  font-weight: 600;
+  fill: #e9d9ab;
+  letter-spacing: 6.2px;
+}
+.ink-map-title path {
+  stroke: #d0b987;
+  fill: none;
+  stroke-width: 0.7;
+  opacity: 0.83;
+}
+.ink-map-title .ink-map-kicker {
+  font:
+    9.5px Georgia,
+    serif;
+  letter-spacing: 2.6px;
+  fill: #e1ce9d;
+  opacity: 0.83;
+}
+.ink-compass {
+  fill: none;
+  stroke: #d9c28c;
+  stroke-width: 0.68;
+  opacity: 0.76;
+}
+.ink-compass-fold {
+  fill: #d0bb8d;
+}
+.ink-compass-core {
+  fill: #3a5260;
+}
+.ink-compass text {
+  text-anchor: middle;
+  fill: #e4d1a3;
+  stroke: none;
+  font:
+    11px Georgia,
+    serif;
+}
+
+.ink-river-wash {
+  fill: none;
+  stroke: #73815b;
+  opacity: 0.23;
+  stroke-width: 23;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ink-region-name.is-plains {
+  opacity: 0.65;
+  fill: #795e44;
+  font-size: 15px;
+  letter-spacing: 2.1px;
+}
+
+/* Soot-etched vellum: muted pigment beneath separate terrain engraving. */
+.atlas.atlas-adventure.is-ink-map .atlas-paper {
+  background: #18232b;
+  border-color: #8f704b;
+}
+.ink-shelf-outer {
+  stroke: #829083;
+  stroke-opacity: 0.17;
+}
+.ink-shelf-inner {
+  stroke: #b7a47e;
+  stroke-opacity: 0.43;
+  stroke-width: 7.5;
+}
+.ink-surf {
+  stroke: #a1aaa0;
+  stroke-opacity: 0.67;
+}
+.ink-forest {
+  fill: #3e5943;
+  fill-opacity: 0.78;
+  stroke: #b0a16c;
+  stroke-width: 1.05;
+}
+.ink-marsh {
+  fill: #486961;
+  fill-opacity: 0.87;
+  stroke: #8a9a7d;
+  stroke-width: 0.85;
+}
+.ink-stipple {
+  stroke: #273d34;
+  stroke-width: 0.83;
+  opacity: 0.88;
+}
+.ink-grass,
+.ink-reeds {
+  fill: none;
+  stroke-width: 0.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ink-grass {
+  stroke: #d4b887;
+  opacity: 0.51;
+}
+.ink-reeds {
+  stroke: #c4cda1;
+  opacity: 0.62;
+}
+.ink-contour {
+  stroke: #352922;
+  stroke-width: 0.8;
+}
+.ink-hachure {
+  stroke: #3f2d27;
+  opacity: 0.37;
+}
+.ink-ridge-folds {
+  stroke: #3d302e;
+  opacity: 0.88;
+}
+.ink-ridge-spine {
+  stroke: #2d2523;
+  stroke-width: 1.05;
+}
+.ink-ridge-shadow {
+  fill: #463a38a6;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-coast-line {
+  stroke: #e1bd7c;
+  stroke-width: 1.2;
+  stroke-opacity: 0.85;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-rivers .river-bank {
+  stroke: #253c3e;
+  stroke-width: 5;
+  opacity: 0.8;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-rivers .river-flow {
+  stroke: #82a79e;
+  stroke-width: 2;
+  opacity: 1;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-realm-line {
+  stroke: #2d1d21;
+}
+.atlas.atlas-adventure.is-ink-map.is-terrain .atlas-realm-line {
+  stroke: #d5be8d;
+  opacity: 0.52;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-town-label,
+.atlas.atlas-adventure.is-ink-map .atlas-town-label.is-highlighted {
+  fill: #fff1ce;
+  stroke: #292019;
+  stroke-opacity: 1;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-realm-label text {
+  fill: #fff0bd;
+  stroke: #30241f;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-realm-label:hover text {
+  fill: #fff9df;
+  stroke: #49261c;
+}
+.atlas.atlas-adventure {
+  position: relative;
+}
+.atlas-titleplate {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  color: #c39b62;
+  padding: 3px 9px;
+  text-align: center;
+}
+.atlas-titleplate small {
+  font:
+    600 8px Georgia,
+    serif;
+  letter-spacing: 0.21em;
+  color: #b99567;
+}
+.atlas-site {
+  color: #f4dba6;
+  pointer-events: none;
+}
+.atlas-site [role='button'] {
+  cursor: pointer;
+  pointer-events: auto;
+  outline: none;
+}
+.atlas-site-hit {
+  pointer-events: all;
+}
+.atlas-site-frame {
+  fill: #211a1b;
+  stroke: #d8bb82;
+  stroke-width: 1.6;
+}
+.atlas-site-glyph {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.atlas-site-leader {
+  fill: none;
+  stroke: #f6d998;
+  stroke-width: 1;
+  opacity: 0.8;
+}
+.atlas-site.is-ruined {
+  color: #ffb998;
+}
+.atlas-site.is-ruined .atlas-site-frame {
+  stroke: #e9a584;
+  fill: #422625;
+  stroke-dasharray: 4 1.5;
+}
+.atlas-site.is-sealed {
+  color: #dcd5ff;
+}
+.atlas-site.is-sealed .atlas-site-frame {
+  stroke: #c5b4f2;
+  fill: #312840;
+}
+.atlas-site.is-abandoned {
+  color: #d6cec0;
+}
+.atlas-site.is-abandoned .atlas-site-frame {
+  stroke: #bbb29c;
+  stroke-dasharray: 1.5 2;
+}
+.atlas-site.is-active .atlas-site-frame,
+.atlas-site [role='button']:hover .atlas-site-frame,
+.atlas-site [role='button']:focus-visible .atlas-site-frame {
+  stroke: #fff1be;
+  stroke-width: 2.8;
+}
+.atlas-site-star {
+  fill: #fff1a5;
+  stroke: #443325;
+  stroke-width: 0.8;
+}
+.atlas-key-marsh {
+  --key: #769586;
+}
+.atlas-key-site {
+  --key: #efd29b;
+}
+.atlas-key-site::before {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.atlas-fieldbook {
+  border: 1px solid #8b6947;
+  color: #e3cfaa;
+  background: linear-gradient(125deg, #32251e, #211915 72%);
+  padding: 13px 16px;
+  position: absolute;
+  inset: auto auto 46px 20px;
+  z-index: 3;
+  width: min(510px, calc(100% - 40px));
+  max-height: min(51%, 345px);
+  box-shadow: 0 5px 22px #100b08b8;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font:
+    14px/1.4 Georgia,
+    serif;
+}
+.atlas-fieldbook header {
+  position: static;
+  display: flex;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.atlas-fieldbook h3 {
+  font:
+    600 clamp(19px, 2vw, 27px) Georgia,
+    serif;
+  margin: 2px 0 0;
+  color: #ffdfaa;
+}
+.atlas-fieldbook small {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #e0ba83;
+  font-size: 9px;
+}
+.atlas-fieldbook p {
+  margin: 6px 0;
+}
+.atlas-fieldbook .atlas-context {
+  color: #c9ac8b;
+}
+.atlas-fieldbook details {
+  border-top: 1px solid #715638;
+  padding: 5px 0 2px;
+  margin-top: 6px;
+}
+.atlas-fieldbook summary {
+  cursor: pointer;
+  color: #f2cd96;
+}
+.atlas-fieldbook ol,
+.atlas-fieldbook ul {
+  padding-left: 22px;
+  margin: 7px 0 2px;
+}
+.atlas-fieldbook button,
+.atlas-fieldbook select {
+  font: inherit;
+  color: #f7d5a1;
+  background: #291e16;
+  max-width: 100%;
+}
+.atlas-fieldbook header button {
+  margin: 0;
+  min-width: 31px;
+  font-size: 17px;
+}
+.atlas-record-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+.atlas-record-links label {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 650px) {
+  .atlas.atlas-adventure .atlas-toolbar {
+    flex-wrap: wrap;
+  }
+  .atlas.atlas-adventure .atlas-toolbar .atlas-segments:first-child {
+    flex-wrap: wrap;
+  }
+  .atlas-map-key {
+    flex-wrap: wrap;
+    max-width: calc(100% - 90px);
+  }
+  .atlas-fieldbook {
+    inset: auto 10px 42px;
+    width: auto;
+    max-height: 56%;
+    padding: 9px;
+  }
+}
+
+.atlas-war-status {
+  border-inline-start: 2px solid #8a4e37;
+  padding: 0.25rem 0.55rem;
+  background: #6a35272b;
+  color: #f1c7a9;
+}

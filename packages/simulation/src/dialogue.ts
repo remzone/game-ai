@@ -1,3 +1,4 @@
+import { appearanceFor, type PortraitAppearance } from './portrait.js';
 import { monsterNames } from './ecology.js';
 import type { World } from './model.js';
 import type { Command } from './commands.js';
@@ -6,6 +7,7 @@ export interface Conversation {
   name: string;
   role: string;
   portrait: 'citizen' | 'soldier';
+  appearance: PortraitAppearance;
   lines: string[];
   choices: {
     label: string;
@@ -105,6 +107,7 @@ export function conversation(w: World, id: number): Conversation {
     name: npc.name,
     role,
     portrait: person.profession === 'soldier' ? 'soldier' : 'citizen',
+    appearance: appearanceFor(w, person),
     lines,
     choices,
   };

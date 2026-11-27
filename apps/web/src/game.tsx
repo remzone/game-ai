@@ -41,7 +41,8 @@ export function Game({ world, selected, onSelect, send, unit, onTalk }: Bridge) 
       preload() {
         for (const [key, source] of Object.entries(ART))
           if (!this.textures.exists(key))
-            this.load.svg(key, 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(source), {
+            // Phaser treats data: assets as base64 in its XHR adapter.
+            this.load.svg(key, 'data:image/svg+xml;base64,' + btoa(source), {
               width: 256,
               height: 256,
             });

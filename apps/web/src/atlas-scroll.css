@@ -1,0 +1,286 @@
+/* Parchment is a presentation layer. It cannot receive map clicks or change the viewBox. */
+.atlas.atlas-adventure.is-ink-map .atlas-paper {
+  background: #8b704a;
+  border: 1px solid #7c5633;
+  outline: none;
+  box-shadow: 0 5px 19px #0b0704;
+}
+.atlas-vellum-surface {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 81% 19%, #9455262c, transparent 26%),
+    radial-gradient(ellipse at 21% 78%, #653b2370, transparent 31%),
+    radial-gradient(ellipse at 48% 40%, transparent 52%, #30190f53 92%),
+    url('/art/atlas/vellum-grain.webp') 0 0 / 380px 380px;
+  box-shadow:
+    inset 0 0 22px 4px #28150bbb,
+    inset 0 0 5px 2px #180b07;
+}
+.atlas-vellum-frame {
+  position: absolute;
+  inset: 9px;
+  border: 1px solid #3523179c;
+  outline: 1px solid #ccab716c;
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 4px #b49a6430,
+    inset 0 0 0 5px #35251968;
+}
+.atlas-vellum-frame i {
+  position: absolute;
+  width: 47px;
+  height: 47px;
+  background: center / contain no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 46'%3E%3Cg stroke='%23402c20' fill='none'%3E%3Cpath d='M1 41V1h40M4 30V4h26M4 22C8 11 11 8 22 4M8 23c1-7 3-11 10-14m-9 16c6-1 11-6 11-11-1-3-6-2-5 2s4 4 8 1c4-3 5-7 7-10M7 7h7m-7 0v7'/%3E%3Cpath fill='%23402c20' d='m11 11 4 1-3 3zm16-7 4-1 3 1-3 1zM4 27l1 4-1 3-1-3z'/%3E%3C/g%3E%3C/svg%3E");
+}
+.atlas-vellum-frame i:nth-child(1) {
+  left: 2px;
+  top: 2px;
+}
+.atlas-vellum-frame i:nth-child(2) {
+  right: 2px;
+  top: 2px;
+  transform: rotate(90deg);
+}
+.atlas-vellum-frame i:nth-child(3) {
+  right: 2px;
+  bottom: 2px;
+  transform: rotate(180deg);
+}
+.atlas-vellum-frame i:nth-child(4) {
+  left: 2px;
+  bottom: 2px;
+  transform: rotate(270deg);
+}
+.atlas-scroll-cartouche {
+  position: absolute;
+  pointer-events: none;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  z-index: 2;
+  white-space: nowrap;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 18px 5px 10px;
+  background: linear-gradient(90deg, #ac8b5a80, #ccb17f92 35%, #ccb17f92 75%, #ac8b5a60);
+  color: #322115;
+  border-block: 1px solid #533922a8;
+  font:
+    700 small-caps 15px Georgia,
+    serif;
+  letter-spacing: 0.13em;
+}
+.atlas-scroll-seal {
+  border: 1px solid #4d261c;
+  border-radius: 45% 51% 45% 54%;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 20px;
+  background: radial-gradient(ellipse at 35% 30%, #a35842, #652c25);
+  color: #f6d5a4;
+  box-shadow:
+    0 1px 2px #42281998,
+    inset 0 0 0 2px #672c2680;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+.is-ink-map .ink-forest {
+  fill: #626747;
+  fill-opacity: 0.58;
+  stroke: #5a5237;
+  stroke-width: 0.9;
+}
+.is-ink-map .ink-stipple {
+  stroke: #302e20;
+  opacity: 0.9;
+}
+.is-ink-map .ink-marsh {
+  fill: #68766b;
+  stroke: #4f5b4d;
+}
+.is-ink-map .ink-reeds {
+  stroke: #3b483d;
+  opacity: 0.61;
+}
+.is-ink-map .ink-grass {
+  stroke: #795631;
+  opacity: 0.43;
+}
+.is-ink-map .ink-ridge-shadow {
+  fill: #603b2e78;
+}
+.is-ink-map .ink-ridge-folds {
+  stroke: #523620;
+}
+.is-ink-map .ink-ridge-spine {
+  stroke: #3e2a1c;
+}
+.is-ink-map .ink-shelf-outer {
+  stroke: #553f28;
+  stroke-opacity: 0.21;
+  stroke-width: 21;
+}
+.is-ink-map .ink-shelf-inner {
+  stroke: #603b21;
+  stroke-opacity: 0.29;
+  stroke-width: 9;
+}
+.is-ink-map .ink-surf {
+  stroke: #593a25;
+  stroke-opacity: 0.61;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-coast-line {
+  stroke: #4d3021;
+  stroke-width: 1.9;
+  stroke-opacity: 0.98;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-rivers .river-bank {
+  stroke: #caac80;
+  stroke-width: 4.9;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-rivers .river-flow {
+  stroke: #3d5756;
+  stroke-width: 2.35;
+}
+.atlas.atlas-adventure.is-ink-map.is-terrain .atlas-realm-line {
+  stroke: #654331;
+  opacity: 0.37;
+}
+.atlas.atlas-adventure.is-ink-map.is-political .atlas-realm-line {
+  stroke: #432017;
+  opacity: 0.94;
+}
+.atlas.atlas-adventure.is-ink-map.is-political .atlas-region-line {
+  stroke: #4c2e1c;
+  opacity: 0.72;
+  stroke-dasharray: 1.5 2;
+}
+.atlas.atlas-adventure.is-ink-map .atlas-town-label {
+  fill: #26190e;
+  stroke: #ead09f;
+  stroke-width: calc(3.4px / var(--atlas-label-scale, 1));
+}
+.atlas.atlas-adventure.is-ink-map .atlas-town-label.is-highlighted {
+  fill: #461b13;
+  stroke: #ffe8b8;
+}
+.is-ink-map .ink-town-capital {
+  fill: #e2ba73;
+  stroke: #502a20;
+}
+.is-ink-map .ink-town-port {
+  stroke: #354449;
+}
+.is-ink-map .ink-compass {
+  stroke: #452b1a;
+  opacity: 0.92;
+}
+.is-ink-map .ink-compass-fold {
+  fill: #523322;
+}
+.is-ink-map .ink-compass-petals {
+  fill: #a58155;
+}
+.is-ink-map .ink-compass-core {
+  fill: #ad8758;
+}
+.is-ink-map .ink-compass text {
+  fill: #442b1b;
+  font-weight: 700;
+}
+.is-ink-map .atlas-map-key,
+.is-ink-map .atlas-navigator {
+  z-index: 2;
+}
+.is-ink-map .atlas-map-key {
+  background: #3c2a1fe8;
+  border-color: #af895c;
+  color: #f5deaa;
+}
+@media (max-width: 650px) {
+  .atlas-vellum-frame {
+    inset: 5px;
+  }
+  .atlas-vellum-frame i {
+    width: 25px;
+    height: 25px;
+  }
+  .atlas-scroll-cartouche {
+    top: 12px;
+    font-size: 11px;
+    padding: 1px 8px 2px 4px;
+    letter-spacing: 0.04em;
+  }
+  .atlas-scroll-seal {
+    width: 16px;
+    height: 15px;
+    font-size: 8px;
+  }
+}
+
+.atlas.atlas-adventure.is-ink-map .atlas-realm-label text {
+  font-size: calc(16px / var(--atlas-label-scale, 1));
+  stroke-width: calc(3.5px / var(--atlas-label-scale, 1));
+}
+.ink-town-gate {
+  fill: #ac7041;
+  stroke: #4e321d;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+.atlas-key-village {
+  --key: #d5b180;
+}
+.atlas-map-key .atlas-key-village::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 100%;
+  vertical-align: 1px;
+}
+.atlas-key-capital {
+  --key: #f2cb79;
+}
+.atlas-map-key .atlas-key-capital::before {
+  clip-path: polygon(
+    0 100%,
+    0 20%,
+    20% 20%,
+    20% 43%,
+    41% 43%,
+    41% 20%,
+    61% 20%,
+    61% 43%,
+    80% 43%,
+    80% 20%,
+    100% 20%,
+    100% 100%
+  );
+}
+.atlas-fieldbook header {
+  position: sticky;
+  z-index: 1;
+  top: -13px;
+  background: #2c211b;
+  margin: -13px -16px 8px;
+  padding: 13px 16px 7px;
+  border-bottom: 1px solid #644c33;
+}
+@media (max-width: 650px) {
+  .atlas.atlas-adventure .atlas-fieldbook {
+    position: relative;
+    inset: auto;
+    margin: 6px 5px 0;
+    max-height: min(55vh, 360px);
+  }
+  .atlas.atlas-adventure .atlas-fieldbook header {
+    top: -9px;
+    margin: -9px -9px 6px;
+    padding: 9px 9px 5px;
+  }
+}

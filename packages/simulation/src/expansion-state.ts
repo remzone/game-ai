@@ -1,5 +1,6 @@
 import { initializeLore } from './lore.js';
 import { initializeMagic } from './magic.js';
+import { organicPersonName } from './names.js';
 import type { World } from './model.js';
 /** Deterministic defaults: legacy migration must not consume simulation RNG. */
 export function initializeExpansion(w: World) {
@@ -51,7 +52,7 @@ export function initializeExpansion(w: World) {
     if (teacher === undefined) continue;
     w.npcs[teacher] ??= {
       person: teacher,
-      name: `Мастер ${teacher}`,
+      name: w.geography ? organicPersonName(w, w.people[teacher]) : `Мастер ${teacher}`,
       biography: `Учитель из ${town.name}`,
       traits: ['учёный'],
       memory: [],

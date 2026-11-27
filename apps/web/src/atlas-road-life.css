@@ -1,0 +1,190 @@
+.atlas-road-unit {
+  color: var(--unit-ink);
+  cursor: pointer;
+  pointer-events: auto;
+  outline: none; /* The badge itself draws the keyboard focus ring. */
+  transition: transform 0.38s linear;
+}
+.atlas-road-stem {
+  stroke: var(--unit-ink);
+  stroke-width: 1.1;
+  opacity: 0.76;
+}
+.atlas-road-symbol {
+  --badge-paper: #231b18;
+  color: var(--unit-ink);
+  pointer-events: none;
+}
+.atlas-road-badge {
+  fill: var(--badge-paper);
+  stroke: currentColor;
+  stroke-width: 1.35;
+  stroke-linejoin: round;
+}
+.atlas-road-unit .atlas-road-symbol {
+  filter: drop-shadow(0 1px 0.9px #120e0c) drop-shadow(0 0 0.95px #120e0c);
+}
+.atlas-road-icon {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.atlas-road-cutout {
+  fill: var(--badge-paper);
+}
+.atlas-road-wheel {
+  stroke: var(--badge-paper);
+  stroke-width: 0.95;
+}
+.atlas-road-faction {
+  stroke: var(--unit-faction);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.atlas-road-hit {
+  fill: transparent;
+  stroke: none;
+}
+.atlas-road-unit:is(:hover, :focus-visible, .is-selected) .atlas-road-badge {
+  stroke: #fff1cc;
+  stroke-width: 2.1;
+}
+.atlas-road-unit:is(:hover, :focus-visible, .is-selected) .atlas-road-symbol {
+  --badge-paper: #392b21;
+}
+.atlas-road-ledger {
+  padding: 13px 16px;
+  border: 1px solid #685039;
+  border-top: 2px solid #957344;
+  background: linear-gradient(110deg, #2b211c, #201c1b 72%);
+  color: #e1d2b9;
+  min-width: 0;
+}
+.atlas-road-head,
+.atlas-road-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.atlas-road-head > span {
+  color: #b9a58c;
+  font-size: 0.78rem;
+  text-align: right;
+  max-width: 13rem;
+}
+.atlas-road-eyebrow {
+  color: #dab57c;
+  font-size: 0.68rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.atlas-road-head h3,
+.atlas-road-card h4 {
+  color: #f1debd;
+  font-family: Georgia, serif;
+  margin: 1px 0 5px;
+}
+.atlas-road-head h3 {
+  font-size: 1.25rem;
+}
+.atlas-road-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 7px 0;
+}
+.atlas-road-ledger button {
+  min-height: 32px;
+  background: #28221e;
+  border: 1px solid #67503a;
+  border-radius: 4px;
+  color: #e7d4b3;
+  padding: 4px 9px;
+}
+.atlas-road-filters button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+}
+.atlas-road-filters button svg {
+  flex: 0 0 auto;
+}
+.atlas-road-filters button[aria-pressed='false'] {
+  opacity: 0.6;
+}
+.atlas-road-filters button[aria-pressed='true'] {
+  background: #3b2d22;
+}
+.atlas-road-list {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  font-size: 0.78rem;
+  color: #bdab94;
+}
+.atlas-road-list select {
+  min-width: 0;
+  width: 100%;
+  min-height: 33px;
+  color: #e7d4b3;
+  background: #211c1b;
+  border: 1px solid #685039;
+}
+.atlas-road-card {
+  border: 1px solid #685039;
+  border-left: 2px solid #c09965;
+  background: #241e1b;
+  margin-top: 9px;
+  padding: 9px 11px;
+}
+.atlas-road-card p,
+.atlas-road-empty {
+  margin: 3px 0;
+  font-size: 0.83rem;
+}
+.atlas-road-card-head button {
+  align-self: flex-start;
+}
+.atlas-road-offers {
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  list-style: none;
+}
+.atlas-road-offers li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+}
+.atlas-road-ledger button:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+@media (max-width: 550px) {
+  .atlas-road-ledger {
+    padding: 9px;
+  }
+  .atlas-road-list {
+    grid-template-columns: 1fr;
+  }
+  .atlas-road-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .atlas-road-filters button {
+    padding: 3px 5px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas-road-unit {
+    transition: none;
+  }
+}

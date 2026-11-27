@@ -2,6 +2,7 @@ import type { World, Fighter, UnitClass } from './model.js';
 import { death, event, nextId } from './world.js';
 import { monsterStats, monsterNames } from './ecology.js';
 import { endSiege } from './campaign.js';
+import { recordSiegeDamage } from './settlement-works.js';
 import { adult } from './systems.js';
 import { random } from './rng.js';
 const stats: Record<UnitClass, { range: number; damage: number; speed: number }> = {
@@ -129,6 +130,8 @@ export function finishBattle(w: World, result: 'victory' | 'defeat' | 'retreated
       const garrison = w.armies.find((a) => a.id === siege.defender);
       if (garrison) garrison.members = garrison.members.filter((id) => w.people[id].alive);
       if (b.defending && result === 'victory' && enemy) enemy.morale = 10;
+      if (result !== 'retreated' && (!b.defending || result === 'defeat'))
+        recordSiegeDamage(w, siege, (siege.engines ?? 0) > 0);
       if (!b.defending || result !== 'retreated')
         endSiege(w, siege, b.defending ? result === 'defeat' : result === 'victory');
     }

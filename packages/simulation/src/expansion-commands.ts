@@ -1,3 +1,5 @@
+import { caravanStop, riskyCaravan } from './road-life.js';
+import { recordFortification } from './settlement-works.js';
 import { SCHOOLS, castSpell } from './magic.js';
 import { hasCivilRights, overlord, sameRealm, honorGuarantees } from './statecraft.js';
 import { z } from 'zod';
@@ -8,6 +10,7 @@ import { adult, levy, tickDay } from './systems.js';
 import { governments, succession, crown } from './polity.js';
 import { endSiege, beginSiege, militaryRoute } from './campaign.js';
 import { startBattle } from './combat.js';
+import { containsPoint, fromEngineCoordinates, landLink } from './geography.js';
 const id = z.number().int().nonnegative();
 export const ExpansionSchemas = [
   z
@@ -220,15 +223,25 @@ export function expansionCommand(w: World, input: unknown): boolean {
       s.treasury >= 300 && s.stocks.wood >= 100 && s.stocks.stone >= 50 && s.stocks.grain >= 100,
       'Нужно 300 монет, 100 дерева, 50 камня и 100 зерна поселения',
     );
-    const position = [
-      [s.x + 0.5, s.y],
-      [s.x - 0.5, s.y],
-      [s.x, s.y + 0.5],
-      [s.x, s.y - 0.5],
-    ].find(
-      ([x, y]) =>
-        x >= 0 && y >= 0 && x <= 29 && y <= 9 && !w.settlements.some((t) => t.x === x && t.y === y),
-    );
+    const origin = fromEngineCoordinates(w, s.x, s.y);
+    const offsets = w.geography ? [0.5, 0.3, 0.15] : [0.5];
+    const position = offsets
+      .flatMap((step) => [
+        [s.x + step, s.y],
+        [s.x - step, s.y],
+        [s.x, s.y + step],
+        [s.x, s.y - step],
+      ])
+      .find(([x, y]) => {
+        if (x < 0 || y < 0 || x > 29 || y > 9 || w.settlements.some((t) => t.x === x && t.y === y))
+          return false;
+        const map = w.geography;
+        if (!map) return true;
+        const point = fromEngineCoordinates(w, x, y);
+        if (!containsPoint(point, map.coast) || !landLink(origin, point, map.coast)) return false;
+        const cell = map.cells.find((c) => containsPoint(point, c.polygon));
+        return cell && w.settlements[cell.settlement]?.state === s.state;
+      });
     ensure(position, 'Нет свободного участка рядом с поселением');
     const settlers = s.residents
       .filter(
@@ -258,6 +271,8 @@ export function expansionCommand(w: World, input: unknown): boolean {
       essenceReserve: 0,
       residents: [],
       population: 0,
+      structuralDamage: 0,
+      foundedDay: w.day,
       workers: emptyWorkers(),
       stocks: { ...emptyStocks(), grain: 100 },
       prices: { ...BASE_PRICES },
@@ -292,7 +307,13 @@ export function expansionCommand(w: World, input: unknown): boolean {
       target &&
         target.id !== s.id &&
         target.state === s.state &&
-        Math.abs(target.x - s.x) + Math.abs(target.y - s.y) <= 2,
+        Math.abs(target.x - s.x) + Math.abs(target.y - s.y) <= 2 &&
+        (!w.geography ||
+          landLink(
+            fromEngineCoordinates(w, s.x, s.y),
+            fromEngineCoordinates(w, target.x, target.y),
+            w.geography.coast,
+          )),
       'Нужно близкое поселение той же державы (до 2 клеток)',
     );
     ensure(
@@ -315,16 +336,13 @@ export function expansionCommand(w: World, input: unknown): boolean {
   } else if (c.type === 'escort') {
     const caravan = w.caravans.find((v) => v.id === c.caravan);
     ensure(
-      caravan?.status === 'traveling' && caravan.journey.route[caravan.journey.leg] === s.id,
+      caravan && caravanStop(w, caravan) && caravan.journey.route[caravan.journey.leg] === s.id,
       'Караван уже ушёл',
     );
     ensure(a.members.length >= 3, 'Нужны хотя бы 3 бойца');
     ensure(!p.escort, 'Вы уже сопровождаете караван');
     ensure(w.settlements[caravan.from].treasury >= 30, 'У отправителя нет 30 монет на охрану');
-    ensure(
-      caravan.journey.route.some((id) => w.settlements[id].monsters > 0),
-      'На маршруте нет угроз: платная охрана не нужна',
-    );
+    ensure(riskyCaravan(w, caravan), 'На маршруте нет угроз: платная охрана не нужна');
     w.settlements[caravan.from].treasury -= 30;
     p.escort = { caravan: caravan.id, reward: 30 };
     p.journey = { ...caravan.journey, route: [...caravan.journey.route] };
@@ -555,6 +573,7 @@ export function expansionCommand(w: World, input: unknown): boolean {
     s.stocks.wood -= 50;
     s.treasury -= 200;
     s.fortification++;
+    recordFortification(w, s);
     event(
       w,
       'fortification',

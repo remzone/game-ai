@@ -1,12 +1,33 @@
+import { buyRoadGoods, initializeRoadLife } from './road-life.js';
+import {
+  chartForSale,
+  knownRoute,
+  mapProjection,
+  rememberMap,
+  WORLD_CHART_PRICE,
+} from './map-knowledge.js';
 import { LoreSchemas, loreCommand, transferItem } from './lore.js';
 import { StatecraftSchemas, statecraftCommand, hasCivilRights } from './statecraft.js';
 import { z } from 'zod';
 import { ExpansionSchemas, expansionCommand } from './expansion-commands.js';
 import { officeTitle, revokeOffice } from './governance.js';
 import { GOODS, RACES, emptyStocks, type World, type Ancestry } from './model.js';
-import { addPerson, event, makeJourney, nextId, profession, promote, route } from './world.js';
+import { addPerson, event, makeJourney, nextId, profession, promote } from './world.js';
 import { adult, levy, quests, tickDay } from './systems.js';
 import { finishBattle, startBattle } from './combat.js';
+import { canImproveSettlement, completeSettlementWork } from './settlement-works.js';
+import {
+  EYE_COLORS,
+  FACE_SHAPES,
+  HAIR_STYLES,
+  SKIN_TONES,
+  appearanceFor,
+  HAIR_COLORS,
+  OUTFITS,
+  createWardrobe,
+  professionOutfit,
+  wardrobeFor,
+} from './portrait.js';
 const id = z.number().int().nonnegative(),
   text = z.string().trim().min(1).max(80);
 export const BiographySchema = z
@@ -15,6 +36,26 @@ export const BiographySchema = z
     race: z.enum(RACES),
     sex: z.enum(['female', 'male']),
     birthplace: id,
+    appearance: z
+      .object({
+        variant: z
+          .union([
+            z.literal(1),
+            z.literal(2),
+            z.literal(3),
+            z.literal(4),
+            z.literal(5),
+            z.literal(6),
+          ])
+          .optional(),
+        hair: z.enum(HAIR_COLORS).optional(),
+        eyes: z.enum(EYE_COLORS).optional(),
+        face: z.enum(FACE_SHAPES).optional(),
+        hairStyle: z.enum(HAIR_STYLES).optional(),
+        skin: z.enum(SKIN_TONES).optional(),
+      })
+      .strict()
+      .optional(),
     origin: z.enum(['peasants', 'merchants', 'nobles']),
     childhood: z.enum(['fields', 'books', 'streets']),
     youth: z.enum(['militia', 'caravan', 'temple']),
@@ -35,7 +76,17 @@ export const CommandSchema = z.discriminatedUnion('type', [
     })
     .strict(),
   z.object({ type: z.literal('travel'), settlement: id }).strict(),
+  z.object({ type: z.literal('buy_world_chart') }).strict(),
   z.object({ type: z.literal('enter') }).strict(),
+  z
+    .object({
+      type: z.literal('road_buy'),
+      person: id,
+      good: z.enum(GOODS),
+      quantity: z.number().int().min(1).max(20),
+    })
+    .strict(),
+  z.object({ type: z.literal('equip_outfit'), outfit: z.enum(OUTFITS) }).strict(),
   z.object({ type: z.literal('leave') }).strict(),
   z
     .object({
@@ -96,6 +147,7 @@ export function command(w: World, input: unknown): { ok: boolean; error?: string
     return { ok: false, error: parsed.error.issues.map((i) => i.message).join('; ') };
   try {
     apply(w, parsed.data);
+    if (parsed.data.type !== 'speed') rememberMap(w);
     return { ok: true };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : 'Команда отклонена' };
@@ -121,9 +173,14 @@ function apply(w: World, c: Command) {
     father.spouse = mother.id;
     const hero = addPerson(w, s.id, age, ancestry, [mother.id, father.id]);
     hero.sex = b.sex;
+    const { appearance, ...narrative } = b;
+    if (appearance) hero.appearance = { ...appearance };
+    hero.wardrobe = createWardrobe(b.training);
+    const { variant, hair, eyes, face, hairStyle, skin } = appearanceFor(w, hero);
+    hero.appearance = { variant, hair, eyes, face, hairStyle, skin };
     const npc = promote(w, hero.id);
     npc.name = b.name;
-    npc.biography = Object.values(b).join(' · ');
+    npc.biography = Object.values(narrative).join(' · ');
     hero.homeProfession = hero.profession;
     profession(w, hero, 'soldier');
     const army = {
@@ -162,7 +219,7 @@ function apply(w: World, c: Command) {
       legitimacy: 0,
       title: 'Путешественник',
       army: army.id,
-      biography: Object.fromEntries(Object.entries(b).map(([k, v]) => [k, String(v)])),
+      biography: Object.fromEntries(Object.entries(narrative).map(([k, v]) => [k, String(v)])),
       visited: [s.id],
       scene: 'world',
       heirs: [],
@@ -170,6 +227,7 @@ function apply(w: World, c: Command) {
     };
     if (b.turningPoint === 'inheritance') w.player.gold += 80;
     event(w, 'hero', `${b.name} отправляется в путь.`, [`person:${hero.id}`], true);
+    initializeRoadLife(w);
     quests(w);
     return;
   }
@@ -249,6 +307,7 @@ function apply(w: World, c: Command) {
       old.mounts = 0;
       old.members = [];
     }
+    heir.wardrobe ??= createWardrobe(professionOutfit(heir));
     heir.homeProfession = heir.profession;
     profession(w, heir, 'soldier');
     if (old) {
@@ -299,10 +358,34 @@ function apply(w: World, c: Command) {
     return;
   }
   ensure(!p.journey, 'Сначала завершите путешествие');
+  if (c.type === 'equip_outfit') {
+    const wardrobe = wardrobeFor(w, person);
+    ensure(wardrobe.outfitIds.includes(c.outfit), 'Этого наряда нет в гардеробе');
+    person.wardrobe = { ...wardrobe, equipped: c.outfit };
+    return;
+  }
+  if (c.type === 'buy_world_chart') {
+    ensure(chartForSale(w), 'Карту продаёт картограф в столице вне осады');
+    ensure(p.gold >= WORLD_CHART_PRICE, 'Недостаточно монет для карты');
+    p.gold -= WORLD_CHART_PRICE;
+    s.treasury += WORLD_CHART_PRICE;
+    p.mapKnowledge = { chart: true, explored: p.mapKnowledge?.explored ?? [] };
+    event(w, 'map_chart', `${p.name} получает свиток обитаемых земель.`, [`settlement:${s.id}`]);
+    return;
+  }
+  if (c.type === 'road_buy') {
+    buyRoadGoods(w, c.person, c.good, c.quantity);
+    return;
+  }
   if (c.type === 'travel') {
     ensure(w.settlements[c.settlement], 'Поселение не существует');
     ensure(c.settlement !== s.id, 'Вы уже здесь');
-    const path = route(w, s.id, c.settlement);
+    const knowledge = mapProjection(w);
+    ensure(
+      !knowledge || knowledge.known.includes(c.settlement),
+      'Это место ещё не нанесено на вашу карту',
+    );
+    const path = knownRoute(w, s.id, c.settlement, knowledge);
     ensure(path.length > 1, 'Нет открытого маршрута');
     p.journey = makeJourney(w, path);
     p.scene = 'world';
@@ -601,7 +684,7 @@ function apply(w: World, c: Command) {
         true,
       );
     } else {
-      ensure(s.infrastructure < 10, 'Хозяйство уже достигло предела развития');
+      ensure(canImproveSettlement(s), 'Хозяйство уже достигло предела развития');
       ensure(
         s.stocks.wood >= 100 && s.stocks.stone >= 50 && s.treasury >= 200,
         'В поселении нужно 100 дерева, 50 камня и 200 монет',
@@ -615,7 +698,7 @@ function apply(w: World, c: Command) {
       s.stocks.stone -= 50;
       s.treasury -= 200;
       for (const worker of workers) worker.wealth += 200 / workers.length;
-      s.infrastructure++;
+      completeSettlementWork(w, s);
       p.skills.governance = (p.skills.governance ?? 0) + 0.5;
       event(
         w,
@@ -652,7 +735,7 @@ function apply(w: World, c: Command) {
     return;
   }
   if (c.type === 'build') {
-    ensure(s.infrastructure < 10, 'Хозяйство уже достигло предела развития');
+    ensure(canImproveSettlement(s), 'Хозяйство уже достигло предела развития');
     ensure(
       p.inventory.wood >= 20 && p.inventory.stone >= 20 && p.gold >= 50,
       'Нужно 20 дерева, 20 камня и 50 монет',
@@ -661,7 +744,7 @@ function apply(w: World, c: Command) {
     p.inventory.stone -= 20;
     p.gold -= 50;
     s.treasury += 50;
-    s.infrastructure++;
+    completeSettlementWork(w, s);
     p.reputation[`settlement:${s.id}`] = (p.reputation[`settlement:${s.id}`] ?? 0) + 10;
     event(
       w,

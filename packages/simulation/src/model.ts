@@ -1,3 +1,9 @@
+import type { RoadLife } from './road-life.js';
+import type { MapKnowledge } from './map-knowledge.js';
+import type { AtlasWorld } from './atlas-world.js';
+import type { AppearanceChoices, Wardrobe } from './portrait.js';
+import type { Geography } from './geography.js';
+import type { WorldLore } from './world-lore.js';
 export const RACES = ['Human', 'Elf', 'Dark Elf', 'Orc', 'Dwarf', 'Goblin'] as const;
 export type Race = (typeof RACES)[number];
 export type Ancestry = [number, number, number, number, number, number];
@@ -8,6 +14,8 @@ export type Profession =
   'farmer' | 'woodcutter' | 'miner' | 'smith' | 'merchant' | 'child' | 'soldier';
 export type UnitClass = 'infantry' | 'spearmen' | 'archers' | 'cavalry' | 'mages';
 export interface Person {
+  appearance?: AppearanceChoices;
+  wardrobe?: Wardrobe;
   undead?: boolean;
   undeadMaster?: number;
   id: number;
@@ -44,6 +52,8 @@ export interface NPC {
   recognizedHeirs?: number[];
 }
 export interface Settlement {
+  structuralDamage?: number;
+  foundedDay?: number;
   essence?: number;
   essenceReserve?: number;
   id: number;
@@ -119,6 +129,7 @@ export interface Caravan {
   good: Good;
   amount: number;
   paid: number;
+  raidedBy?: string[];
   journey: Journey;
   status: 'traveling' | 'delivered' | 'lost';
 }
@@ -134,6 +145,7 @@ export interface Army {
   mounts?: number;
   journey?: Journey;
   commander?: number;
+  patrolHome?: number;
 }
 export interface War {
   defenseOf?: string;
@@ -188,6 +200,7 @@ export interface Player {
   escort?: { caravan: string; reward: number };
   journey?: Journey;
   visited: number[];
+  mapKnowledge?: MapKnowledge;
   scene: 'world' | 'settlement' | 'battle';
   heirs: number[];
   gameOver: boolean;
@@ -247,6 +260,9 @@ export interface LoreItem {
   history: string[];
 }
 export interface World {
+  atlasWorld?: AtlasWorld;
+  geography?: Geography;
+  worldLore?: WorldLore;
   items?: LoreItem[];
   version: 4;
   seed: string;
@@ -261,6 +277,7 @@ export interface World {
   states: State[];
   roads: Road[];
   caravans: Caravan[];
+  roadLife?: RoadLife;
   armies: Army[];
   wars: War[];
   quests: Quest[];
@@ -320,6 +337,7 @@ export interface Estate {
   treasury: number;
 }
 export interface Siege {
+  damageDay?: number;
   engines?: number;
   id: string;
   settlement: number;

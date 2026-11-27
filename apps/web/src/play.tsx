@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { route, type Command, type Conversation } from '@living-world/simulation';
+import { knownRoute, type Command, type Conversation } from '@living-world/simulation';
 import type { View } from './types';
-import { ART } from './art';
 import { api } from './api';
+import { Portrait } from './portrait';
 export const troopNames = {
   infantry: 'Пехота',
   spearmen: 'Копейщики',
@@ -11,7 +11,6 @@ export const troopNames = {
   mages: 'Маги',
 };
 type Send = (command: Command) => Promise<boolean>;
-const art = (key: string) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(ART[key]);
 export function Dialogue({
   person,
   send,
@@ -72,7 +71,7 @@ export function Dialogue({
         <div className="dialogue-body">
           <div className="dialogue-portrait">
             <span className="eyebrow">{data.role}</span>
-            <img src={art(data.portrait)} alt="" />
+            <Portrait value={data.appearance} label={`Портрет: ${data.name}`} eager />
             <h2 id="dialogue-name">{data.name}</h2>
           </div>
           <div>
@@ -330,7 +329,7 @@ export function TravelPanel({
   onSelect: (id: number) => void;
 }) {
   const [query, setQuery] = useState('');
-  const path = route(world, world.hero!.settlement, selected);
+  const path = knownRoute(world, world.hero!.settlement, selected, world.mapKnowledge);
   const days = path
     .slice(1)
     .reduce(
@@ -353,7 +352,11 @@ export function TravelPanel({
       {query && (
         <div className="place-results">
           {world.settlements
-            .filter((s) => s.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()))
+            .filter(
+              (s) =>
+                (!world.mapKnowledge || world.mapKnowledge.known.includes(s.id)) &&
+                s.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+            )
             .slice(0, 12)
             .map((s) => (
               <button

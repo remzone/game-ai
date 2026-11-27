@@ -9,6 +9,9 @@ import {
   type GameEvent,
 } from './model.js';
 import { initializeExpansion } from './expansion-state.js';
+import { createAtlasWorld } from './atlas-world.js';
+import { layOutContinent } from './geography.js';
+import { organicPersonName } from './names.js';
 import { seedHash, integer, pick, random } from './rng.js';
 export function nextId(w: World, prefix: string): string {
   return `${prefix}${w.nextId++}`;
@@ -29,7 +32,9 @@ export function promote(w: World, id: number) {
     const p = w.people[id];
     w.npcs[id] = {
       person: id,
-      name: `${pick(w, ['Эрин', 'Рен', 'Альва', 'Торен', 'Мира', 'Саэль', 'Грим', 'Рада'])} ${id}`,
+      name: w.geography
+        ? organicPersonName(w, p)
+        : `${pick(w, ['Эрин', 'Рен', 'Альва', 'Торен', 'Мира', 'Саэль', 'Грим', 'Рада'])} ${id}`,
       biography: `Родом из ${w.settlements[p.settlement].name}`,
       traits: [pick(w, ['осторожный', 'честолюбивый', 'милосердный', 'торговец'])],
       memory: [],
@@ -123,7 +128,11 @@ export function death(w: World, p: Person, reason: string) {
     !!w.npcs[p.id],
   );
 }
-export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
+export function createWorld(
+  seed = 'ashen-crown',
+  perSettlement = 60,
+  map: 'legacy' | 'organic' = 'legacy',
+): World {
   const w: World = {
     version: 4,
     seed,
@@ -265,26 +274,28 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
         });
       }
     }
+  const basinPopulations = map === 'organic' ? layOutContinent(w, perSettlement) : null;
   const positions = new Map(w.settlements.map((s) => [`${s.x},${s.y}`, s.id]));
-  for (const s of w.settlements)
-    for (const [dx, dy] of [
-      [1, 0],
-      [0, 1],
-    ]) {
-      const b = positions.get(`${s.x + dx},${s.y + dy}`);
-      if (b !== undefined)
-        w.roads.push({
-          a: s.id,
-          b,
-          days: s.biome === 'mountain' ? 3 : 2,
-          blocked: false,
-          traffic: 0,
-        });
-    }
+  if (!basinPopulations)
+    for (const s of w.settlements)
+      for (const [dx, dy] of [
+        [1, 0],
+        [0, 1],
+      ]) {
+        const b = positions.get(`${s.x + dx},${s.y + dy}`);
+        if (b !== undefined)
+          w.roads.push({
+            a: s.id,
+            b,
+            days: s.biome === 'mountain' ? 3 : 2,
+            blocked: false,
+            traffic: 0,
+          });
+      }
   for (const s of w.settlements) {
     const race = integer(w, 0, 5);
     const ancestry = Array.from({ length: 6 }, (_, i) => (i === race ? 1 : 0)) as Ancestry;
-    for (let i = 0; i < perSettlement; i++) {
+    for (let i = 0; i < (basinPopulations?.[s.id] ?? perSettlement); i++) {
       const p = addPerson(w, s.id, i < 2 ? 65 : i < 6 ? integer(w, 5, 30) : integer(w, 5, 65), [
         ...ancestry,
       ]);
@@ -308,6 +319,7 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
     promote(w, s.ruler).titles.push('Правитель');
   }
   initializeExpansion(w);
+  if (w.geography) w.atlasWorld = createAtlasWorld(w);
   event(
     w,
     'foundation',
@@ -317,6 +329,9 @@ export function createWorld(seed = 'ashen-crown', perSettlement = 60): World {
   );
   return w;
 }
+export const createOrganicWorld = (seed = 'ashen-crown', perSettlement = 60) =>
+  createWorld(seed, perSettlement, 'organic');
+
 export function movePerson(w: World, p: Person, to: number) {
   const old = w.settlements[p.settlement],
     s = w.settlements[to];

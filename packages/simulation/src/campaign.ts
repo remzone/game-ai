@@ -1,3 +1,4 @@
+import { recordSiegeDamage } from './settlement-works.js';
 import { sameRealm } from './statecraft.js';
 import type { World, Siege, Army } from './model.js';
 import { advanceJourney, death, event, movePerson, profession } from './world.js';
@@ -99,6 +100,7 @@ function strategyDay(w: World) {
       for (const army of w.armies.filter(
         (a) =>
           !a.player &&
+          a.patrolHome === undefined &&
           a.members.length &&
           (a.state === war.a || a.state === war.b) &&
           (a.commander === undefined || a.commander !== w.player?.person),
@@ -129,6 +131,7 @@ function strategyDay(w: World) {
     const armies = w.armies.filter(
       (a) =>
         !a.player &&
+        a.patrolHome === undefined &&
         a.state === war.a &&
         a.members.length &&
         (a.commander === undefined || a.commander !== w.player?.person) &&
@@ -280,6 +283,8 @@ export function campaignDay(w: World) {
       continue;
     }
     siege.pressure += (s.shortageDays > 0 ? 4 : 1) + (siege.engines ?? 0);
+    if ((siege.engines ?? 0) > 0 && (w.day - siege.started) % 7 === 0 && w.day > siege.started)
+      recordSiegeDamage(w, siege, true);
     if (d && (siege.engines ?? 0) > 0) d.morale = Math.max(0, d.morale - siege.engines! * 0.5);
     if (s.shortageDays >= 3 && d)
       for (const id of d.members) {
@@ -294,6 +299,7 @@ export function campaignDay(w: World) {
       a.food >= a.members.length * 3 &&
       a.members.length >= d.members.length * 0.8
     ) {
+      recordSiegeDamage(w, siege, (siege.engines ?? 0) > 0);
       const defendingDamage = Math.min(
         30,
         (12 * a.members.length) / d.members.length / (1 + s.fortification * 0.15),

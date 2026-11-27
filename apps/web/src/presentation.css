@@ -1,0 +1,1370 @@
+/* Ashen Crown: art-led entrance, hero forge, political atlas and illuminated codex. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.title-screen,
+.loading-screen,
+.creation-screen {
+  --entry-gold: #d9b77c;
+  --entry-light: #f3e5c6;
+  background-color: #130f0d;
+  color: var(--entry-light);
+  position: relative;
+  isolation: isolate;
+}
+.title-screen::after,
+.creation-screen::after,
+.loading-screen::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 11px;
+  z-index: 0;
+  border: 1px solid #b9905e59;
+  box-shadow:
+    inset 0 0 0 4px #0a080949,
+    0 0 0 4px #0a080949;
+}
+.title-screen {
+  padding: clamp(40px, 8vh, 108px) clamp(24px, 10vw, 165px);
+  background-image:
+    linear-gradient(90deg, #0c0b0ae8, #0c0b0abb 24%, #110d0b58 53%, #0b09091a 75%),
+    linear-gradient(0deg, #0c0b0adb, transparent 45%), url('/art/title.webp');
+  background-size: cover;
+  background-position:
+    center,
+    center,
+    63% center;
+}
+.title-screen .entry-card {
+  position: relative;
+  z-index: 1;
+  background: #19130fe8;
+}
+.title-copy {
+  width: min(545px, 100%);
+}
+.title-ornament {
+  display: block;
+  color: #d2a96c;
+  font-size: 39px;
+  line-height: 1;
+  margin-bottom: 22px;
+  text-shadow: 0 0 25px #f78b4470;
+}
+.title-copy > .eyebrow,
+.creation-screen .eyebrow,
+.loading-screen .eyebrow {
+  color: var(--entry-gold);
+  letter-spacing: 0.23em;
+}
+.title-copy h1 {
+  font-size: clamp(59px, 7.8vw, 119px);
+  letter-spacing: -0.07em;
+  line-height: 0.85;
+  margin: 0.22em 0 0.23em;
+  text-shadow: 0 4px 28px #000;
+}
+.title-copy h1 em {
+  color: #d9ad71;
+  letter-spacing: -0.055em;
+}
+.title-copy > p {
+  font-family: Georgia, serif;
+  border: 0;
+  padding: 0;
+  max-width: 353px;
+  color: #e0c9ad;
+  font-size: clamp(17px, 2vw, 23px);
+  line-height: 1.48;
+  text-shadow: 0 2px 8px #000;
+}
+.title-actions {
+  gap: 9px;
+  max-width: 342px;
+  margin-top: 30px;
+}
+.title-actions button,
+.ornate-action {
+  min-height: 48px;
+  color: #ecddc2;
+  border: 1px solid #98744988;
+  background: linear-gradient(#30241bd9, #17130fe8);
+  border-radius: 2px;
+  font-family: Georgia, serif;
+  font-size: 17px;
+  box-shadow:
+    inset 0 0 0 2px #110d0c76,
+    0 5px 16px #09070769;
+}
+.title-actions button.primary,
+.ornate-action.primary {
+  border-color: #c89557;
+  background: linear-gradient(#6a382a, #371b17);
+  color: #ffebc7;
+}
+.title-actions button:hover:not(:disabled),
+.ornate-action:hover:not(:disabled) {
+  background: linear-gradient(#855137, #4c261c);
+  border-color: #f5bd7a;
+}
+.title-copy > small {
+  margin-top: 28px;
+  color: #c8ad8a;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+.menu-saves {
+  max-height: 185px;
+}
+.creation-screen {
+  align-items: flex-start;
+  padding: 38px clamp(20px, 6vw, 90px);
+  background-image:
+    linear-gradient(90deg, #130e0de8, #130e0d98 64%, #130e0d91), url('/art/forge.webp');
+  background-attachment: scroll;
+  background-position: center, center;
+}
+.creation-content {
+  position: relative;
+  z-index: 1;
+  width: min(1130px, 100%);
+}
+.creation-content > h1 {
+  font-size: clamp(36px, 5vw, 65px);
+  letter-spacing: -0.035em;
+  margin: 8px 0 6px;
+}
+.creation-content > .eyebrow {
+  margin-top: 19px;
+}
+.creation-lede {
+  margin: 5px 0 22px;
+  color: #e6cba5;
+}
+.creation-screen .back-link {
+  color: #e1c298;
+}
+.creation-screen .back-link:hover {
+  color: #ffebc7;
+  background: transparent;
+}
+.creation-screen .biography-form {
+  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr);
+  gap: clamp(12px, 2.5vw, 29px);
+}
+.creation-screen .biography-fields,
+.creation-screen .biography-portrait {
+  border-radius: 2px;
+  border: 1px solid #98744999;
+  background: #1b1512ee;
+  box-shadow:
+    inset 0 0 0 3px #110d0b9e,
+    0 16px 35px #09080880;
+}
+.creation-screen .biography-fields {
+  padding: clamp(13px, 3vw, 28px);
+}
+.creation-screen .biography-fields > .eyebrow {
+  margin: 3px 0 7px;
+}
+.creation-screen .bio-grid {
+  gap: 0 16px;
+}
+.creation-screen label {
+  margin: 6px 0;
+  color: #d5bf9f;
+}
+.creation-screen select,
+.creation-screen input:not([type='radio']) {
+  margin-top: 4px;
+  padding: 9px 10px;
+  color: #f0dcbb;
+  border-color: #785b42;
+  background: #18120e;
+}
+.creation-screen .seed-settings {
+  background: transparent;
+  padding: 9px 0 0;
+  border: 0;
+}
+.creation-screen .seed-settings summary {
+  font-size: 12px;
+  color: #c9af8d;
+}
+.creation-screen .biography-portrait {
+  position: relative;
+  overflow: hidden;
+  padding: 5px;
+  min-height: 465px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  text-align: left;
+}
+.forge-portrait {
+  position: absolute;
+  inset: 5px;
+}
+.forge-portrait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, #100b09 7%, #100b09b4 30%, transparent 63%);
+}
+.forge-caption {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  padding: 13px 17px 20px;
+}
+.forge-caption h2 {
+  line-height: 1;
+  font-size: clamp(31px, 5vw, 52px);
+  margin: 5px 0 9px;
+  color: #f2d8a8;
+  overflow-wrap: anywhere;
+}
+.forge-caption p {
+  color: #e0c8a4;
+}
+.forge-caption small {
+  margin: 10px 0 0;
+  color: #bca183;
+}
+.loading-screen {
+  justify-content: center;
+  text-align: center;
+  background-image:
+    linear-gradient(0deg, #0e0a09 1%, #110d0aa9 35%, #100c090d 78%), url('/art/loading.webp');
+  background-position:
+    center,
+    62% center;
+  background-size: cover;
+}
+.loading-copy {
+  width: min(640px, 100%);
+  align-self: end;
+  margin-bottom: clamp(21px, 7vh, 115px);
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 9px #000;
+}
+.loading-seal {
+  font-family: Georgia, serif;
+  font-size: 43px;
+  color: #e8b874;
+  text-shadow: 0 0 23px #ff9b50;
+}
+.loading-copy h1 {
+  font-size: clamp(37px, 6.5vw, 68px);
+  line-height: 1;
+  margin: 9px 0;
+  letter-spacing: -0.04em;
+}
+.loading-copy > p:not(.eyebrow) {
+  color: #ebd3b0;
+}
+.loading-rule {
+  margin: 29px auto 0;
+  height: 3px;
+  overflow: hidden;
+  max-width: 330px;
+  background: #c9996148;
+}
+.loading-rule > span {
+  display: block;
+  width: 27%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, #ffd38e, transparent);
+  animation: ashen-load 2.3s linear infinite;
+}
+@keyframes ashen-load {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(475%);
+  }
+}
+.scene-loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #ffebc7;
+  background: #1c1410 url('/art/loading.webp') center / cover;
+  text-shadow:
+    0 2px 12px #000,
+    0 4px 12px #000;
+}
+.has-atlas {
+  display: flex;
+  flex-direction: column;
+  background: #171311 url('/art/atlas.webp') center / cover;
+}
+.has-atlas .map-heading {
+  position: static;
+  pointer-events: auto;
+  max-width: none;
+  background: #18150fed;
+  border-width: 0 0 1px;
+  border-color: #80654c;
+  padding: 11px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.has-atlas .map-heading h2 {
+  color: #f6dfb2;
+  font-size: clamp(19px, 2.6vw, 34px);
+  margin: 3px 0;
+}
+.has-atlas .map-heading > span {
+  text-align: right;
+  color: #ccb58f;
+}
+.has-atlas .map-footer {
+  position: static;
+  color: #cebaa0;
+  background: #18150ff2;
+}
+.atlas {
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.atlas-toolbar,
+.atlas-inspector {
+  min-height: 42px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 12px;
+  color: #dbc6a8;
+  background: #231c16e7;
+  flex: 0 0 auto;
+}
+.atlas-segments {
+  display: flex;
+  gap: 5px;
+}
+.atlas-toolbar button,
+.atlas-inspector button,
+.atlas-inspector select {
+  font-size: 12px;
+  padding: 6px 8px;
+  background: #211913;
+  border-color: #775b42;
+  color: #ead3b1;
+}
+.atlas-toolbar button[aria-pressed='true'] {
+  color: #ffebc5;
+  background: #63422b;
+  border-color: #b28254;
+}
+.atlas-paper {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #9f7c549e;
+  margin: 0 12px;
+  background: #161b20bf;
+}
+.atlas-paper svg {
+  min-width: 635px;
+  min-height: 280px;
+  display: block;
+}
+.atlas-paper svg polygon[fill-opacity] {
+  cursor: pointer;
+}
+.atlas-relief {
+  fill: none;
+  stroke: #24251c;
+  stroke-width: 1.3;
+  opacity: 0.56;
+  pointer-events: none;
+}
+.atlas-realm-line {
+  stroke: #291f17;
+  stroke-width: 2.8;
+  stroke-dasharray: 3 0.4;
+}
+.atlas-region-line {
+  stroke: #32291e;
+  stroke-width: 1;
+  opacity: 0.53;
+}
+.atlas-roads {
+  fill: none;
+  stroke: #f1d8a4;
+  stroke-width: 1.2;
+  opacity: 0.78;
+  pointer-events: none;
+}
+.atlas-roads path.blocked {
+  stroke: #f09273;
+  stroke-dasharray: 4 3;
+}
+.atlas-town {
+  cursor: pointer;
+}
+.atlas-town.is-hero .atlas-halo {
+  stroke: #fff4d7;
+}
+.atlas-halo {
+  fill: #3f2819a1;
+  stroke: #eab876;
+  stroke-width: 1.5;
+}
+.atlas-town-label,
+.atlas-realm-label text {
+  font-family: Georgia, serif;
+  stroke: #211911;
+  paint-order: stroke fill;
+  stroke-linejoin: round;
+}
+.atlas-town-label {
+  font-size: 12px;
+  fill: #fff0cf;
+  stroke-width: 3.8;
+  pointer-events: none;
+}
+.atlas-realm-label {
+  cursor: pointer;
+}
+.atlas-realm-label text {
+  font-size: 13px;
+  font-weight: bold;
+  text-anchor: middle;
+  fill: #f0ddba;
+  stroke-width: 4;
+}
+.atlas-realm-label:hover text {
+  fill: #fff8de;
+  stroke: #100d09;
+}
+.atlas-compass {
+  fill: #b19365;
+  stroke: #a9895e;
+  opacity: 0.68;
+  pointer-events: none;
+}
+.atlas-compass text {
+  stroke: none;
+  font-family: Georgia, serif;
+  font-size: 12px;
+}
+.atlas-inspector label {
+  min-width: 100px;
+  max-width: 160px;
+  margin: 0;
+}
+.atlas-inspector label select {
+  margin: 0;
+}
+.atlas-inspector > span {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 11px;
+}
+.atlas-inspector button {
+  flex: 0 0 auto;
+}
+.codex-section {
+  margin: 0 0 22px;
+  color: #e2d4b4;
+}
+.codex-section h3 {
+  margin: 19px 0 3px;
+}
+.codex-section p {
+  margin: 6px 0 12px;
+  overflow-wrap: anywhere;
+}
+.codex-select select {
+  border-color: #8c6f4b;
+  background: #211913;
+  color: #f7e7c8;
+}
+.codex-crest {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 139px;
+  background:
+    linear-gradient(0deg, #1c1510f2, #1c151072 75%),
+    url('/art/state.webp') center / cover,
+    #2c2017;
+  border: 1px solid #9c7a50;
+  border-top: 2px solid var(--crest, #bf8e58);
+  padding: 47px 12px 11px;
+}
+.codex-crest > h2 {
+  overflow-wrap: anywhere;
+  margin: 0 0 6px;
+  line-height: 1.12;
+  color: #ffedc8;
+}
+.codex-crest .eyebrow {
+  letter-spacing: 0.15em;
+}
+.codex-faith {
+  background-image: linear-gradient(0deg, #1c1510f2, #1c151061 75%), url('/art/faith.webp');
+}
+.codex-sigil {
+  display: block;
+  position: absolute;
+  right: 12px;
+  top: 5px;
+  color: #edc58a;
+  font-size: 30px;
+}
+.codex-link {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: #231914;
+  border-color: #9b774c;
+  color: #edd3aa;
+}
+.codex-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+}
+.codex-stat-grid > div {
+  padding: 5px;
+  background: #201913;
+  border: 1px solid #654c37;
+  text-align: center;
+}
+.codex-stat-grid small {
+  color: #cdb490;
+  font-size: 10px;
+  margin: 0;
+}
+.codex-stat-grid strong {
+  color: #fee0a8;
+  font-size: 13px;
+}
+.codex-faith-states {
+  display: grid;
+  gap: 5px;
+}
+.codex-faith-states button {
+  padding: 8px;
+  text-align: left;
+}
+.codex-timeline {
+  list-style: none;
+  border-left: 1px solid #8b6d4c;
+  margin-left: 8px;
+  padding-left: 14px;
+}
+.codex-timeline li {
+  margin-bottom: 14px;
+  position: relative;
+}
+.codex-timeline li::before {
+  content: '◆';
+  position: absolute;
+  color: #c69c61;
+  font-size: 9px;
+  left: -19px;
+  top: 1px;
+}
+.codex-timeline strong {
+  display: block;
+}
+
+@media (max-width: 760px) {
+  .title-screen {
+    background-position:
+      center,
+      center,
+      66% center;
+    background-image:
+      linear-gradient(90deg, #0d0a09ec, #100b0b96 72%),
+      linear-gradient(0deg, #100b0bea, transparent 50%), url('/art/title.webp');
+  }
+  .title-copy h1 {
+    font-size: clamp(49px, 14vw, 78px);
+  }
+  .creation-screen {
+    padding: 24px 20px;
+    background-attachment: scroll;
+  }
+  .creation-screen .biography-form {
+    grid-template-columns: 1fr;
+  }
+  .creation-screen .biography-portrait {
+    grid-row: 1;
+    align-items: stretch;
+    min-height: 210px;
+    padding: 5px;
+  }
+  .forge-portrait {
+    right: 44%;
+  }
+  .forge-portrait::after {
+    background: linear-gradient(90deg, transparent, #201613 95%);
+  }
+  .forge-caption {
+    margin-left: 41%;
+    padding: 18px 10px 17px 0;
+  }
+  .loading-screen {
+    background-position:
+      center,
+      60% center;
+  }
+  .map-panel.has-atlas {
+    height: auto;
+  }
+  .has-atlas .map-heading {
+    padding: 8px 11px;
+  }
+  .has-atlas .map-heading > span {
+    font-size: 10px;
+  }
+  .atlas-paper {
+    margin: 0 5px;
+  }
+  .atlas-toolbar,
+  .atlas-inspector {
+    padding: 5px;
+    gap: 5px;
+  }
+  .atlas-inspector > span {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-rule > span {
+    animation: none;
+    width: 100%;
+  }
+}
+.creation-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  overflow: auto;
+}
+.atlas-journey {
+  fill: none;
+  stroke: #ffdfa0;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  pointer-events: none;
+}
+.atlas-siege {
+  fill: none;
+  stroke: #fc9c7a;
+  stroke-width: 2;
+}
+.atlas-army {
+  fill: #d88b66;
+  stroke: #f2be80;
+  stroke-width: 1;
+}
+.atlas-caravan {
+  fill: #e1bd74;
+  stroke: #513521;
+  stroke-width: 1;
+}
+.atlas-danger {
+  fill: #e89575;
+}
+@media (max-width: 420px) {
+  .atlas-toolbar button {
+    font-size: 11px;
+    padding: 5px;
+  }
+}
+/* One palette for the atlas, controls, and the books around it. */
+.app {
+  --gold: #dbb684;
+  --muted: #c6ae8e;
+  --line: #614b36;
+  background: #16110e;
+  color: #eadcc3;
+}
+.app header {
+  min-height: 66px;
+  background: linear-gradient(180deg, #2a2018, #17120e);
+  border-color: #856748;
+  box-shadow: inset 0 1px #b48d6944;
+}
+.brand-seal {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  aspect-ratio: 1;
+  border: 1px solid #b49168;
+  outline: 1px solid #6f5138;
+  outline-offset: 2px;
+  color: #f1c88a;
+  background: radial-gradient(#6c4230, #2c1b15 70%);
+  text-shadow: 0 0 10px #efac5a;
+  font-size: 28px;
+}
+.app .hero-bar {
+  background: linear-gradient(180deg, #35261c, #211812);
+  border-color: #6e5239;
+  min-height: 45px;
+}
+.app .health meter {
+  accent-color: #c96748;
+  background: #392722;
+}
+.app meter::-webkit-meter-bar {
+  background: #392722;
+}
+.app .health meter::-webkit-meter-optimum-value {
+  background: linear-gradient(#c46c48, #783824);
+}
+.app .health meter::-moz-meter-bar {
+  background: #b25b43;
+}
+.app aside {
+  border-color: #7f5e3f;
+  background: linear-gradient(154deg, #2b2119, #191411 49%);
+  box-shadow: inset 0 0 0 3px #17110d;
+  border-radius: 0;
+  scrollbar-color: #806349 #201712;
+}
+.app .side-content {
+  padding: 16px clamp(14px, 1.7vw, 25px);
+}
+.app .map-panel:not(.has-atlas) {
+  background: #251b13;
+}
+.app .map-panel:not(.has-atlas) .map-heading,
+.app .map-panel:not(.has-atlas) .map-footer {
+  background: #241a13e8;
+  border-color: #806044;
+}
+.app .map-controls button,
+.app .time button:not(.active),
+.app aside button:not(.primary),
+.app aside select,
+.app aside input {
+  background: linear-gradient(#35271d, #211913);
+  color: #ecdabe;
+  border-color: #785b40;
+}
+.app aside button:hover:not(:disabled),
+.app .time button:hover:not(:disabled) {
+  background: #573825;
+  border-color: #c08d57;
+}
+.app .primary,
+.app .time button.active {
+  border-color: #b18154;
+  background: linear-gradient(#68362b, #3f231a);
+  color: #fbe3bd;
+}
+.app aside details,
+.app aside .card,
+.app aside .slot {
+  background: #251c16;
+  border-color: #624b36;
+}
+.app .bottom-nav {
+  background: linear-gradient(#2e221a, #19120e);
+  border-color: #8a6748;
+}
+.app .bottom-nav button {
+  color: #dcc3a0;
+  border-top: 2px solid transparent;
+}
+.app .bottom-nav button.active {
+  color: #ffdda2;
+  border-top-color: #d5a773;
+  background: linear-gradient(#5e3e29, #2c2018);
+}
+.app .bottom-nav button:hover:not(:disabled) {
+  background: #442e20;
+}
+.app .dialogue-window {
+  color: #eedec5;
+  background: #241a14;
+  border-color: #876645;
+}
+.app .dialogue-portrait {
+  background: #2c1e15;
+  border-color: #624b36;
+}
+.app .dialogue-window::backdrop {
+  background: #100b08bb;
+}
+.settlement-card {
+  min-height: clamp(113px, 15vw, 182px);
+  display: flex;
+  justify-content: flex-end;
+  flex-direction: column;
+  position: relative;
+  isolation: isolate;
+  padding: 12px 13px;
+  color: #f5e0bd;
+  border: 1px solid #8a6646;
+  background-color: #33261b;
+  background-image: url('/art/settlements.webp');
+  background-size: 300% auto;
+  background-repeat: no-repeat;
+  background-position: var(--settlement-x) center;
+}
+.settlement-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(0deg, #1c130bf9, #1c130b95 34%, transparent 78%);
+}
+.settlement-art-0 {
+  --settlement-x: 0%;
+}
+.settlement-art-1 {
+  --settlement-x: 50%;
+}
+.settlement-art-2 {
+  --settlement-x: 100%;
+}
+.settlement-card h2 {
+  margin: 4px 0 0;
+  font-size: clamp(21px, 2.5vw, 33px);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+.settlement-card .eyebrow {
+  color: #e7ba82;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+}
+.hero-codex-portrait {
+  min-height: 180px;
+  border: 1px solid #8a6646;
+  background: #231713;
+}
+.map-heading-tools {
+  display: grid;
+  justify-items: end;
+  text-align: right;
+  gap: 5px;
+  font-size: 11px;
+  color: #cbb190;
+}
+.has-atlas .map-heading-tools button {
+  pointer-events: auto;
+}
+@media (max-width: 760px) {
+  .map-heading-tools {
+    font-size: 10px;
+  }
+  .map-heading-tools .codex-link {
+    padding: 5px 7px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+}
+.race-choices {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.race-choices label,
+.training-choices label {
+  position: relative;
+  color: #d4bb96;
+  border: 1px solid #775a43;
+  background: linear-gradient(#39281e, #1c1512);
+  cursor: pointer;
+}
+.race-choices label {
+  display: grid;
+  justify-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  padding: 3px 3px 5px;
+  text-align: center;
+}
+.race-choices label:hover,
+.training-choices label:hover {
+  border-color: #c09163;
+}
+.race-choices label.active,
+.training-choices label.active {
+  border-color: #e3a46a;
+  background: linear-gradient(#673e27, #352318);
+  color: #ffe0aa;
+  box-shadow:
+    inset 0 0 0 1px #a76849,
+    0 1px 9px #e28b4e31;
+}
+.race-choices label:focus-within,
+.training-choices label:focus-within {
+  outline: 2px solid #ffc888;
+  outline-offset: 2px;
+}
+.race-choices strong {
+  font-family: Georgia, serif;
+  font-size: clamp(9px, 1vw, 13px);
+  font-weight: normal;
+  line-height: 1.1;
+}
+.race-choices input,
+.training-choices input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.race-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 0.85;
+  background: #211812;
+  border: 1px solid #9b77504d;
+}
+.training-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  padding: 0;
+  margin: 1px 0 12px;
+  border: 0;
+}
+.training-choices legend {
+  padding: 0;
+  font-size: 11px;
+  color: #c9b293;
+}
+.training-choices label {
+  text-align: center;
+  padding: 5px;
+  font-size: 12px;
+  margin: 4px 0;
+}
+.hero-codex-portrait[class*='race-art-'] {
+  background-image: var(--race-art);
+  background-position: center 21%;
+  background-size: cover;
+}
+@media (max-width: 760px) {
+  .race-choices {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .race-thumb {
+    aspect-ratio: 1.7;
+    background-position: center 20%;
+  }
+  .race-choices strong {
+    font-size: 11px;
+  }
+}
+/* Topographic engraving and transparent political glaze use the saved atlas geometry. */
+.atlas-natural .atlas-paper {
+  background: #1a2425cc;
+  box-shadow:
+    inset 0 0 35px #10090580,
+    0 4px 18px #100c0877;
+}
+.atlas-paper .atlas-cell {
+  cursor: pointer;
+}
+.atlas-coast-line {
+  stroke: #d3be89;
+  stroke-opacity: 0.8;
+  stroke-width: 1.45;
+  stroke-linejoin: round;
+}
+.atlas-border-underlay {
+  stroke: #23190f;
+  opacity: 0.87;
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+.atlas .atlas-realm-line {
+  stroke: #e7be82;
+  opacity: 0.86;
+  stroke-width: 1.45;
+  stroke-dasharray: 4 1.5;
+}
+.atlas.is-terrain .atlas-border-underlay {
+  opacity: 0.26;
+}
+.atlas.is-terrain .atlas-realm-line {
+  opacity: 0.32;
+}
+.atlas .atlas-region-line {
+  stroke: #4c3920;
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+  opacity: 0.55;
+}
+.atlas-engraving .ridge-shadow {
+  fill: #514336;
+  stroke: #594932;
+  stroke-width: 0.38;
+}
+.atlas-engraving .ridge-light {
+  fill: #c1a87e;
+}
+.atlas-engraving .ridge-snow {
+  fill: #e2cd9d;
+  opacity: 0.85;
+}
+.atlas-engraving .terrain-scratch {
+  fill: none;
+  stroke: #5a4833;
+  stroke-width: 0.55;
+  opacity: 0.58;
+}
+.atlas-engraving .tree-shade {
+  fill: #3a462f;
+  opacity: 0.77;
+}
+.atlas-engraving .tree-light {
+  fill: none;
+  stroke: #9c9b64;
+  opacity: 0.63;
+  stroke-width: 0.6;
+}
+.atlas-engraving .marsh-hatch {
+  fill: none;
+  stroke: #3c4a39;
+  opacity: 0.58;
+  stroke-width: 0.75;
+}
+.atlas-rivers {
+  pointer-events: none;
+}
+.atlas-rivers path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.atlas-rivers .river-bank {
+  stroke: #233b36;
+  opacity: 0.83;
+  stroke-width: 4.45;
+}
+.atlas-rivers .river-flow {
+  stroke: #adc0a9;
+  stroke-width: 1.9;
+}
+.atlas.is-political .river-flow {
+  stroke: #b0c0a3;
+  opacity: 0.78;
+}
+.atlas .river-label {
+  fill: #eff0c5;
+  paint-order: stroke fill;
+  stroke: #39483a;
+  stroke-width: 2.2;
+  font:
+    italic 9px Georgia,
+    serif;
+  letter-spacing: 1px;
+}
+.atlas .atlas-realm-label text {
+  fill: #f8e3ba;
+  stroke: #302518;
+  stroke-width: 4.3;
+  font-size: 13.5px;
+  letter-spacing: 0.5px;
+}
+.atlas .atlas-realm-label:hover text {
+  fill: #fff8d8;
+}
+.codex-diplomacy .codex-link {
+  display: block;
+  margin: 6px 0;
+}
+.codex-compare-table {
+  overflow-x: auto;
+}
+.codex-compare-table table {
+  width: 100%;
+}
+.codex-compare-table th {
+  min-width: 64px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  color: #e7ca9c;
+  font-size: 10px;
+}
+.codex-compare-table td {
+  white-space: normal;
+}
+.race-choices input,
+.training-choices input {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+/* Finished character illustrations shared by creator, hero and NPC cards. */
+.character-portrait {
+  position: relative;
+  display: block;
+  isolation: isolate;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: radial-gradient(ellipse at 50% 42%, #35241a, #1c1510 67%, #100d09);
+}
+.character-portrait .portrait-illustration {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  max-width: none;
+  margin: 0;
+  object-fit: cover;
+}
+.forge-portrait.character-portrait {
+  position: absolute;
+  inset: 5px;
+  width: auto;
+  height: auto;
+  aspect-ratio: auto;
+}
+.forge-portrait.character-portrait::after {
+  z-index: 5;
+}
+.hero-codex-portrait.character-portrait {
+  min-height: 0;
+}
+.ruler-codex-portrait.character-portrait {
+  float: right;
+  width: clamp(75px, 31%, 110px);
+  margin: 5px 0 8px 11px;
+  border: 1px solid #896846;
+}
+.ruler-figure {
+  display: flow-root;
+}
+.person-preview .character-portrait {
+  max-width: 140px;
+  border: 1px solid #896846;
+  margin: 7px 0;
+}
+.dialogue-portrait .character-portrait {
+  width: min(100%, 330px);
+  margin: 8px auto 1px;
+  border: 1px solid #896846;
+}
+.wardrobe-controls {
+  padding: 0 8px 6px;
+  margin: 10px 0 15px;
+}
+.wardrobe-controls > label {
+  margin: 2px 0 5px;
+}
+.wardrobe-controls select {
+  margin-top: 4px;
+  padding: 7px;
+}
+@media (max-width: 760px) {
+  .forge-portrait.character-portrait {
+    right: 44%;
+  }
+  .dialogue-portrait {
+    display: grid;
+    grid-template-columns: 104px 1fr;
+    justify-items: start;
+    align-items: center;
+    column-gap: 12px;
+    padding: 6px 9px;
+    margin-bottom: 12px;
+    text-align: left;
+  }
+  .dialogue-portrait .character-portrait {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    margin: 0;
+  }
+  .dialogue-portrait > .eyebrow {
+    grid-column: 2;
+    align-self: end;
+  }
+  .dialogue-portrait > h2 {
+    grid-column: 2;
+    align-self: start;
+    font-size: 20px;
+    margin: 4px 0;
+  }
+}
+.dialogue-choices button,
+.dialogue-card .dialogue-top button {
+  border-color: #674b33;
+  background: linear-gradient(160deg, #322519, #231b16 76%);
+  color: #efe1c9;
+}
+.dialogue-choices button:hover:not(:disabled),
+.dialogue-card .dialogue-top button:hover:not(:disabled) {
+  border-color: #a57b4d;
+  background: linear-gradient(160deg, #513822, #30241a 76%);
+}
+.dialogue-choices small {
+  color: #c8ad8c;
+}
+
+.race-thumb {
+  filter: brightness(0.9) contrast(1.03);
+}
+.race-choices label.active .race-thumb {
+  filter: contrast(1.02);
+}
+/* Full square of the selected artwork; caption stays outside the portrait. */
+.creation-screen .biography-portrait {
+  align-self: start;
+  min-height: 0;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto;
+  background: #211812;
+}
+.forge-portrait.character-portrait {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.forge-portrait.character-portrait::after {
+  background: linear-gradient(0deg, #120d0b6c 0%, transparent 24%);
+}
+.forge-caption {
+  align-self: center;
+  margin-left: 0;
+  border-top: 1px solid #856645;
+  padding: 14px 17px 17px;
+}
+.forge-caption p {
+  margin: 3px 0;
+}
+.forge-caption small {
+  margin-top: 5px;
+}
+.race-thumb.character-portrait {
+  aspect-ratio: 0.86;
+  border: 1px solid #9b775055;
+}
+@media (max-width: 760px) {
+  .creation-screen .biography-portrait {
+    grid-template-columns: 45% minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  .forge-caption {
+    border-top: 0;
+    border-left: 1px solid #856645;
+    padding: 11px 9px;
+  }
+  .race-thumb.character-portrait {
+    aspect-ratio: 1.4;
+  }
+}
+
+.body-choices {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.preset-choices {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+  margin: 7px 0 15px;
+  padding: 0;
+  border: 0;
+}
+.preset-choices legend {
+  padding: 0;
+  color: #c9b293;
+  font-size: 11px;
+}
+.preset-choices label {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin: 5px 0 0;
+  padding: 3px 3px 5px;
+  border: 1px solid #775a43;
+  color: #d4bb96;
+  background: linear-gradient(#39281e, #1c1512);
+  cursor: pointer;
+  text-align: center;
+}
+.preset-choices label:hover {
+  border-color: #c09163;
+}
+.preset-choices label.active {
+  border-color: #e3a46a;
+  background: linear-gradient(#673e27, #352318);
+  color: #ffe0aa;
+  box-shadow:
+    inset 0 0 0 1px #a76849,
+    0 1px 9px #e28b4e31;
+}
+.preset-choices label:focus-within {
+  outline: 2px solid #ffc888;
+  outline-offset: 2px;
+}
+.preset-choices label strong {
+  font:
+    400 clamp(10px, 1vw, 12px) Georgia,
+    serif;
+  white-space: nowrap;
+}
+.preset-choices input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  z-index: 2;
+  cursor: pointer;
+}
+.preset-thumb.character-portrait {
+  aspect-ratio: 0.86;
+  border: 1px solid #9b775055;
+}
+.wardrobe-controls .wardrobe-note {
+  margin: 7px 0 1px;
+  font-size: 11px;
+}
+@media (max-width: 760px) {
+  .preset-choices {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .preset-thumb.character-portrait {
+    aspect-ratio: 1.4;
+  }
+  .preset-thumb .portrait-illustration,
+  .race-thumb .portrait-illustration {
+    object-position: center 29%;
+  }
+}

@@ -10,17 +10,30 @@ import {
   conversation,
   adult,
   command,
-  createWorld,
+  createOrganicWorld,
+  mapProjection,
+  roadActorProjection,
+  seededLore,
   stepBattle,
   tickDay,
+  appearanceFor,
+  wardrobeFor,
+  type Person,
   type World,
 } from '@living-world/simulation';
 import { runDirector } from './director.js';
+import { bootstrapWorld } from './world-bootstrap.js';
 import type { Storage } from './storage.js';
 export function worldView(w: World) {
-  const here = w.player ? w.people[w.player.person].settlement : 0;
+  const hero = w.player ? w.people[w.player.person] : null;
+  const here = hero?.settlement ?? 0;
+  const withAppearance = (person: Person) => ({ ...person, appearance: appearanceFor(w, person) });
+  const mapKnowledge = mapProjection(w);
   return {
     ...w,
+    mapKnowledge,
+    roadLife: undefined,
+    roadActors: roadActorProjection(w, mapKnowledge),
     people: undefined,
     directorLogs: undefined,
     npcs: undefined,
@@ -35,19 +48,24 @@ export function worldView(w: World) {
     party:
       w.armies
         .find((a) => a.id === w.player?.army)
-        ?.members.map((id) => ({ ...w.people[id], npc: w.npcs[id] })) ?? [],
+        ?.members.map((id) => ({ ...withAppearance(w.people[id]), npc: w.npcs[id] })) ?? [],
     population: {
       total: w.people.length,
       alive: w.settlements.reduce((n, s) => n + s.population, 0),
     },
-    hero: w.player ? w.people[w.player.person] : null,
-    heirs: w.player?.heirs.map((id) => w.people[id]) ?? [],
+    hero: hero ? withAppearance(hero) : null,
+    wardrobe: hero ? wardrobeFor(w, hero) : null,
+    heirs: w.player?.heirs.map((id) => withAppearance(w.people[id])) ?? [],
     locals: w.settlements[here].residents
       .map((id) => w.people[id])
       .filter((p) => p.alive && adult(w, p))
       .slice(0, 20)
-      .map((p) => ({ ...p, npc: w.npcs[p.id] })),
-    rulers: w.states.map((s) => w.npcs[s.ruler]),
+      .map((p) => ({ ...withAppearance(p), npc: w.npcs[p.id] })),
+    rulers: w.states.map((s) => {
+      const npc = w.npcs[s.ruler];
+      const person = w.people[s.ruler];
+      return npc && person ? { ...npc, appearance: appearanceFor(w, person) } : npc;
+    }),
   };
 }
 export async function createApp(
@@ -57,6 +75,7 @@ export async function createApp(
     password?: string;
     origin?: string;
     apiKey?: string;
+    loreFetch?: typeof fetch;
     log?: boolean;
   } = {},
 ) {
@@ -66,6 +85,7 @@ export async function createApp(
   let tickMs = 0;
   let lastError: string | null = null;
   let directorBusy = false;
+  let creatingWorld = false;
   let steps = 0;
   let queue = Promise.resolve();
   let closed = false;
@@ -145,24 +165,37 @@ export async function createApp(
   });
   app.get('/api/health', async () => ({ ok: true }));
   app.get('/api/world', async () => (w ? { ...worldView(w), saveError: lastError } : null));
-  app.post('/api/new', async (req) => {
+  app.post('/api/new', async (req, reply) => {
     const input = z
       .object({ seed: z.string().trim().min(1).max(100), biography: BiographySchema })
       .strict()
       .parse(req.body);
-    return serial(async () => {
-      const next = createWorld(input.seed);
+    if (creatingWorld) return reply.code(409).send({ error: 'Новый мир уже создаётся' });
+    creatingWorld = true;
+    const previousGeneration = generation;
+    try {
+      const next = createOrganicWorld(input.seed);
       const result = command(next, { type: 'create_player', biography: input.biography });
       if (!result.ok) throw new Error(result.error);
       next.director.model = process.env.OPENROUTER_MODEL ?? next.director.model;
-      await storage.save(0, next);
-      generation++;
-      w = next;
-      steps = 0;
-      lastError = null;
-      broadcast();
-      return { ...worldView(next), saveError: null };
-    });
+      // This candidate world is private until ready; do not stall commands or ticks of the active game.
+      await bootstrapWorld(next, options.apiKey, options.loreFetch);
+      return await serial(async () => {
+        if (generation !== previousGeneration)
+          return reply
+            .code(409)
+            .send({ error: 'Сохранение было загружено во время создания мира' });
+        await storage.save(0, next);
+        generation++;
+        w = next;
+        steps = 0;
+        lastError = null;
+        broadcast();
+        return { ...worldView(next), saveError: null };
+      });
+    } finally {
+      creatingWorld = false;
+    }
   });
   app.post('/api/command', async (req, reply) =>
     serial(async () => {
@@ -210,6 +243,7 @@ export async function createApp(
     return serial(async () => {
       const loaded = await storage.load(n);
       loaded.speed = 0;
+      loaded.worldLore ??= seededLore(loaded);
       generation++;
       w = loaded;
       steps = 0;
@@ -248,7 +282,7 @@ export async function createApp(
       total: w.people.length,
       items: w.people
         .slice(query.offset, query.offset + query.limit)
-        .map((p) => ({ ...p, npc: w!.npcs[p.id] })),
+        .map((p) => ({ ...p, appearance: appearanceFor(w!, p), npc: w!.npcs[p.id] })),
     };
   });
   app.get('/api/admin', async () => ({
@@ -304,6 +338,7 @@ export async function createApp(
   if (saves.some((s) => s.slot === 0)) {
     w = await storage.load(0);
     w.speed = 0;
+    w.worldLore ??= seededLore(w);
   }
   if (options.timers !== false)
     timer = setInterval(() => {
