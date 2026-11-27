@@ -1,0 +1,11 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#171a17"><title>Пепельная корона · Переправье</title><link rel="stylesheet" href="./style.css"></head>
+<body><main id="game" aria-label="Трёхмерная игра">
+<div class="shade"></div><header id="hud"><div><div class="cap">ПЕПЕЛЬНАЯ КОРОНА <span> / </span> 3D-ПРОТОТИП</div><strong id="where">Переправье</strong><small id="time"></small></div><button id="mapbtn">Атлас <kbd>M</kbd></button></header>
+<aside id="goal"><div class="cap">ЗАДАНИЕ</div><strong>После последнего колокола</strong><p id="objective">Поговори со стражником у ворот.</p></aside>
+<div id="notice" role="status"></div><button id="interact" hidden></button>
+<footer id="bottom"><div class="meter"><div><span>Здоровье</span> <b id="hpnum">100</b></div><progress id="hp" max="100" value="100"></progress></div><div class="controls"><b>WASD</b> ходьба · <b>Мышь</b> обзор · <b>F</b> удар · <b>Q</b> блок</div></footer>
+<div id="touch"><div id="pad" aria-label="Движение"><i></i></div><div><button id="blockTouch">Блок</button><button id="attackTouch">Удар</button></div></div>
+<dialog id="intro"><div class="cap">ПОГРАНИЧЬЕ · ИГРОВОЙ ПРОТОТИП</div><h1>Пепельная<br>корона</h1><p>Над Переправьем висит дым. В разрушенной школе магии снова звонит колокол, хотя звонаря там не было уже двадцать лет.</p><button id="start">Войти в Переправье</button><small>Камера за спиной · 3D-мир · без OpenRouter</small></dialog>
+<dialog id="talk"><form method="dialog"><div class="cap" id="speakerRole"></div><h2 id="speaker"></h2><p id="speech"></p><button>Закрыть <kbd>Esc</kbd></button></form></dialog>
+<dialog id="atlas"><div class="atlasHead"><div><div class="cap">ПЕПЕЛЬНАЯ КОРОНА</div><h2>Атлас Переправья</h2></div><button id="closemap" aria-label="Закрыть атлас">✕</button></div><canvas id="chart" width="600" height="380" aria-label="Карта города, леса и руин"></canvas><div id="travels"></div><p>Быстрый путь доступен к открытым местам и занимает 35 игровых минут.</p></dialog>
+<noscript>Для игры нужен JavaScript.</noscript></main><script type="module" src="./game.mjs"></script></body></html>
