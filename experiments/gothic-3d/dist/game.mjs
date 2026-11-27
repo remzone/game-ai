@@ -1,6 +1,7 @@
 import * as T from './vendor/three.module.min.js';
 import {DepthRenderer as SoftwareRenderer} from './depth.mjs';
 import {makeCharacter,disposeCharacter,loadHead,validateLook,DEFAULT} from './character.mjs';
+import {loadPacks} from './packs.mjs';
 import {installCreator} from './creator.mjs';
 import {buildArt,material,rand} from './art.mjs';
 import {DAY,PLACES,ROAD,START,JUMP_SPEED,tickJump,walkY,clockText,isNight,regime,spawn,markVisited,travel,collide,caravanPos} from './world.mjs';
@@ -32,7 +33,8 @@ scene.background=new T.Color(0x8c8f81);scene.fog=new T.FogExp2(0x8c8f81,.012);
 const hemi=new T.HemisphereLight(0xdedbc9,0x564d43,2.17);scene.add(hemi);
 const sun=new T.DirectionalLight(0xffd3a4,2.1);sun.position.set(-32,26,-37);scene.add(sun);
 const moon=new T.DirectionalLight(0x819cce,.6);moon.position.set(8,44,37);scene.add(moon);
-const {solids,update:animateArt,wagon}=buildArt(scene,renderer instanceof SoftwareRenderer);
+const packs=await loadPacks();
+const {solids,update:animateArt,wagon}=buildArt(scene,renderer instanceof SoftwareRenderer,packs);
 const palette={iron:material(0x686364,{metalness:.51,roughness:.5}),wax:material(0x39302a),ivory:material(0xc5aa87),cloth:material(0x554934),shine:material(0xa19982,{metalness:.65,roughness:.4})};
 function mesh(geo,m,p,x,y,z){const a=new T.Mesh(geo,m);a.position.set(x,y,z);p.add(a);return a;}
 function cube(p,m,x,y,z,w,h,d){return mesh(new T.BoxGeometry(w,h,d),m,p,x,y,z);}
@@ -41,6 +43,7 @@ try{asset=await loadHead();}catch(e){
   $('intro').querySelector('p').textContent='Не удалось загрузить 3D-модели. Обнови страницу, чтобы попробовать ещё раз.';
   $('start').hidden=true;intro.showModal();throw e;
 }
+asset.packs=packs;
 s.look=s.look?validateLook(s.look):undefined;
 let hero=makeCharacter(scene,asset,s.look??DEFAULT,{weapon:true});
 const guard=makeCharacter(scene,asset,{frame:0,face:0,skin:0,eyes:0,hair:0,armor:1,dye:1},{weapon:true,coat:0x813b30});
@@ -49,7 +52,7 @@ const caretaker=makeCharacter(scene,asset,{frame:1,face:1,skin:1,eyes:1,hair:2,a
 const merchant=makeCharacter(scene,asset,{frame:0,face:2,skin:1,eyes:1,hair:0,armor:0,dye:1},{coat:0x6d5436});
 const enemy=makeCharacter(scene,asset,{frame:1,face:2,skin:0,eyes:0,hair:1,armor:1,dye:2},{weapon:true,coat:0x51485a});
 const creatorUI=installCreator({asset,software:renderer instanceof SoftwareRenderer,onApply(look){
- scene.remove(hero.root);disposeCharacter(hero.root);hero=makeCharacter(scene,asset,look,{weapon:true});s.look=look;resetArc();snapCamera();
+ scene.remove(hero.root);hero.stop?.();disposeCharacter(hero.root);hero=makeCharacter(scene,asset,look,{weapon:true});s.look=look;resetArc();snapCamera();
  started=true;creator.close();save();
 }});
 const relic=mesh(new T.OctahedronGeometry(.32),new T.MeshStandardMaterial({color:0xd9a66d,emissive:0xdd7d36,emissiveIntensity:1.4,metalness:.31,roughness:.53}),scene,-12,walkY(-12,-151)+1,-151);

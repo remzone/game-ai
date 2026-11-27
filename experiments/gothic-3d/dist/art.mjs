@@ -1,4 +1,5 @@
 import * as T from './vendor/three.module.min.js';
+import {buildFarmKit} from './packs.mjs';
 import {growWoodland} from './forest.mjs';
 import {terrain, walkY, ROAD, roadX} from './world.mjs';
 export const rand=(seed=221)=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
@@ -31,7 +32,7 @@ function texture(kind){
   for(let k=0;k<5900;k++){q.fillStyle=s()<.5?'#00000019':'#efe0c117';q.fillRect(s()*256,s()*256,1+s()*5,1+s()*2);}
   const t=new T.CanvasTexture(c); t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=4;return t;
 }
-export function buildArt(scene,soft=false){
+export function buildArt(scene,soft=false,packs={}){
  const stoneMap=texture('stone'), woodMap=texture('wood'), tileMap=texture('roof');
  const stone=material(0xa4a095,{map:stoneMap}), oldStone=material(0x978b76,{map:stoneMap});
  const plaster=material(0xb0a18a), beam=material(0x584335,{map:woodMap}), decking=material(0xa59072,{map:woodMap});
@@ -51,7 +52,9 @@ export function buildArt(scene,soft=false){
    const m=new T.CanvasTexture(c);m.colorSpace=T.SRGBColorSpace;mesh(new T.PlaneGeometry(1.42,.37),new T.MeshBasicMaterial({map:m,side:T.DoubleSide}),x,y+1.29,z+.066);
  }
  function house(x,z,w,d,h,i){
-   const y=terrain(x,z), group=new T.Group();group.position.set(x,y,z);scene.add(group);
+   const y=terrain(x,z);
+   if(z < -55&&z > -83&&buildFarmKit(packs,scene,{x,y,z,w,d,h,i})){obstacle(x,z,w,d);return;}
+   const group=new T.Group();group.position.set(x,y,z);scene.add(group);
    obstacle(x,z,w,d);box(0,.22,0,w+.16,.51,d+.16,stone,group);box(0,h/2+.37,0,w,h,d,i%4===2?decking:plaster,group);
    const edge=h+.37, slope=.56, half=(w+.76)/2;
    const geom=new T.BufferGeometry();
@@ -104,16 +107,18 @@ export function buildArt(scene,soft=false){
  const geo=new T.PlaneGeometry(150,215,soft?58:150,soft?103:215);geo.rotateX(-Math.PI/2);geo.translate(0,0,-68.5);
  const v=geo.attributes.position, uvs=geo.attributes.uv, colors=[];const color=new T.Color();
  for(let i=0;i<v.count;i++){
-   const x=v.getX(i),z=v.getZ(i);v.setY(i,terrain(x,z));uvs.setXY(i,(x+76)*.58,(z+177)*.61);
+   const x=v.getX(i),z=v.getZ(i);v.setY(i,terrain(x,z));uvs.setXY(i,(x+76)*.40,(z+177)*.40);
    const dist=Math.abs(x-roadX(z)), n=Math.sin(x*1.49+z*2.5)*.033+(rng()-.5)*.055;
    const path=T.MathUtils.smoothstep(dist,2.2,4.6);
    const moss=T.MathUtils.smoothstep(Math.sin(x*.34+z*.18)+Math.cos(z*.46-x*.11),-.47,1.54);
-   color.set(0x685841).lerp(new T.Color(z< -108?0x43483a:0x50563b).lerp(new T.Color(0x3b4e3c),moss),path);
+   const bank=packs.litter?0xae9b82:0x685841;
+   const turf=packs.litter?0x8e9778:(z< -108?0x43483a:0x50563b);
+   color.set(bank).lerp(new T.Color(turf).lerp(new T.Color(packs.litter?0x77896e:0x3b4e3c),moss),path);
    if(dist<2.9&&Math.abs(Math.abs(x-roadX(z))-.9)<.42)color.multiplyScalar(.84);
    if(Math.abs(z+39)<6.1)color.lerp(new T.Color(0x4a4c45),.64);
    color.multiplyScalar(1+n*4.4);colors.push(color.r,color.g,color.b);
  }
- geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));geo.computeVertexNormals();mesh(geo,material(0xffffff,{vertexColors:true,map:soilTexture()}),0,0,0);
+ geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));geo.computeVertexNormals();mesh(geo,material(0xffffff,{vertexColors:true,map:packs.litter??soilTexture(),normalMap:packs.litterNormal??null,normalScale:new T.Vector2(.53,.53)}),0,0,0);
  const water=mesh(new T.PlaneGeometry(151,9.7,soft?25:96,soft?2:8),material(0x496662,{metalness:.23,roughness:.32,transparent:true,opacity:.88}),0,-.48,-39);water.rotation.x=-Math.PI/2;
  for(let i=0;i<24;i++){const x=(rng()-.5)*105,z=-35-rng()*8;mesh(new T.PlaneGeometry(.4+rng()*2,.055),new T.MeshBasicMaterial({color:0x849386,transparent:true,opacity:.3,side:T.DoubleSide}),x,-.46,z).rotation.x=-Math.PI/2;}
  for(let i=0;i<29;i++)box(0,.045,-45.75+i*.47,6.3,.17,.45,decking);
@@ -152,7 +157,7 @@ export function buildArt(scene,soft=false){
    const o=new T.InstancedMesh(g,m,entries.length), dummy=new T.Object3D();
    entries.forEach((e,i)=>{dummy.position.set(e[0],e[1],e[2]);dummy.scale.set(e[3],e[4],e[5]);dummy.rotation.set(e[7]??0,e[6]??0,e[8]??0);dummy.updateMatrix();o.setMatrixAt(i,dummy.matrix);if(e[9])o.setColorAt(i,new T.Color(e[9]));});scene.add(o);return o;
  }
- growWoodland(scene,{soft,obstacle:(x,z,w,d,canopy)=>{obstacle(x,z,w,d);solids.at(-1).canopy=canopy;}});
+ growWoodland(scene,{soft,packs,obstacle:(x,z,w,d,canopy)=>{obstacle(x,z,w,d);solids.at(-1).canopy=canopy;}});
  const rocks=[];
  for(let k=0;k<410;k++){
    const x=(rng()-.5)*135,z=35-rng()*205,y=terrain(x,z);

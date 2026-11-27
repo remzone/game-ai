@@ -1,4 +1,5 @@
 import * as T from './vendor/three.module.min.js';
+import {staticPacket} from './packs.mjs';
 import {roadX,terrain} from './world.mjs';
 const TAU=Math.PI*2;
 function rng(seed){return ()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);}
@@ -120,8 +121,8 @@ function meadow(seed,kind,detail){
  }
  return out.build();
 }
-export function growWoodland(scene,{soft=false,obstacle}={}){
- const r=rng(5319), bark=new T.MeshStandardMaterial({vertexColors:true,roughness:.96,map:barkTexture(),side:T.DoubleSide}),
+export function growWoodland(scene,{soft=false,obstacle,packs={}}={}){
+ const r=rng(5319), bark=new T.MeshStandardMaterial({vertexColors:true,roughness:.96,map:packs.bark??barkTexture(),side:T.DoubleSide}),
   foliage=new T.MeshStandardMaterial({vertexColors:true,roughness:1,side:T.DoubleSide}), grass=foliage.clone();
  const sampleTree=[0,1,2].map(i=>[[],[]]), sampleGrass=[0,1,2].map(i=>[[],[]]);
  const temp=new T.Object3D();
@@ -147,10 +148,41 @@ export function growWoodland(scene,{soft=false,obstacle}={}){
    const clump=.65+r()*.94, type=r()<.18?1:r()<.26?2:0,close=Math.abs(a)<11;
    sampleGrass[type][close?1:0].push([x,terrain(x,z)-.008,z,clump,clump,clump,r()*TAU,[0xe1e1c6,0xaab597,0xd7c8ad][Math.floor(r()*3)]]);
  }
+ const packTrees=[packs.pineA,packs.pineB,packs.dead];
+ const grassModels=staticPacket(packs.grass);
+ const ferns=staticPacket(packs.fern);
  for(let v=0;v<3;v++)for(const l of [0,1]){
    const [trunk,crown]=tree(155+v*39,v,soft?0:l);
-   place(trunk,bark,sampleTree[v][l]);place(crown,foliage,sampleTree[v][l]);
-   place(meadow(482+v*79,v,soft?0:l),grass,sampleGrass[v][l]);
+   const stockTree=staticPacket(packTrees[v]);
+   const source=sampleTree[v][l], domain=r=>r[2]<-43&&r[2]>-128&&Math.abs(r[0]-roadX(r[2]))<29;
+   const usePack=(r,i)=>stockTree.length>0&&domain(r)&&((i+v)%3!==1);
+   const background=source.filter((row,i)=>!usePack(row,i));
+   place(trunk,bark,background);place(crown,foliage,background);
+   if(stockTree.length){
+     const box=new T.Box3();
+     for(const p of stockTree)box.union(p.geometry.boundingBox);
+     const high=box.max.y-box.min.y, cx=(box.min.x+box.max.x)*.5,cz=(box.min.z+box.max.z)*.5;
+     // Pivot at ground and normalize once so the same seeded placement controls both asset sources.
+     const rows=source.filter(usePack);
+     for(const {geometry,material} of stockTree){
+       const g=geometry.clone().translate(-cx,-box.min.y,-cz).scale(1/high,1/high,1/high);
+       const mat=material.clone();mat.color.multiply(new T.Color(v===2?0xc4b49c:0x899684));
+       place(g,mat,rows);
+     }
+   }
+   const grassRows=sampleGrass[v][l];
+   const canUse=(r,i)=>l===1&&domain(r)&&((i+v)%5===0);
+   const packIt=v===1?ferns:grassModels.slice(v===0?0:2,v===0?1:3);
+   const sourceGrass=packIt.length?grassRows.filter((r,i)=>!canUse(r,i)):grassRows;
+   place(meadow(482+v*79,v,soft?0:l),grass,sourceGrass);
+   if(packIt.length)for(const {geometry,material} of packIt){
+     const g=geometry.clone();g.computeBoundingBox();
+     const center=g.boundingBox.getCenter(new T.Vector3()), dlt=g.boundingBox.getSize(new T.Vector3());
+     const scale=(v===1?.56:.46)/Math.max(.05,dlt.y);
+     g.translate(-center.x,-g.boundingBox.min.y,-center.z).scale(scale,scale,scale);
+     const mat=material.clone();mat.color.multiply(new T.Color(0xb2bc9b));mat.side=T.DoubleSide;
+     place(g,mat,grassRows.filter(canUse));
+   }
  }
  return {trees:sampleTree.flat().reduce((sum,x)=>sum+x.length,0),plants:sampleGrass.flat().reduce((sum,x)=>sum+x.length,0)};
 }

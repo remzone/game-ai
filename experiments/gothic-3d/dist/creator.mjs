@@ -59,10 +59,10 @@ export function installCreator({asset,software,onApply}){
  }
  function render(t){
   if(!renderer)return;
-  if(pending){if(actor){scene.remove(actor.root);disposeCharacter(actor.root);}actor=makeCharacter(scene,asset,config);pending=false;}
+  if(pending){if(actor){scene.remove(actor.root);actor.stop?.();disposeCharacter(actor.root);}actor=makeCharacter(scene,asset,config);pending=false;}
   zoomToggle.textContent=zoom?'Показать целиком':'Лицо крупнее';
-  const distance=zoom?(camera.aspect>1.3?1.44:1.33):Math.max(3.1,2.58/Math.max(.55,camera.aspect));
-  camera.position.set(zoom?.14:0,zoom?1.63:1.37,distance);camera.lookAt(0,zoom?1.52:.873,0);
+  const distance=zoom?(camera.aspect>1.3?1.44:1.33):Math.max(3.36,2.75/Math.max(.55,camera.aspect));
+  camera.position.set(zoom?.14:0,zoom?1.63:1.37,distance);camera.lookAt(0,zoom?1.55:.918,0);
   actor.root.rotation.y=angle;actor.pose(t);renderer.render(scene,camera);
  }
  return {prepare,resize,render};

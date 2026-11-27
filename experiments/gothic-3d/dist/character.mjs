@@ -1,9 +1,10 @@
 import * as T from './vendor/three.module.min.js';
+import {buildOutfit} from './packs.mjs';
 export const OPTIONS={
  frame:['Крепкое','Стройное'], face:['Северянин','Долинник','Горец'],
  skin:['Светлая','Смуглая','Тёмная'], eyes:['Серые','Зелёные','Карие'],
  hair:['Зачёс назад','До плеч','Коса','Бритая голова'],
- dye:['Уголь','Каштан','Седина'], armor:['Дорожный плащ','Пограничный доспех','Одежда следопыта'],
+ dye:['Уголь','Каштан','Седина'], armor:['Дорожная одежда','Пограничный доспех','Одежда следопыта'],
 };
 export const DEFAULT={frame:0,face:0,skin:1,eyes:0,hair:1,dye:1,armor:0};
 export function validateLook(obj){
@@ -162,7 +163,26 @@ function sword(p,steel,leather,trim){
  box(p,trim,0,-.227,-.021,.052,.023,.052);
 }
 export function makeCharacter(parent,asset,config,opts={}){
- const look=validateLook(config), f=look.frame?.89:1.05, root=group(parent), body=group(root);
+ const look=validateLook(config);
+ if(asset.packs){
+   const fitted=buildOutfit(asset.packs,look,{
+    makeHead(model,l){const h=group(model);face(h,asset,l);return h;},
+    shadow:radialShadow,
+    weaponHands(model,right,left){
+      const ink=m(0x49372a,'leather'), iron=m(0x92918b,'metal'), trim=m(0x8b7053,'metal');
+      const swordMount=group(right,.022,.019,-.014);
+      swordMount.rotation.set(-Math.PI*.38,0,Math.PI*.50);
+      const native=group(swordMount,0,.31,0);sword(native,iron,ink,trim);
+      const sh=group(left,.004,.02,.041);sh.rotation.set(0,-.35,-Math.PI*.5);
+      const outline=[[-.143,.147],[0,.188],[.133,.146],[.157,-.026],[.082,-.139],[0,-.193],[-.09,-.124],[-.145,-.012]];
+      shapePiece(sh,iron,outline,.028,0,0,0);
+      shapePiece(sh,ink,outline.map(([x,y])=>[x*.85,y*.86]),.017,0,0,.018);
+      oval(sh,iron,0,0,.041,.044,.042,.016);
+    }
+   },opts);
+   if(fitted){parent.add(fitted.root);return fitted;}
+ }
+ const f=look.frame?.89:1.05, root=group(parent), body=group(root);
  const [coat,brown,edge]=styles[look.armor];
  const fabric=std(opts.coat??coat,{map:grain('cloth')});fabric.userData.transient=true;
  const cloakMat=std(opts.coat??coat,{map:grain('cloth'),side:T.DoubleSide});cloakMat.userData.transient=true;

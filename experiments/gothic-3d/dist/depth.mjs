@@ -5,7 +5,7 @@ export class DepthRenderer{
  ctx=this.domElement.getContext('2d',{alpha:false});
  ratio=1; budget=390000; last=-1e6;
  mat=new T.Matrix4(); pv=new T.Matrix4(); inst=new T.Matrix4(); mvp=new T.Matrix4(); normal=new T.Matrix3();
- c=new T.Color(); fog=new T.Color(); base=new T.Color(); sphere=new T.Sphere(); frustum=new T.Frustum();
+ skin=new T.Vector3(); c=new T.Color(); fog=new T.Color(); base=new T.Color(); sphere=new T.Sphere(); frustum=new T.Frustum();
  cache=new WeakMap(); maps=new WeakMap(); overlays=[]; tint=new T.Color(); lit=new T.Vector3(); key=new T.Vector3(-.41,.76,.49).normalize(); studio=false;
  // Linear values convert to display RGB before interpolation; the table also limits gamut.
  lut=Uint8Array.from({length:1025},(_,i)=>Math.round((i/1024<.0031308?12.92*i/1024:1.055*(i/1024)**(1/2.4)-.055)*255));
@@ -44,7 +44,7 @@ export class DepthRenderer{
      this.draw(g,o.material,this.mat,this.tint);
     }
    }else if(this.frustum.intersectsSphere(this.sphere.copy(g.boundingSphere).applyMatrix4(o.matrixWorld))){
-    this.tint.set(0xffffff);this.draw(g,o.material,o.matrixWorld,this.tint);
+    this.tint.set(0xffffff);this.draw(g,o.material,o.matrixWorld,this.tint,o.isSkinnedMesh?o:null);
    }
   });
   this.tint.set(0xffffff);
@@ -52,14 +52,18 @@ export class DepthRenderer{
   this.ctx.putImageData(this.im,0,0);
  }
  texture(tex){
-  if(!tex?.image?.getContext)return null;
+  if(!tex?.image)return null;
   if(!this.maps.has(tex)){
-   const im=tex.image,q=im.getContext('2d');
-   try{this.maps.set(tex,{w:im.width,h:im.height,p:q.getImageData(0,0,im.width,im.height).data,repeat:tex.wrapS===T.RepeatWrapping});}catch{return null;}
+   const im=tex.image;
+   try{
+     const src=document.createElement('canvas'), max=tex.userData?.softwareEdge??2048;src.width=Math.min(max,im.width);src.height=Math.min(max,im.height);
+     const q=src.getContext('2d');q.imageSmoothingQuality='high';q.drawImage(im,0,0,src.width,src.height);
+     this.maps.set(tex,{w:src.width,h:src.height,p:q.getImageData(0,0,src.width,src.height).data,repeat:tex.wrapS===T.RepeatWrapping,flip:tex.flipY});
+   }catch{return null;}
   }
   return this.maps.get(tex);
  }
- draw(g,mat,matrix,tint){
+ draw(g,mat,matrix,tint,skinned=null){
   const {w,h,key}=this,vert=g.attributes.position,normal=g.attributes.normal,col=g.attributes.color,uv=g.attributes.uv,tex=uv?this.texture(mat.map):null;
   let p=this.cache.get(g);
   if(!p||p.length!==vert.count*8){p=new Float32Array(vert.count*8);this.cache.set(g,p);}
@@ -70,7 +74,9 @@ export class DepthRenderer{
   const er=(mat.emissive?.r??0)*(mat.emissiveIntensity??0)*.38,eg=(mat.emissive?.g??0)*(mat.emissiveIntensity??0)*.38,eb=(mat.emissive?.b??0)*(mat.emissiveIntensity??0)*.38;
   const f=this.fog;
   for(let i=0,j=0;i<vert.count;i++,j+=8){
-   const x=vert.getX(i),y=vert.getY(i),z=vert.getZ(i),q=M[3]*x+M[7]*y+M[11]*z+M[15];
+   let x=vert.getX(i),y=vert.getY(i),z=vert.getZ(i);
+   if(skinned){this.skin.set(x,y,z);skinned.applyBoneTransform(i,this.skin);x=this.skin.x;y=this.skin.y;z=this.skin.z;}
+   const q=M[3]*x+M[7]*y+M[11]*z+M[15];
    const inv=1/Math.max(.09,q);
    p[j]=w*.5*(1+(M[0]*x+M[4]*y+M[8]*z+M[12])*inv);
    p[j+1]=h*.5*(1-(M[1]*x+M[5]*y+M[9]*z+M[13])*inv);
@@ -93,10 +99,10 @@ export class DepthRenderer{
    if(p[a+2]<=0||p[b+2]<=0||p[c+2]<=0)continue;
    const area=(p[b]-p[a])*(p[c+1]-p[a+1])-(p[b+1]-p[a+1])*(p[c]-p[a]);
    if(Math.abs(area)<.19||area>0&&!double)continue;
-   this.tri(p,a,b,c,area,tex,mat.transparent&&Boolean(tex));
+   this.tri(p,a,b,c,area,tex,mat.transparent&&Boolean(tex),mat.alphaTest??0);
   }
  }
- tri(p,a,b,c,A,tex,overlay){
+ tri(p,a,b,c,A,tex,overlay,cutoff){
   const {w,h,px,depth}=this;
   const ax=p[a],ay=p[a+1],bx=p[b],by=p[b+1],cx=p[c],cy=p[c+1];
   const x0=Math.max(0,Math.floor(Math.min(ax,bx,cx))),x1=Math.min(w-1,Math.ceil(Math.max(ax,bx,cx)));
@@ -115,9 +121,9 @@ export class DepthRenderer{
     if(tex){
      let U=(p[c+6]+u*au+v*bu)/z,V=(p[c+7]+u*av+v*bv)/z;
      if(tex.repeat){U-=Math.floor(U);V-=Math.floor(V);}
-     const x1=Math.min(tex.w-1,Math.max(0,(U*tex.w)|0)),y1=Math.min(tex.h-1,Math.max(0,((1-V)*tex.h)|0));
+     const x1=Math.min(tex.w-1,Math.max(0,(U*tex.w)|0)),y1=Math.min(tex.h-1,Math.max(0,((tex.flip?1-V:V)*tex.h)|0));
      const k=(y1*tex.w+x1)*4,q=tex.p;
-     if(q[k+3]===0)continue;
+     if(q[k+3]<Math.max(1,cutoff*255))continue;
      r=r*q[k]/255;g=g*q[k+1]/255;bl=bl*q[k+2]/255;
      if(overlay){const a=q[k+3]/255, p0=px[i];r=(p0&255)*(1-a)+r*a;g=(p0>>>8&255)*(1-a)+g*a;bl=(p0>>>16&255)*(1-a)+bl*a;}
     }
