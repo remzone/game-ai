@@ -1,7 +1,8 @@
 import * as T from './vendor/three.module.min.js';
 import {makeCharacter,disposeCharacter,validateLook,OPTIONS,DEFAULT} from './character.mjs';
+import {SPECIES} from './appearance.mjs';
 import {DepthRenderer as SoftwareRenderer} from './depth.mjs';
-const labels={frame:'Телосложение',face:'Черты лица',skin:'Тон кожи',eyes:'Цвет глаз',hair:'Причёска',dye:'Цвет волос',armor:'Одежда'};
+const labels={race:'Раса',sex:'Пол',frame:'Телосложение',face:'Черты лица',skin:'Тон кожи',eyes:'Цвет глаз',hair:'Причёска',dye:'Цвет волос',armor:'Одежда'};
 export function installCreator({asset,software,onApply}){
  const parent=document.querySelector('#modelView'), form=document.querySelector('#lookFields'), apply=document.querySelector('#applyLook');
  let renderer=null, actor, config={...DEFAULT}, angle=Math.PI-.27, touch=null, zoom=false, pending=true;
@@ -14,6 +15,8 @@ export function installCreator({asset,software,onApply}){
  const floor=new T.Mesh(new T.PlaneGeometry(24,24,16,16),new T.MeshStandardMaterial({color:0x44483e,roughness:.98}));
  floor.rotation.x=-Math.PI/2;floor.position.y=-.121;scene.add(floor);
  const selectors={};
+ const note=document.createElement('p');note.className='speciesNote';form.before(note);
+ const refresh=()=>{note.textContent=SPECIES[config.race].text;};
  for(const [key,items] of Object.entries(OPTIONS)){
   const l=document.createElement('label'), title=document.createElement('span'), sel=document.createElement('select');
   title.textContent=labels[key];
@@ -22,7 +25,7 @@ export function installCreator({asset,software,onApply}){
     config[key]=+sel.value;
     if(['face','eyes','skin','hair','dye'].includes(key))zoom=true;
     else zoom=false;
-    pending=true;
+    pending=true;refresh();
   });
   l.append(title,sel);form.append(l);selectors[key]=sel;
  }
@@ -49,20 +52,21 @@ export function installCreator({asset,software,onApply}){
  }
  addEventListener('resize',resize);
  document.querySelector('#randomLook').addEventListener('click',()=>{
-  for(const [key,items] of Object.entries(OPTIONS)){config[key]=Math.floor(Math.random()*items.length);selectors[key].value=config[key];}zoom=false;pending=true;
+  for(const [key,items] of Object.entries(OPTIONS)){config[key]=Math.floor(Math.random()*items.length);selectors[key].value=config[key];}zoom=false;pending=true;refresh();
  });
  apply.addEventListener('click',()=>onApply(validateLook(config)));
  function prepare(look,edit){
   init();config=validateLook(look);angle=Math.PI-.28;zoom=false;pending=true;
   for(const [key,el] of Object.entries(selectors))el.value=config[key];
-  apply.textContent=edit?'Применить':'Начать игру';
+  refresh();apply.textContent=edit?'Применить':'Начать игру';
  }
  function render(t){
   if(!renderer)return;
   if(pending){if(actor){scene.remove(actor.root);actor.stop?.();disposeCharacter(actor.root);}actor=makeCharacter(scene,asset,config);pending=false;}
   zoomToggle.textContent=zoom?'Показать целиком':'Лицо крупнее';
-  const distance=zoom?(camera.aspect>1.3?1.44:1.33):Math.max(3.36,2.75/Math.max(.55,camera.aspect));
-  camera.position.set(zoom?.14:0,zoom?1.63:1.37,distance);camera.lookAt(0,zoom?1.55:.918,0);
+  const height=SPECIES[config.race].y;
+  const distance=zoom?(camera.aspect>1.3?1.46:1.39):Math.max(3.47*height,2.84/Math.max(.55,camera.aspect));
+  camera.position.set(zoom?.14:0,(zoom?1.67:1.40)*height,distance);camera.lookAt(0,(zoom?1.62:.955)*height,0);
   actor.root.rotation.y=angle;actor.pose(t);renderer.render(scene,camera);
  }
  return {prepare,resize,render};

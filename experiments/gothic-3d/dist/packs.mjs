@@ -1,4 +1,5 @@
 import * as T from './vendor/three.module.min.js';
+import {outfitKey,bodyScale,SPECIES} from './appearance.mjs';
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from './vendor/libs/meshopt_decoder.module.js';
 import {clone} from './vendor/utils/SkeletonUtils.js';
@@ -6,6 +7,7 @@ const folder=new URL('./assets/packs/',import.meta.url);
 const gltf=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const images=new T.TextureLoader();
 const files={
+ hairSide:'hair_simpleparted.glb',hairLong:'hair_long.glb',hairBuns:'hair_buns.glb',hairBeard:'hair_beard.glb',hairBuzz:'hair_buzzed.glb',
  pineA:'Pine_1.glb',pineB:'Pine_2.glb',dead:'DeadTree_1.glb',fern:'Fern_1.glb',grass:'poly-grass.glb',
  window:'Wall_Plaster_Window_Wide_Round.glb',gate:'Wall_UnevenBrick_Door_Round.glb',wall:'Wall_UnevenBrick_Straight.glb',
  roof:'Roof_RoundTiles_4x4.glb',fence:'Prop_WoodenFence_Single.glb',chimney:'Prop_Chimney.glb',
@@ -28,19 +30,39 @@ export async function loadPacks(){
  })));
  return result;
 }
-const sculpted=({frame,armor})=>(frame?'female':'male')+(armor===2?'Ranger':'Peasant');
+const mailMaps=new WeakMap();
+function mailMap(tex){
+ if(!tex?.image)return tex;
+ if(mailMaps.has(tex.image))return mailMaps.get(tex.image);
+ const source=tex.image,c=document.createElement('canvas');
+ c.width=source.width;c.height=source.height;const q=c.getContext('2d');q.drawImage(source,0,0);
+ const im=q.getImageData(0,0,c.width,c.height),px=im.data;
+ for(let i=0;i<px.length;i+=4){
+   const strength=px[i+1]>px[i]*(1.16)&&px[i+1]>px[i+2]*1.17?.88:.26;
+   const n=.26*px[i]+.61*px[i+1]+.13*px[i+2];
+   px[i]=px[i]*(1-strength)+(n*1.07+10)*strength;
+   px[i+1]=px[i+1]*(1-strength)+(n*1.12+10)*strength;
+   px[i+2]=px[i+2]*(1-strength)+(n*1.21+11)*strength;
+ }
+ q.putImageData(im,0,0);
+ const t=new T.CanvasTexture(c);t.colorSpace=tex.colorSpace;t.flipY=tex.flipY;t.wrapS=tex.wrapS;t.wrapT=tex.wrapT;
+ mailMaps.set(tex.image,t);return t;
+}
 export function buildOutfit(packs,look,helpers,opts){
- const src=packs[sculpted(look)], motions=packs.motion?.animations;
- if(look.armor===1||!src||!motions?.length)return null;
+ const src=packs[outfitKey(look)], motions=packs.motion?.animations;
+ if(!src||!motions?.length)return null;
  const root=new T.Group(), model=clone(src.scene);root.add(model);model.rotation.y=Math.PI;
- const materialClones=[];
+ const cloth=[];
+ const palette=SPECIES[look.race].skins[look.skin];
  model.traverse(o=>{
    if(!o.isMesh)return;
    const mat=o.material.clone();
-   mat.userData.transient=true;materialClones.push(mat);o.material=mat;
-   if(mat.name.includes('Regular'))mat.color.set([0xe7bd9b,0xc09b7e,0x906e57][look.skin]);
+   mat.userData.transient=true;o.material=mat;
+   if(mat.name.includes('Regular')){mat.color.set(palette).lerp(new T.Color(0xd1c0ac),.26);}
    else {
-     mat.color.set(look.armor===2?0xb4b7a2:0xc4a99a);
+     mat.color.set(look.armor===2?0xb4b7a2:look.armor===1?0xb3b7bc:0xc4a99a);
+     if(look.armor===1)mat.map=mailMap(mat.map);
+     cloth.push(mat);
      if(opts.coat)mat.color.lerp(new T.Color(opts.coat),.22);
    }
    o.castShadow=true;o.receiveShadow=true;
@@ -50,9 +72,11 @@ export function buildOutfit(packs,look,helpers,opts){
  if(!bones.Head||!bones.hand_r||!bones.hand_l)return null;
  // Quaternius faces +Z and the game faces -Z. Turn the entire rig and align the custom head in rig space.
  const head=helpers.makeHead(model,look);head.rotation.y=Math.PI;
- head.position.y=look.frame?.085:.115;
- head.position.z=look.frame?.013:.024;
+ head.position.y=look.sex?.086:.104;
+ head.position.z=look.sex?.013:.023;
  model.updateMatrixWorld(true);bones.Head.attach(head);
+ if(look.armor===1)helpers.borderKit(model,bones,look);
+ root.scale.set(...bodyScale(look));
  if(opts.weapon)helpers.weaponHands(model,bones.hand_r,bones.hand_l);
  const shadow=helpers.shadow(root);
  const mixer=new T.AnimationMixer(model), actions={};
@@ -70,7 +94,9 @@ export function buildOutfit(packs,look,helpers,opts){
    mixer.update(last===null?0:Math.min(.09,Math.max(0,t-last)));last=t;
    shadow.position.y=.017-jump;
  }
- return {root,pose,fabric:{color:new T.Color()},cloakMat:{color:new T.Color()},stop:()=>{mixer.stopAllAction();mixer.uncacheRoot(model);}};
+ const target=new T.Color();
+ function uniform(color){target.set(0x90949a).lerp(color,.44);for(const m of cloth)m.color.lerp(target,.06);}
+ return {root,pose,uniform,fabric:{color:new T.Color()},cloakMat:{color:new T.Color()},stop:()=>{mixer.stopAllAction();mixer.uncacheRoot(model);}};
 }
 // Flatten a static pack scene into reusable geometry/material pairs while keeping UVs and textures.
 const packetCache=new WeakMap();

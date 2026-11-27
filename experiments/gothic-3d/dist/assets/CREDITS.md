@@ -11,12 +11,14 @@ These credits cover the 3D playtest in this directory. The upstream asset licens
 | Rico Cilliers (modeling); Rob Tuytel (photography), Poly Haven | [Grass Medium 01](https://polyhaven.com/a/grass_medium_01) | `packs/poly-grass.glb`. Three small grass variants selected and repacked with reduced textures. |
 | Rob Tuytel, Poly Haven | [Forest Ground 03](https://polyhaven.com/a/forrest_ground_03) | `packs/poly-litter.jpg`, `packs/poly-litter-normal.jpg`. Resized 1K source maps for the forest floor. |
 | Rob Tuytel, Poly Haven | [Pine Tree 01](https://polyhaven.com/a/pine_tree_01) | `packs/poly-bark.jpg`. Resized trunk color texture **only**; the full high-detail pine mesh is not included. |
-| MakeHuman Team | [hm08 base mesh](https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/3dobjs/base.obj), [asset license](https://github.com/makehumancommunity/makehuman/blob/master/LICENSE.md#c-the-license-for-the-bundled-assets) | `head.json`. Cropped, reduced and reshaped for the character creator; no MakeHuman code. |
+| Quaternius | [Universal Base Characters, Standard](https://quaternius.com/packs/universalbasecharacters.html) | Side part, long hair, buns, buzz cut and beard in `packs/hair_*.glb`. Resized, neutralized the textures for dyeing, and fitted the meshes to the in-game heads. |
+| MakeHuman Team | [hm08 base mesh](https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/3dobjs/base.obj), [asset license](https://github.com/makehumancommunity/makehuman/blob/master/LICENSE.md#c-the-license-for-the-bundled-assets) | `head.json`. Cropped, reduced and reshaped for the character creator. [Young-adult CC0 morph targets](https://github.com/makehumancommunity/makehuman/tree/a8bc2d54ff0ac92e78ff71431b1023eda42bf482/makehuman/data/targets/macrodetails) baked into `face-morphs.json` and realigned to a shared head fit. No MakeHuman code. |
 
 License: [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/legalcode); a plain-text copy and the included Quaternius notices are in [licenses/](licenses/). [Poly Haven license statement](https://polyhaven.com/license).
 
 Pinned provenance for the redistributed Quaternius source:
 - Outfits: [Mesh2Motion mirror](https://github.com/Mesh2Motion/mesh2motion-assets/tree/4752820c88f998cd93e9fb8aeea2860fe137df11/CC0-packs/Quaternius).
+- Hair: [Universal Base Characters Standard mirror](https://github.com/NafisRayan/Animate-Rigged-Humanoid-No-Blender/tree/5821923af517ac5fdc82505faa92a0d575fc1b1a). The archive notice is copied alongside the CC0 text.
 - Original UAL1 Standard glTF export: [download mirror](https://github.com/NafisRayan/Animate-Rigged-Humanoid-No-Blender/tree/5821923af517ac5fdc82505faa92a0d575fc1b1a).
 - Nature and village GLBs: [normalized exports by parrisdigital](https://github.com/parrisdigital/repo-magical-kingdom/tree/214dec451d66358af7be4df42ad44c9bdf0a8cb8/public/assets/world/quaternius). We only copied the credited asset files, not application code.
 

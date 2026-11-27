@@ -46,11 +46,11 @@ try{asset=await loadHead();}catch(e){
 asset.packs=packs;
 s.look=s.look?validateLook(s.look):undefined;
 let hero=makeCharacter(scene,asset,s.look??DEFAULT,{weapon:true});
-const guard=makeCharacter(scene,asset,{frame:0,face:0,skin:0,eyes:0,hair:0,armor:1,dye:1},{weapon:true,coat:0x813b30});
-const relief=makeCharacter(scene,asset,{frame:0,face:2,skin:2,eyes:2,hair:3,armor:1,dye:0},{weapon:true,coat:0x69372f});
-const caretaker=makeCharacter(scene,asset,{frame:1,face:1,skin:1,eyes:1,hair:2,armor:2,dye:2});
-const merchant=makeCharacter(scene,asset,{frame:0,face:2,skin:1,eyes:1,hair:0,armor:0,dye:1},{coat:0x6d5436});
-const enemy=makeCharacter(scene,asset,{frame:1,face:2,skin:0,eyes:0,hair:1,armor:1,dye:2},{weapon:true,coat:0x51485a});
+const guard=makeCharacter(scene,asset,{race:0,sex:0,frame:0,face:0,skin:0,eyes:0,hair:0,armor:1,dye:1},{weapon:true,coat:0x813b30});
+const relief=makeCharacter(scene,asset,{race:3,sex:0,frame:0,face:2,skin:2,eyes:3,hair:3,armor:1,dye:0},{weapon:true,coat:0x69372f});
+const caretaker=makeCharacter(scene,asset,{race:1,sex:1,frame:1,face:1,skin:1,eyes:1,hair:2,armor:2,dye:2});
+const merchant=makeCharacter(scene,asset,{race:4,sex:0,frame:0,face:2,skin:1,eyes:1,hair:0,armor:0,dye:1},{coat:0x6d5436});
+const enemy=makeCharacter(scene,asset,{race:2,sex:1,frame:1,face:2,skin:0,eyes:0,hair:1,armor:1,dye:2},{weapon:true,coat:0x51485a});
 const creatorUI=installCreator({asset,software:renderer instanceof SoftwareRenderer,onApply(look){
  scene.remove(hero.root);hero.stop?.();disposeCharacter(hero.root);hero=makeCharacter(scene,asset,look,{weapon:true});s.look=look;resetArc();snapCamera();
  started=true;creator.close();save();
@@ -147,7 +147,7 @@ function updateActors(dt,t){
  const moveNight=night?.4:.2;
  locate(guard,lerp(-2.35+Math.sin(gameTime)*.39,-2.6),lerp(-14+Math.sin(gameTime*1.3)*1.46,-5.7),lerp(.3+Math.sin(gameTime)*.31,2.5));
  locate(relief,lerp(5.8,2.42),lerp(6.2+Math.sin(gameTime*1.8)*2.35,-14.7+Math.sin(gameTime*2)*1.2),lerp(1.9+Math.sin(gameTime),-.5));
- for(const g of [guard,relief]){g.fabric.color.lerp(militiaColors[regime(s.minutes)],.06);g.cloakMat.color.copy(g.fabric.color);}
+ for(const g of [guard,relief]){const color=militiaColors[regime(s.minutes)];if(g.uniform)g.uniform(color);else{g.fabric.color.lerp(color,.06);g.cloakMat.color.copy(g.fabric.color);}}
  locate(caretaker,night?12.3:12+Math.sin(gameTime*2)*1.7,night?-67.2:-72+.9*Math.cos(gameTime*2),night?-.69:gameTime*.68);
  const cart=caravanPos(s.minutes);locate(merchant,cart.x,cart.z+(cart.dir===0?-1.7:1.7),cart.dir);
  wagon.position.set(cart.x,walkY(cart.x,cart.z),cart.z);wagon.rotation.y=cart.dir;

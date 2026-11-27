@@ -11,3 +11,5 @@
 .creatorActions{display:flex;gap:8px;flex-wrap:wrap}#applyLook{background:#5b442c;border-color:#caa26a}#applyLook:hover{background:#795b37}#touch>div:nth-child(2){display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}#touch>div:nth-child(2)>button{padding:.49rem .57rem}
 @media(max-width:680px){.createLayout{grid-template-columns:1fr}#modelView{min-height:clamp(200px,34dvh,365px)}#workbench{border-left:none;border-top:1px solid var(--border);padding:14px 16px}.creatorActions button{margin-top:12px}.hudActions button{padding:.48rem .55rem;font-size:.78rem}#lookFields{grid-template-columns:1fr 1fr}#lookFields label{display:flex;flex-direction:column;gap:2px;align-items:stretch;font-size:.76rem}#lookFields select{font-size:.83rem}}
 .zoomLook{position:absolute;z-index:1;right:13px;top:0;padding:.45rem .65rem;background:#20261ee8;font-size:.81rem}
+#workbench .speciesNote{color:#b7ab91;font-size:.81rem;min-height:2.38em;margin-top:.55rem}
+@media(min-width:681px){#workbench #lookFields{gap:5px}#workbench #lookFields select{min-height:31px;padding-top:4px;padding-bottom:4px}}

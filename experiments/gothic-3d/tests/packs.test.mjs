@@ -10,7 +10,7 @@ function glb(name){
 }
 test('every shipped GLB is self-contained',()=>{
  const files=readdirSync(dir).filter(p=>p.endsWith('.glb'));
- assert.equal(files.length,16);
+ assert.equal(files.length,21);
  for(const name of files){
   const a=glb(name);
   assert.ok(a.buffers.every(b=>!b.uri),name);

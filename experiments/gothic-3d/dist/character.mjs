@@ -1,23 +1,15 @@
 import * as T from './vendor/three.module.min.js';
 import {buildOutfit} from './packs.mjs';
-export const OPTIONS={
- frame:['Крепкое','Стройное'], face:['Северянин','Долинник','Горец'],
- skin:['Светлая','Смуглая','Тёмная'], eyes:['Серые','Зелёные','Карие'],
- hair:['Зачёс назад','До плеч','Коса','Бритая голова'],
- dye:['Уголь','Каштан','Седина'], armor:['Дорожная одежда','Пограничный доспех','Одежда следопыта'],
-};
-export const DEFAULT={frame:0,face:0,skin:1,eyes:0,hair:1,dye:1,armor:0};
-export function validateLook(obj){
- return Object.fromEntries(Object.entries(OPTIONS).map(([key,list])=>[key,Number.isInteger(obj?.[key])&&obj[key]>=0&&obj[key]<list.length?obj[key]:DEFAULT[key]]));
-}
+import {OPTIONS,DEFAULT,SPECIES,validateLook,bodyScale} from './appearance.mjs';
+import {staticPacket} from './packs.mjs';
+export {OPTIONS,DEFAULT,validateLook};
 const styles=[
  [0x5b3730,0x342922,0x766555],
  [0x474747,0x382c25,0x9b8a6f],
  [0x4d554a,0x442e24,0x947e59]
 ];
-const skinTones=[0xc8a17f,0xa87857,0x734e3a],
- eyeTones=[0x738286,0x677648,0x65452e],
- dyes=[0x252320,0x613d2a,0x929087],
+const eyeTones=[0x738c9b,0x506945,0x583726,0x9d6b2e],
+ dyes=[0x232124,0x644232,0xb0ac9d,0x984d28,0xa89669],
  std=(color,opts={})=>new T.MeshStandardMaterial({color,roughness:.88,...opts});
 const geoCache={};
 const mCache={};
@@ -71,45 +63,105 @@ function cape(p,mat,edge,style,f){
  return o;
 }
 export async function loadHead(){
- const response=await fetch(new URL('./assets/head.json',import.meta.url));
- if(!response.ok)throw Error('Не загрузилась модель лица');
- return await response.json();
+ const read=async n=>{
+  const res=await fetch(new URL('./assets/'+n,import.meta.url));
+  if(!res.ok)throw Error('Не загрузилась модель лица '+n);
+  return await res.json();
+ };
+ const [head,morphs]=await Promise.all([read('head.json'),read('face-morphs.json')]);
+ return {...head,morphs};
 }
+const gauss=(v,r)=>Math.exp(-(v*v)/(r*r));
+function deform(x,y,z,look){
+ const r=SPECIES[look.race];
+ const jaw=(1-T.MathUtils.smoothstep(y,1.52,1.59))*T.MathUtils.smoothstep(y,1.445,1.49);
+ const front=1-T.MathUtils.smoothstep(z,-.08,-.04);
+ const ear=T.MathUtils.smoothstep(Math.abs(x),.067,.095)*gauss(y-1.581,.054)*gauss(z-.032,.062);
+ const cheek=gauss(y-1.555,.034)*gauss(Math.abs(x)-.063,.033);
+ const nose=gauss(x,.033)*gauss(y-1.546,.034)*front;
+ const brow=gauss(y-1.604,.024)*gauss(Math.abs(x)-.035,.031)*front;
+ x*=1+(r.jaw-1)*jaw + (look.face===2?.065:look.face===1?-.065:.02)*cheek;
+ x+=Math.sign(x)*r.ear*ear*.86;
+ y+=r.ear*ear*(look.race===5?.34:.66);
+ z-=r.nose*nose + r.brow*brow;
+ if(look.race===3)z-=.014*gauss(y-1.502,.031)*front;
+ if(look.race===5)y-=.013*nose;
+ return [x,y,z];
+}
+const morphFor=(asset,look)=>asset.morphs?.[(look.sex?'female':'male')+'-'+look.face];
 function faceShape(asset,look){
- const key='head'+look.face;
+ const key='head-'+[look.sex,look.race,look.face].join('-');
  if(geoCache[key])return geoCache[key];
- const [points,index]=asset.body, pos=[], colors=[];
- const cs=new T.Color(), hues=[0xc9a598,0xd1b2a7,0xc5a09a]; 
+ const [points,index]=asset.body, pos=[], colors=[], morph=morphFor(asset,look);
+ const cs=new T.Color(), base=new T.Color(0xfff2e5), lipColor=new T.Color(look.race===2?0x987283:look.race===3||look.race===5?0x8e806a:0xc09183);
+ const warm=new T.Color(0xcb9891), shade=new T.Color(0x9c8a79);
  for(let i=0;i<points.length;i+=3){
-   let [x,y,z]=points.slice(i,i+3);
-   const jaw=1-T.MathUtils.smoothstep(y,1.51,1.58);
-   if(look.face===0){x*=1.0+.11*jaw;}
-   if(look.face===1){x*=.94-.06*jaw;z+=.007*(1-jaw);}
-   if(look.face===2){x*=1.07+.03*jaw;z-=.013*Math.exp(-Math.pow((y-1.548)/.031,2))*Math.exp(-Math.pow(x/.031,2));}
-   const front=Math.max(0,-z-.064);
-   const lip=Math.exp(-Math.pow((y-1.506)/.010,2)-Math.pow(x/.043,2))*Math.min(front*21,1);
-   const cheek=Math.exp(-Math.pow((Math.abs(x)-.050)/.038,2)-Math.pow((y-1.547)/.046,2))*Math.min(front*14,1);
-   const under=Math.exp(-Math.pow((y-1.557)/.017,2))*Math.min(front*12,1);
-   cs.set(0xfaf0dd).lerp(new T.Color(hues[look.face]),Math.max(lip*.38,cheek*.22,under*.12));
+   const k=.87;
+   const [x,y,z]=deform(points[i]+k*(morph?.[i]??0),points[i+1]+k*(morph?.[i+1]??0),points[i+2]+k*(morph?.[i+2]??0),look);
+   const front=T.MathUtils.smoothstep(-z,.062,.112), lip=gauss(y-1.502,.010)*gauss(x,.035)*front;
+   const cheek=gauss(Math.abs(x)-.050,.029)*gauss(y-1.547,.040)*front;
+   const crease=gauss(y-1.565,.018)*gauss(Math.abs(x)-.036,.024)*front;
+   const granule=Math.sin(x*735+y*417)*Math.cos(z*597-x*413);
+   cs.copy(base).lerp(lipColor,lip*.47).lerp(warm,cheek*.11).lerp(shade,crease*.23)
+     .multiplyScalar(1+granule*.033);
+   if(look.face===0&&front>.46&&Math.sin(x*520+y*381)*Math.sin(y*632)>.84&&y>1.537&&y<1.575)cs.multiplyScalar(.74);
    pos.push(x,y,z);colors.push(cs.r,cs.g,cs.b);
  }
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(colors,3));g.setIndex(index);g.computeVertexNormals();
  geoCache[key]=g;return g;
 }
+function eyePoint(asset,look,x,y,z){
+ const m=morphFor(asset,look), points=asset.body[0];
+ if(!m)return deform(x,y,z,look);
+ let w=0,dx=0,dy=0,dz=0;
+ for(let i=0;i<points.length;i+=3){
+   const a=points[i]-x,b=points[i+1]-y,c=points[i+2]-z;
+   const d=a*a+b*b+c*c;if(d>.0014)continue;
+   const k=Math.exp(-d/.00018);w+=k;dx+=m[i]*k;dy+=m[i+1]*k;dz+=m[i+2]*k;
+ }
+ return deform(x+dx/(w||1)*.85,y+dy/(w||1)*.85,z+dz/(w||1)*.85,look);
+}
+function styledHair(p,asset,key,color,look,beard=false){
+ const pieces=staticPacket(asset.packs?.[key]);
+ if(!pieces.length)return false;
+ const bbox=new T.Box3();
+ for(const part of pieces)bbox.union(part.geometry.boundingBox);
+ const s=bbox.getSize(new T.Vector3()), c=bbox.getCenter(new T.Vector3());
+ if(s.lengthSq()<.000001)return false;
+ const spin=group(p);spin.rotation.y=Math.PI;
+ const base=group(spin), w=beard?.18:(key==='hairLong'?.222:key==='hairBuns'?.284:.210);
+ const height=beard?.163:key==='hairLong'?.290:key==='hairBuns'?.208:.154;
+ base.scale.set(w/Math.max(.02,s.x),height/Math.max(.01,s.y),(beard?.109:.23)/Math.max(.02,s.z));
+ const scalp=faceShape(asset,look);if(!scalp.boundingBox)scalp.computeBoundingBox();
+ base.position.set(-c.x*base.scale.x,(beard?1.563:scalp.boundingBox.max.y+.027)-bbox.max.y*base.scale.y,(beard?.088:-.009)-c.z*base.scale.z);
+ for(const piece of pieces){
+   const mat=piece.material.clone();mat.color.set(color);mat.roughness=.69;mat.userData.transient=true;
+   put(base,piece.geometry,mat);
+ }
+ return true;
+}
 function face(p,asset,look){
- const skin=std(skinTones[look.skin],{vertexColors:true,roughness:.80});
+ const skinColor=SPECIES[look.race].skins[look.skin];
+ const skin=std(skinColor,{vertexColors:true,roughness:.80});
  const face=put(p,faceShape(asset,look),skin);
  face.material.userData.transient=true;
  const hair=m(dyes[look.dye],'hair'), glint=m(new T.Color(dyes[look.dye]).lerp(new T.Color(0xb2895d),.16).getHex(),'hair');
  const dark=m(0x211a16), white=m(0x9c897a), iris=m(eyeTones[look.eyes]);
- const faceX=[1,.94,1.07][look.face],faceZ=[0,.007,0][look.face];
  for(const side of [-1,1]){
-  const x=side*.032*faceX,y=1.573,z=-.086+faceZ;
-  oval(p,white,x,y,z,.0145,.015,.017);
-  oval(p,iris,x,y+.0004,z-.017,.0086,.0082,.0017);
-  oval(p,dark,x,y+.0004,z-.019,.0045,.0046,.00075);
+  const [x,y,depth]=eyePoint(asset,look,side*.032,1.573,-.086),z=depth+.003;
+  oval(p,white,x,y,z,.0142,.0132,.0154);
+  oval(p,iris,x,y+.0004,z-.0153,.0068,.0071,.0017);
+  oval(p,dark,x,y+.0004,z-.0171,.0036,.0038,.00075);
   tape(p,hair,[[x-side*.013,1.595,z-.015],[x,1.599,z-.009],[x+side*.02,1.595,z+.006]],.0028);
  }
+ if(look.race===3)for(const sign of [-1,1]){
+   const [x,y,z]=eyePoint(asset,look,sign*.024,1.500,-.111);
+   const fang=put(p,new T.ConeGeometry(.0065,.029,8),m(0xc0ad8d),x,y+.012,z+.006);
+   fang.geometry.userData.transient=true;fang.rotation.z=sign*-.23;fang.rotation.x=.29;
+ }
+ if(look.race===4&&look.sex===0&&look.hair!==3)styledHair(p,asset,'hairBeard',dyes[look.dye],look,true);
+ const key=['hairSide','hairLong',null,null,'hairBuns','hairBuzz'][look.hair];
+ if(key&&styledHair(p,asset,key,dyes[look.dye],look))return face;
  if(look.hair!==3){
    const N=32,M=12, verts=[], ix=[];
    // Crown surface conforms to the head, with a changing hairline and layered swept strands.
@@ -162,12 +214,48 @@ function sword(p,steel,leather,trim){
  tape(p,trim,[[-.095,-.318,-.027],[0,-.34,-.03],[.095,-.318,-.027]],.012);
  box(p,trim,0,-.227,-.021,.052,.023,.052);
 }
+function borderKit(model,bones,look){
+ const blue=m(0x626b70,'metal'), dark=m(0x353b3d,'metal'), edge=m(0x9c8c6b,'metal'), cloth=m(0x542b28,'leather');
+ const chest=group(model), w=look.sex?.182:.198, y=look.sex?1.361:1.392;
+ // Beveled plates fitted to the neck and shoulders of each rig before posing.
+ const cap=[[-w*.86,.083],[-w*.56,.113],[-w*.26,.104],[0,.078],[w*.25,.104],[w*.56,.113],[w*.86,.083],[w*.92,.021],[w*.69,-.051],[w*.48,-.128],[0,-.155],[-w*.48,-.128],[-w*.69,-.051],[-w*.92,.021]];
+ shapePiece(chest,dark,cap,.024,0,y,.138);
+ shapePiece(chest,dark,[[-w*.59,.018],[-w*.24,.035],[0,.02],[w*.24,.035],[w*.59,.018],[w*.45,-.018],[-w*.45,-.018]],.024,0,y+.104,.133);
+ const mid=cap.map(([a,b])=>[a*.883,b*.91]);
+ shapePiece(chest,blue,mid,.022,0,y+.001,.155);
+ // The raised ridge and the Order's divided-gate motif catch the light when the model is rotated.
+ tape(chest,edge,[[0,y+.060,.181],[0,y-.092,.187],[0,y-.129,.180]],.005);
+ for(const k of [-1,1]){
+  tape(chest,edge,[[k*.018,y-.044,.183],[k*.018,y+.012,.185],[k*.043,y+.013,.183],[k*.046,y-.045,.183]],.006);
+  for(const i of [0,1,2])oval(chest,edge,k*(.072+i*.025),y+.063-i*.012,.180,.006,.007,.004);
+ }
+ for(let j=0;j<3;j++){
+   const a=.122-j*.009;
+   shapePiece(chest,j%2?blue:dark,[[-a,.024],[a,.024],[a*.86,-.011],[0,-.030],[-a*.86,-.011]],.018,0,y-.137-j*.036,.145-j*.009);
+ }
+ shapePiece(chest,cloth,[[-.15,.083],[-.06,.107],[.062,.107],[.15,.083],[.137,-.129],[-.134,-.124]],.027,0,y,-.161);
+ const back=group(chest);back.rotation.y=Math.PI;
+ shapePiece(back,blue,[[-.135,.071],[0,.092],[.135,.071],[.106,-.086],[0,-.106],[-.106,-.086]],.022,0,y,.139);
+ if(bones.spine_03)bones.spine_03.attach(chest);
+ for(const arm of [bones.upperarm_r,bones.upperarm_l]){
+   if(!arm)continue;
+   const v=model.worldToLocal(arm.getWorldPosition(new T.Vector3()));
+   const sign=Math.sign(v.x)||1, shoulder=group(model,v.x+sign*.064,v.y-.012,v.z+.011);
+   for(let j=0;j<3;j++){
+     const layer=group(shoulder,sign*j*.021,-j*.035,0);
+     const size=(look.sex?.9:1)*(1-j*.09), a=.086*size;
+     shapePiece(layer,j%2?dark:blue,[[-a,-.012],[-a*.85,.035],[-a*.31,.069],[a*.58,.06],[a*.97,.005],[a*.70,-.050],[-a*.57,-.060]],.125*size,0,0,-.060*size);
+     oval(layer,edge,0,.024,.071*size,.008,.009,.009);
+   }
+   arm.attach(shoulder);
+ }
+}
 export function makeCharacter(parent,asset,config,opts={}){
  const look=validateLook(config);
  if(asset.packs){
    const fitted=buildOutfit(asset.packs,look,{
-    makeHead(model,l){const h=group(model);face(h,asset,l);return h;},
-    shadow:radialShadow,
+    makeHead(model,l){const h=group(model), detail=group(h);const q=SPECIES[l.race].head;detail.scale.setScalar(q);detail.position.y=1.59*(1-q);face(detail,asset,l);return h;},
+    shadow:radialShadow,borderKit,
     weaponHands(model,right,left){
       const ink=m(0x49372a,'leather'), iron=m(0x92918b,'metal'), trim=m(0x8b7053,'metal');
       const swordMount=group(right,.022,.019,-.014);
@@ -182,13 +270,14 @@ export function makeCharacter(parent,asset,config,opts={}){
    },opts);
    if(fitted){parent.add(fitted.root);return fitted;}
  }
- const f=look.frame?.89:1.05, root=group(parent), body=group(root);
+ const f=(look.sex?.91:1.03)*(look.frame?.96:1.04), root=group(parent), body=group(root);
+ root.scale.set(...bodyScale(look));
  const [coat,brown,edge]=styles[look.armor];
  const fabric=std(opts.coat??coat,{map:grain('cloth')});fabric.userData.transient=true;
  const cloakMat=std(opts.coat??coat,{map:grain('cloth'),side:T.DoubleSide});cloakMat.userData.transient=true;
  const leather=m(brown,'leather'), seam=m(0x32221d), trim=m(edge,'metal');
  const iron=m(look.armor===1?0x797971:0x5c5d5a,'metal'), steel=m(0xb4b4ab,'metal'), worn=m(0x5b5549,'cloth');
- const skin=m(skinTones[look.skin]);
+ const skin=m(SPECIES[look.race].skins[look.skin]);
  const torso=[
    [.738,.214*f,.135],[.793,.226*f,.14],[.94,.179*f,.108],
    [1.05,.185*f,.117],[1.13,.195*f,.136,-.004],
@@ -216,6 +305,7 @@ export function makeCharacter(parent,asset,config,opts={}){
    if(side===1){const bag=oval(body,leather,.212*f,.934,.062,.061,.101,.066);bag.rotation.z=-.12;box(body,seam,.214*f,.984,.123,.10,.022,.013);}
  }
  const head=group(body);
+ const hScale=SPECIES[look.race].head;head.scale.setScalar(hScale);head.position.y=1.59*(1-hScale);
  face(head,asset,look);
  const upper=[], elbows=[], hips=[], knees=[];
  for(const side of [-1,1]){
