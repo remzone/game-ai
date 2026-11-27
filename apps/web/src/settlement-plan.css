@@ -214,3 +214,21 @@
     padding: 9px 6px;
   }
 }
+
+.town-painted-prop {
+  pointer-events: none;
+}
+.town-drawing .town-pin-face {
+  fill: #2a211cc9;
+  stroke: #b29366;
+}
+.town-drawing .town-map-pin:not(.is-open):not(:hover):not(:focus-visible) .town-pin-label {
+  opacity: 0;
+}
+.town-drawing .town-map-pin:is(:hover, :focus-visible, .is-open) .town-pin-face {
+  stroke: #f5d895;
+}
+.local-town-inscription {
+  background: linear-gradient(120deg, #201917ed, #2c211cd9);
+  border-color: #a38657;
+}
