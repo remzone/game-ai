@@ -23,3 +23,4 @@ export * from './atlas-campaign.js';
 export * from './map-knowledge.js';
 export * from './road-life.js';
 export * from './settlement-plan.js';
+export * from './settlement-culture.js';

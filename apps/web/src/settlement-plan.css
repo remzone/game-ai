@@ -232,3 +232,29 @@
   background: linear-gradient(120deg, #201917ed, #2c211cd9);
   border-color: #a38657;
 }
+
+.town-painted-land {
+  filter: saturate(0.78) brightness(0.92);
+}
+.town-painted-prop {
+  filter: saturate(0.86) brightness(0.96) drop-shadow(0 5px 3px #110d0c5c);
+}
+.town-culture-summary {
+  color: #dbc6a0;
+}
+.town-ensign {
+  filter: drop-shadow(0 2px 1px #201917a0);
+}
+.local-town-people button {
+  flex: 0 1 320px;
+  max-width: 100%;
+}
+.local-town-people button .character-portrait {
+  width: 46px;
+  height: 46px;
+}
+.local-town-people button .town-npc-note {
+  line-height: 1.3;
+  color: #c4b19a;
+  font-style: italic;
+}

@@ -4,6 +4,12 @@ import { organicPersonName } from './names.js';
 import { appearanceFor, type PortraitAppearance } from './portrait.js';
 import { seedHash } from './rng.js';
 import { adult } from './systems.js';
+import {
+  townCulture,
+  variedResidents,
+  type TownCulture,
+  type TownFaith,
+} from './settlement-culture.js';
 
 export type DistrictKind =
   | 'square'
@@ -16,7 +22,8 @@ export type DistrictKind =
   | 'fields'
   | 'wood'
   | 'wharf'
-  | 'site';
+  | 'site'
+  | 'shrine';
 export type TownProfile = 'capital' | 'coast' | 'mountain' | 'forest' | 'marsh' | 'plains';
 type Position = [x: number, y: number];
 export interface TownResident {
@@ -24,6 +31,8 @@ export interface TownResident {
   name: string;
   role: string;
   appearance: PortraitAppearance;
+  faith?: string;
+  note?: string;
 }
 export interface DistrictPlan {
   id: string;
@@ -33,6 +42,7 @@ export interface DistrictPlan {
   at: Position;
   people: TownResident[];
   site?: Landmark;
+  faith?: TownFaith;
   houses: number;
 }
 export interface TownPlan {
@@ -48,6 +58,7 @@ export interface TownPlan {
   title: string;
   owner: string;
   banner: string;
+  culture: TownCulture;
   region: string;
   residents: number;
   roads: number;
@@ -65,7 +76,7 @@ const labels: Record<Profession, string> = {
   soldier: 'Гарнизон',
   child: 'Житель',
 };
-const targets: Record<Exclude<DistrictKind, 'site'>, Position> = {
+const targets: Record<Exclude<DistrictKind, 'site' | 'shrine'>, Position> = {
   square: [485, 337],
   houses: [705, 305],
   court: [485, 205],
@@ -78,7 +89,7 @@ const targets: Record<Exclude<DistrictKind, 'site'>, Position> = {
   wharf: [788, 405],
 };
 const purposes: Record<
-  Exclude<DistrictKind, 'site'>,
+  Exclude<DistrictKind, 'site' | 'shrine'>,
   { name: string; job?: Profession; art: number }
 > = {
   square: { name: 'Общая площадь', art: 0 },
@@ -108,6 +119,7 @@ export function planSettlement(w: World, id: number): TownPlan | undefined {
   const state = w.states[s.state],
     region = w.regions[s.region];
   const graphicSeed = seedHash(`${w.seed}:town:${id}`);
+  const culture = townCulture(w, s, graphicSeed);
   const variant = (key: string, span: number) => seedHash(`${graphicSeed}:${key}`) % span;
   const cell = w.geography?.cells.find((c) => c.settlement === id);
   const water = cell?.port
@@ -177,6 +189,11 @@ export function planSettlement(w: World, id: number): TownPlan | undefined {
       lore.push({ title: entry.title, text: entry.detail });
   }
 
+  for (const faith of culture.faiths)
+    lore.push({
+      title: `Община: ${faith.title}`,
+      text: faith.rite ?? `В поселении живут последователи этой веры: ${faith.followers}.`,
+    });
   const used = new Set<number>();
   const present = (p: Person | undefined): p is Person =>
     !!p &&
@@ -201,6 +218,19 @@ export function planSettlement(w: World, id: number): TownPlan | undefined {
     .filter((i, n, list) => list.indexOf(i) === n)
     .map((i) => w.people[i])
     .filter(present);
+  const realmCommanders = new Set(
+    w.armies
+      .filter(
+        (a) =>
+          !a.player &&
+          a.settlement === id &&
+          !a.journey &&
+          a.commander !== undefined &&
+          a.members.includes(a.commander),
+      )
+      .map((a) => a.commander),
+  );
+  const faithTitles = new Map(w.religions.map((r) => [r.id, r.name]));
   const person = (p: Person | undefined, role?: string): TownResident[] => {
     if (!present(p) || travelers.has(p.id)) return [];
     used.add(p.id);
@@ -210,26 +240,50 @@ export function planSettlement(w: World, id: number): TownPlan | undefined {
         name: w.npcs[p.id]?.name ?? organicPersonName(w, p),
         role: role ?? labels[p.profession],
         appearance: appearanceFor(w, p),
+        faith: faithTitles.get(p.faith),
+        note: w.worldLore?.people.find((entry) => entry.id === p.id)?.biography,
       },
     ];
   };
   const districts: DistrictPlan[] = [];
-  function add(kind: Exclude<DistrictKind, 'site'>, detail?: string) {
+  function add(kind: Exclude<DistrictKind, 'site' | 'shrine'>, detail?: string) {
     const data = purposes[kind];
     let roster: TownResident[] = [];
     if (size !== 'ruins') {
-      if (kind === 'court') roster = person(w.people[state.ruler], 'Правитель');
-      else if (kind === 'watch')
-        roster = garrison.slice(0, 2).flatMap((p) => person(p, 'Гарнизон'));
-      else if (kind === 'square')
+      if (kind === 'court')
+        roster =
+          state.capital === id
+            ? person(w.people[state.ruler], 'Правитель')
+            : person(
+                s.governance.steward == null ? undefined : w.people[s.governance.steward],
+                'Управляющий',
+              );
+      else if (kind === 'watch') {
+        const commanders = garrison.filter((p) => realmCommanders.has(p.id));
+        const soldiers = garrison.filter((p) => !realmCommanders.has(p.id));
+        const visible = commanders.slice(0, 1);
+        visible.push(
+          ...variedResidents(soldiers, 2 - visible.length, seedHash(`${graphicSeed}:watch`)),
+        );
+        roster = visible.flatMap((p) =>
+          person(p, realmCommanders.has(p.id) ? 'Командир гарнизона' : 'Боец гарнизона'),
+        );
+      } else if (kind === 'square')
         roster = person(
           s.governance.steward == null ? undefined : w.people[s.governance.steward],
           'Управление',
         );
-      else if (kind === 'houses')
-        roster = person(locals.find((p) => !used.has(p.id) && p.profession !== 'soldier'));
-      else if (data.job)
-        roster = person(locals.find((p) => !used.has(p.id) && p.profession === data.job));
+      else if (kind === 'houses' || data.job) {
+        const pool = locals.filter(
+          (p) =>
+            !used.has(p.id) &&
+            (kind === 'houses' ? p.profession !== 'soldier' : p.profession === data.job),
+        );
+        const limit = kind === 'houses' || size !== 'village' ? 2 : 1;
+        roster = variedResidents(pool, limit, seedHash(`${graphicSeed}:resident:${kind}`)).flatMap(
+          (p) => person(p),
+        );
+      }
     }
     const houses = Math.max(
       0,
@@ -253,6 +307,8 @@ export function planSettlement(w: World, id: number): TownPlan | undefined {
     });
   }
   if (isCapital && size !== 'ruins') add('court', `Столица державы «${state.name}».`);
+  else if (size === 'city' && s.central && s.governance.steward != null)
+    add('court', `Местный двор державы «${state.name}».`);
   add(
     'square',
     size === 'ruins' ? 'Бывший центр поселения.' : `К поселению ведут открытые дороги: ${roads}.`,
@@ -264,6 +320,27 @@ export function planSettlement(w: World, id: number): TownPlan | undefined {
     if (s.biome === 'mountain' && s.workers.miner > 0) add('mine');
     if (s.biome === 'forest' && s.workers.woodcutter > 0) add('wood');
     if (s.workers.farmer > 0 && (size === 'village' || s.biome === 'plains')) add('fields');
+    for (const [i, faith] of culture.faiths.entries()) {
+      const follower = variedResidents(
+        locals.filter((p) => p.faith === faith.id && p.profession !== 'soldier' && !used.has(p.id)),
+        1,
+        seedHash(`${graphicSeed}:faith:${faith.id}`),
+      )[0];
+      const slots: Position[] = [
+        [152, 275],
+        [612, 390],
+      ];
+      districts.push({
+        id: `shrine:${faith.id}`,
+        kind: 'shrine',
+        title: `Святилище: ${faith.title}`,
+        detail: faith.rite ?? `Число последователей в поселении: ${faith.followers}.`,
+        at: jitter(`shrine:${faith.id}`, slots[i]),
+        people: person(follower, 'Последователь общины'),
+        faith,
+        houses: 1,
+      });
+    }
     if (s.fortification > 0 || garrison.length || size === 'capital')
       add('watch', `Укрепления: ${s.fortification}. Бойцов на месте: ${garrison.length}.`);
   }
@@ -314,6 +391,7 @@ export function planSettlement(w: World, id: number): TownPlan | undefined {
     owner: state.name,
     region: region.name,
     banner: state.color,
+    culture,
     residents: s.population,
     roads,
     occupations: !!s.occupation,

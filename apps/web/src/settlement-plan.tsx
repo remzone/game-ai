@@ -1,5 +1,12 @@
 import { useId, useState } from 'react';
-import type { DistrictKind, DistrictPlan, TownPlan } from '@living-world/simulation';
+import {
+  emblems,
+  governments,
+  type DistrictKind,
+  type DistrictPlan,
+  type Race,
+  type TownPlan,
+} from '@living-world/simulation';
 import { Portrait } from './portrait';
 import './settlement-plan.css';
 
@@ -35,6 +42,7 @@ const runes: Record<DistrictKind, string> = {
   wood: '♠',
   wharf: '⚓',
   site: '◇',
+  shrine: '✧',
 };
 const propBoxes = {
   court: [167, 150, 0.85],
@@ -49,27 +57,58 @@ const propBoxes = {
   trees: [146, 123, 0.83],
   fountain: [83, 75, 0.63],
   tower: [110, 137, 0.87],
+  guild: [158, 127, 0.8],
+  fort: [169, 132, 0.82],
+  spire: [145, 155, 0.84],
+  hearth: [105, 99, 0.78],
+  memorial: [107, 92, 0.69],
+  observatory: [106, 121, 0.78],
 } as const;
 type PropKind = keyof typeof propBoxes;
 const artRoot = '/art/settlements';
-
+const dwellings: Record<
+  Race,
+  { key: string; name: string; box: readonly [number, number, number] }
+> = {
+  Human: { key: 'human', name: 'Человеческое зодчество', box: [106, 104, 0.8] },
+  Elf: { key: 'elf', name: 'Эльфийское зодчество', box: [107, 119, 0.82] },
+  'Dark Elf': { key: 'dark-elf', name: 'Зодчество тёмных эльфов', box: [106, 119, 0.82] },
+  Orc: { key: 'orc', name: 'Орочье зодчество', box: [122, 97, 0.8] },
+  Dwarf: { key: 'dwarf', name: 'Дворфийское зодчество', box: [122, 93, 0.76] },
+  Goblin: { key: 'goblin', name: 'Гоблинское зодчество', box: [102, 94, 0.79] },
+};
+const originNames: Record<Race, string> = {
+  Human: 'Люди',
+  Elf: 'Эльфы',
+  'Dark Elf': 'Тёмные эльфы',
+  Orc: 'Орки',
+  Dwarf: 'Дворфы',
+  Goblin: 'Гоблины',
+};
 function Building({
   type,
   damaged = false,
   flip = false,
+  home,
+  richer = false,
 }: {
   type: PropKind;
   damaged?: boolean;
   flip?: boolean;
+  home?: Race;
+  richer?: boolean;
 }) {
   const model = damaged ? 'ruin' : type;
-  const [width, height, footing] = propBoxes[model];
+  const style = model === 'house' && home ? dwellings[home] : undefined;
+  const [width, height, footing] = style?.box ?? propBoxes[model];
   return (
     <image
       className="town-painted-prop"
       data-prop={model}
+      data-home={style && home}
+      data-variant={style ? (richer ? 1 : 0) : undefined}
       aria-hidden="true"
-      href={`${artRoot}/${model}.webp`}
+      href={`${artRoot}/${style ? `cultures/home-${style.key}-${richer ? 1 : 0}` : model === 'guild' || model === 'fort' || model === 'spire' || model === 'hearth' || model === 'memorial' || model === 'observatory' ? `cultures/${model}` : model}.webp`}
       x={-width / 2}
       y={-height * footing}
       width={width}
@@ -80,7 +119,7 @@ function Building({
   );
 }
 
-function stamp(kind: DistrictKind, idx: number, d: DistrictPlan): PropKind {
+function stamp(kind: DistrictKind, idx: number, d: DistrictPlan, plan: TownPlan): PropKind {
   if (d.site)
     return d.site.status === 'ruined' || d.site.status === 'abandoned'
       ? 'ruin'
@@ -94,7 +133,8 @@ function stamp(kind: DistrictKind, idx: number, d: DistrictPlan): PropKind {
               ? 'gate'
               : 'tower';
   if (kind === 'watch') return 'gate';
-  if (kind === 'court') return 'court';
+  if (kind === 'court') return plan.culture.civic;
+  if (kind === 'shrine') return d.faith?.style ?? 'hearth';
   if (kind === 'forge') return idx ? 'house' : 'forge';
   if (kind === 'market') return 'market';
   if (kind === 'fields') return idx ? 'house' : 'field';
@@ -125,6 +165,17 @@ function SettlementDrawing({
   const center = plan.districts.find((x) => x.kind === 'square')!.at;
   const districts = [...plan.districts].sort((a, b) => a.at[1] - b.at[1]);
   const city = plan.size === 'city' || plan.size === 'capital';
+  const { civic, emblem, homes } = plan.culture;
+  const bearing = emblem ? emblems[emblem] : undefined;
+  const homeAt = (i: number) => homes[i % homes.length];
+  const bannerShape =
+    civic === 'guild'
+      ? 'M2-43h30l-3 18-11-5-16 5Z'
+      : civic === 'fort'
+        ? 'M2-43h31l-12 9 12 9H2Z'
+        : civic === 'spire'
+          ? 'M2-43h24v13L14-20 2-30Z'
+          : 'M2-43h27l-5 7 5 7H2Z';
   const fortified = plan.fortification > 0;
   const gate = districts.find((d) => d.kind === 'watch')?.at ?? [500, 452];
   const gateX = plan.mirror ? 1000 - gate[0] : gate[0];
@@ -153,6 +204,7 @@ function SettlementDrawing({
     <svg
       viewBox="0 0 1000 565"
       className="town-drawing"
+      data-civic={civic}
       role="group"
       aria-label={`План поселения ${plan.title}`}
     >
@@ -184,9 +236,14 @@ function SettlementDrawing({
           <stop stopColor="#686e67" />
           <stop offset="1" stopColor="#263944" />
         </linearGradient>
+        <linearGradient id={k + '-dusk'} x2="0" y2="100%">
+          <stop stopColor={plan.biome === 'forest' ? '#071d1b' : '#171022'} stopOpacity=".36" />
+          <stop offset=".60" stopColor="#080b11" stopOpacity=".04" />
+          <stop offset="1" stopColor="#0a0b10" stopOpacity=".24" />
+        </linearGradient>
         <radialGradient id={k + '-vignette'}>
           <stop offset=".42" stopColor="#1b1519" stopOpacity="0" />
-          <stop offset="1" stopColor="#1b1519" stopOpacity=".63" />
+          <stop offset="1" stopColor="#1b1519" stopOpacity=".68" />
         </radialGradient>
         <filter id={k + '-grain'}>
           <feTurbulence baseFrequency=".45" numOctaves="2" stitchTiles="stitch" />
@@ -278,10 +335,19 @@ function SettlementDrawing({
         <ellipse rx="51" ry="28" fill="#786854" opacity=".62" filter={`url(#${k}-weathered)`} />
         {city && <Building type="fountain" />}
       </g>
-      {plan.size === 'capital' && (
-        <g transform={`translate(${center[0] - 38} ${center[1]})`}>
+      {plan.size !== 'ruins' && (
+        <g
+          aria-hidden="true"
+          className="town-ensign"
+          transform={`translate(${center[0] - 38} ${center[1]}) scale(${plan.size === 'village' ? 0.76 : 1})`}
+        >
           <path d="M0 3v-46" stroke="#453629" strokeWidth="4" />
-          <path d="M2-43h27l-5 7 5 7H2Z" fill={plan.banner} stroke="#d4ab71" strokeWidth="1.3" />
+          <path d={bannerShape} fill={plan.banner} stroke="#af906c" strokeWidth="1.2" />
+          {bearing && (
+            <text x="14" y="-31" textAnchor="middle" fill="#f0d2a1" fontSize="11">
+              {bearing}
+            </text>
+          )}
         </g>
       )}
       {districts.map((d, idx) => {
@@ -302,7 +368,7 @@ function SettlementDrawing({
               .map(([dx, dy], i) => ({ dx, dy, i }))
               .sort((a, b) => a.dy - b.dy)
               .map(({ dx, dy, i }) => {
-                const type = stamp(d.kind, i, d);
+                const type = stamp(d.kind, i, d, plan);
                 const damaged =
                   !d.site &&
                   d.kind !== 'court' &&
@@ -315,6 +381,9 @@ function SettlementDrawing({
                     <Building
                       type={type}
                       damaged={damaged}
+                      home={homeAt(d.kind === 'houses' ? i : idx + i + 5)}
+                      richer={(i + idx + plan.seed) % 2 === 0}
+
                       flip={type === 'dock' ? plan.mirror : rand(idx * 5 + i) < 0.33}
                     />
                   </g>
@@ -355,7 +424,13 @@ function SettlementDrawing({
         const scale = (city ? 0.48 : 0.4) + rand(i + 99) * 0.18;
         return (
           <g key={i} transform={`translate(${x} ${y}) scale(${scale})`} aria-hidden="true">
-            <Building type="house" damaged={plan.size === 'ruins'} flip={i % 3 === 0} />
+            <Building
+              type="house"
+              damaged={plan.size === 'ruins'}
+              flip={i % 3 === 0}
+              home={homeAt(i + 7)}
+              richer={i % 2 === 0}
+            />
           </g>
         );
       })}
@@ -367,6 +442,7 @@ function SettlementDrawing({
         style={{ mixBlendMode: 'multiply' }}
         pointerEvents="none"
       />
+      <rect width="1000" height="565" fill={`url(#${k}-dusk)`} pointerEvents="none" />
       <rect width="1000" height="565" fill={`url(#${k}-vignette)`} pointerEvents="none" />
       {districts.map((d) => {
         const [x, y] = d.at,
@@ -458,6 +534,11 @@ export function SettlementPlan({ plan, onTalk }: { plan: TownPlan; onTalk: (id: 
           <span>
             Жителей: {plan.residents} · Дорог: {plan.roads}
           </span>
+          <span className="town-culture-summary">
+            {governments[plan.culture.government]?.name ?? plan.owner}
+            {plan.culture.communities[0] &&
+              ` · ${dwellings[plan.culture.communities[0].race].name.toLowerCase()}`}
+          </span>
           {plan.occupations && <span className="town-alert">Оккупация</span>}
           {plan.damage > 0 && <span className="town-alert">Повреждения: {plan.damage}/3</span>}
         </div>
@@ -488,6 +569,21 @@ export function SettlementPlan({ plan, onTalk }: { plan: TownPlan; onTalk: (id: 
               <span className="town-status">{siteStatus[district.site.status]}</span>
             )}
             {district.detail && <p>{district.detail}</p>}
+            {district.faith && (
+              <span className="town-status">Последователей: {district.faith.followers}</span>
+            )}
+            {district.kind === 'houses' && plan.culture.communities.length > 0 && (
+              <p>
+                Жители:{' '}
+                {plan.culture.communities
+                  .slice(0, 3)
+                  .map((c) => `${originNames[c.race]} ${Math.round(c.share * 100)}%`)
+                  .join(' · ')}
+              </p>
+            )}
+            {district.kind === 'court' && plan.culture.officialFaith && (
+              <p>Государственная вера: {plan.culture.officialFaith}</p>
+            )}
             {district.people.length > 0 && (
               <div className="local-town-people">
                 {district.people.map((p) => (
@@ -500,7 +596,11 @@ export function SettlementPlan({ plan, onTalk }: { plan: TownPlan; onTalk: (id: 
                     <Portrait value={p.appearance} decorative />
                     <span>
                       <strong>{p.name}</strong>
-                      <small>{p.role} · Поговорить</small>
+                      <small>
+                        {p.role}
+                        {p.faith ? ` · ${p.faith}` : ''}
+                      </small>
+                      {p.note && <small className="town-npc-note">{p.note}</small>}
                     </span>
                   </button>
                 ))}
