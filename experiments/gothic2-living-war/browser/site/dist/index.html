@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="referrer" content="no-referrer"><title>Живой Хоринис · Gothic II</title><meta name="description" content="Запуск Gothic II: Ночь Ворона из своей Steam-копии."><link rel="stylesheet" href="./style.css"></head>
+<body>
+<header><span class="seal" aria-hidden="true">Х</span><span>СОБСТВЕННАЯ КОПИЯ ИГРЫ</span><a href="#preparation">Подготовка</a></header>
+<main>
+<section class="intro" aria-labelledby="title"><div class="glow"></div><div class="copy">
+<p class="eyebrow">GOTHIC II · НОЧЬ ВОРОНА</p>
+<h1 id="title">Живой<br>Хоринис</h1>
+<p class="lead">Оригинальная Gothic II в браузере. Используй файлы своей Steam-копии. Никакого входа в Steam на этом сайте.</p>
+<a class="pill" href="./game/">Открыть лаунчер</a>
+<p class="sub">Игровые файлы выбираются на устройстве и читаются в браузере.</p>
+</div><aside aria-label="О тесте"><span class="eyebrow">ТЕСТ ФРАКЦИЙ</span><h2>Застава на дороге Онара</h2><p>Ополчение Хориниса и наёмники Онара борются за один пост. Припасы влияют на то, какая сторона будет держать пост.</p><p id="modState" class="state">Мод собирается отдельно из файлов игры</p></aside></section>
+<section id="preparation" class="prep" aria-labelledby="prep-title"><p class="eyebrow">ПЕРВЫЙ ЗАПУСК</p><h2 id="prep-title">Как взять файлы из Steam</h2><ol>
+<li><strong>Найди установленную игру.</strong> В Steam открой Gothic II: Gold Classic → «Управление» → «Просмотреть локальные файлы».</li>
+<li><strong>Выбери папку или ZIP.</strong> На ПК удобнее выбрать саму папку Gothic II. Для телефона можно упаковать папку в ZIP и выбрать его в лаунчере. Внутри должны быть <code>Data</code> и <code>System</code>.</li>
+<li><strong>Начни тест мода в новом сохранении.</strong> Для проверки войны не используй единственный слот, в котором проходишь оригинальную игру.</li>
+</ol><p>Для первого запуска лучше открыть лаунчер в обычной вкладке Chrome или Edge на ПК.</p></section>
+<section id="mod" class="prep"><p class="eyebrow">ЖИВОЙ ХОРИНИС</p><h2>Запуск с модом</h2>
+<p><a class="pill" href="./living-khorinis-builder.zip" download>Скачать сборщик мода</a></p>
+<p>Распакуй архив. На Windows с Python 3.9+ открой в этой папке PowerShell и подставь свой путь:</p>
+<pre><code>py -B .\prepare-import.py "D:\SteamLibrary\steamapps\common\Gothic II" --lang ru</code></pre>
+<p>Если игра на английском, укажи <code>--lang en</code>. В лаунчере выбери созданный <code>LivingKhorinis-import.zip</code> и начни новую игру. Оригинальная установка не меняется.</p>
+<p>Поговори с Мареком на дороге к ферме Онара: он расскажет, кто держит пост, и примет хлеб в пользу одной из сторон. Без поставок первый спор за пост решится через три игровых дня. В этой версии меняется караул, а не разыгрывается полноценная битва.</p>
+</section></main>
+<footer><span>Фанатский проект, не связан с Piranha Bytes и правообладателями Gothic.</span><a href="./credits.html">Источники и лицензии</a></footer>
+</body></html>
