@@ -40,3 +40,15 @@ test('caravan moves on the actual regional road and returns',()=>{
 test('spawn and fast-travel landmarks are inside the terrain',()=>{
  for(const p of PLACES){assert.ok(!collide(p.x,p.z,[]));assert.equal(markVisited({...spawn(),x:p.x,z:p.z})?.id,p.id);}
 });
+
+test('jump has a bounded arc, lands, and clears low obstacles but not walls',async()=>{
+ const {JUMP_SPEED,tickJump}=await import('../dist/world.mjs');
+ let state={y:0,v:JUMP_SPEED}, peak=0;
+ const log={x:0,z:0,w:2.5,d:.52,hop:.53};
+ assert.ok(collide(0,0,[log]));
+ for(let n=0;n<100;n++){state=tickJump(state,1/60);peak=Math.max(peak,state.y);}
+ assert.ok(peak>1.1&&peak<1.25);
+ assert.deepEqual(state,{y:0,v:0});
+ assert.ok(!collide(0,0,[log],.29,peak));
+ assert.ok(collide(0,0,[{...log,hop:undefined}],.29,peak));
+});

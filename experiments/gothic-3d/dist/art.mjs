@@ -1,8 +1,21 @@
 import * as T from './vendor/three.module.min.js';
+import {growWoodland} from './forest.mjs';
 import {terrain, walkY, ROAD, roadX} from './world.mjs';
 export const rand=(seed=221)=>()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
 const rng=rand();
 export function material(color,opts={}){return new T.MeshStandardMaterial({color,roughness:.91,...opts});}
+function soilTexture(){
+ const c=document.createElement('canvas');c.width=c.height=192;const q=c.getContext('2d'),r=rand(5508);
+ const img=q.createImageData(c.width,c.height);
+ for(let y=0;y<192;y++)for(let x=0;x<192;x++){
+  const n=202+(r()-.5)*42+15*Math.sin(x*.36+y*.41)*Math.sin(x*.13-y*.24)+13*Math.sin(y*.092+x*.112);
+  const i=(y*192+x)*4;img.data.set([n+4,n,n-9,255],i);
+ }
+ q.putImageData(img,0,0);
+ for(let i=0;i<1000;i++){const x=r()*192,y=r()*192,w=.6+r()*2.3;
+  q.fillStyle=i%2?'#45372644':'#fff4cf45';q.fillRect(x,y,w,.7+r()*1.3);}
+ const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=4;return t;
+}
 function texture(kind){
   const c=document.createElement('canvas'); c.width=c.height=256;
   const q=c.getContext('2d'), s=rand(421+kind.length);
@@ -89,17 +102,19 @@ export function buildArt(scene,soft=false){
  function flag(x,z,y){box(x,y+.2,z,.11,1.0,.11,beam);const f=mesh(new T.PlaneGeometry(.94,1.42,5,5),bannerM,x+.53,y-.25,z);banners.push(f);}
  // Terrain grid with seeded colour, road surface and a cut river channel.
  const geo=new T.PlaneGeometry(150,215,soft?58:150,soft?103:215);geo.rotateX(-Math.PI/2);geo.translate(0,0,-68.5);
- const v=geo.attributes.position, colors=[];const color=new T.Color();
+ const v=geo.attributes.position, uvs=geo.attributes.uv, colors=[];const color=new T.Color();
  for(let i=0;i<v.count;i++){
-   const x=v.getX(i),z=v.getZ(i);v.setY(i,terrain(x,z));
+   const x=v.getX(i),z=v.getZ(i);v.setY(i,terrain(x,z));uvs.setXY(i,(x+76)*.58,(z+177)*.61);
    const dist=Math.abs(x-roadX(z)), n=Math.sin(x*1.49+z*2.5)*.033+(rng()-.5)*.055;
    const path=T.MathUtils.smoothstep(dist,2.2,4.6);
-   color.set(0x5c5344).lerp(new T.Color(z< -108?0x47483b:0x4a5440),path);
+   const moss=T.MathUtils.smoothstep(Math.sin(x*.34+z*.18)+Math.cos(z*.46-x*.11),-.47,1.54);
+   color.set(0x685841).lerp(new T.Color(z< -108?0x43483a:0x50563b).lerp(new T.Color(0x3b4e3c),moss),path);
+   if(dist<2.9&&Math.abs(Math.abs(x-roadX(z))-.9)<.42)color.multiplyScalar(.84);
    if(Math.abs(z+39)<6.1)color.lerp(new T.Color(0x4a4c45),.64);
    color.multiplyScalar(1+n*4.4);colors.push(color.r,color.g,color.b);
  }
- geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));geo.computeVertexNormals();mesh(geo,material(0xffffff,{vertexColors:true}),0,0,0);
- const water=mesh(new T.PlaneGeometry(151,9.7,soft?25:96,soft?2:8),material(0x3e5c58,{metalness:.23,roughness:.32,transparent:true,opacity:.88}),0,-.48,-39);water.rotation.x=-Math.PI/2;
+ geo.setAttribute('color',new T.Float32BufferAttribute(colors,3));geo.computeVertexNormals();mesh(geo,material(0xffffff,{vertexColors:true,map:soilTexture()}),0,0,0);
+ const water=mesh(new T.PlaneGeometry(151,9.7,soft?25:96,soft?2:8),material(0x496662,{metalness:.23,roughness:.32,transparent:true,opacity:.88}),0,-.48,-39);water.rotation.x=-Math.PI/2;
  for(let i=0;i<24;i++){const x=(rng()-.5)*105,z=-35-rng()*8;mesh(new T.PlaneGeometry(.4+rng()*2,.055),new T.MeshBasicMaterial({color:0x849386,transparent:true,opacity:.3,side:T.DoubleSide}),x,-.46,z).rotation.x=-Math.PI/2;}
  for(let i=0;i<29;i++)box(0,.045,-45.75+i*.47,6.3,.17,.45,decking);
  for(const x of [-3.05,3.05]){
@@ -137,28 +152,25 @@ export function buildArt(scene,soft=false){
    const o=new T.InstancedMesh(g,m,entries.length), dummy=new T.Object3D();
    entries.forEach((e,i)=>{dummy.position.set(e[0],e[1],e[2]);dummy.scale.set(e[3],e[4],e[5]);dummy.rotation.set(e[7]??0,e[6]??0,e[8]??0);dummy.updateMatrix();o.setMatrixAt(i,dummy.matrix);if(e[9])o.setColorAt(i,new T.Color(e[9]));});scene.add(o);return o;
  }
- const trunks=[], needles=[], rocks=[], grass=[];
- for(let k=0;k<850;k++){
-   const x=(rng()-.5)*139,z=35-rng()*205;
-   if(z> -24 && Math.abs(x)<26 || Math.abs(z+39)<7 || Math.abs(x-roadX(z))<5.8 || z< -129&&Math.abs(x+12)<20 || Math.abs(x-9)<14&&Math.abs(z+71)<11)continue;
-   const y=terrain(x,z),h=4+rng()*8,w=.86+rng()*1.43;trunks.push([x,y+h*.36,z,.45,h*.72,.45,0,0,.02]);
-   if(Math.abs(x)<50){obstacle(x,z,.65,.65);solids.at(-1).canopy=w;}
-   const tint=[0x687264,0x546353,0x778074,0x4e6656][k%4];
-   for(let tier=0;tier<3;tier++){const scale=1-tier*.19;needles.push([x+(rng()-.5)*.3,y+h*(.43+tier*.19),z,w*scale,h*.55,w*scale,rng()*6,0,.04,tint]);}
+ growWoodland(scene,{soft,obstacle:(x,z,w,d,canopy)=>{obstacle(x,z,w,d);solids.at(-1).canopy=canopy;}});
+ const rocks=[];
+ for(let k=0;k<410;k++){
+   const x=(rng()-.5)*135,z=35-rng()*205,y=terrain(x,z);
+   if(Math.abs(z+39)<6.3)continue;
+   const a=Math.abs(x-roadX(z)),size=.037+rng()*(a<3?.27:1.1);
+   rocks.push([x,y+size*.23,z,size,size*.56,size*.78,rng()*6,0,0,[0x9c9486,0x6e6b5c,0x817666][k%3]]);
  }
- for(let k=0;k<1750;k++){
-   const x=(rng()-.5)*136,z=35-rng()*205,y=terrain(x,z);if(Math.abs(z+39)<6.2)continue;
-   const a=Math.abs(x-roadX(z));
-   if(a>3.3&&rng()<.83){const s=.13+rng()*.65;grass.push([x,y+s*.28,z,s*.39,s,s*.39,rng()*6,.3,0,[0x817950,0x646947,0x656950,0x9b8b60][k%4]]);}
-   else if(rng()<.34){const s=.06+rng()*(a<3?.21:1.2);rocks.push([x,y+s*.23,z,s,s*.56,s*.78,rng()*6,0,0,[0xb0a18b,0x80796d,0x958e80][k%3]]);}
- }
- inst(new T.CylinderGeometry(.18,.42,1,7),log,trunks);
- inst(new T.ConeGeometry(1,1,7),material(0x9fa99b,{flatShading:true}),needles);
- inst(new T.IcosahedronGeometry(1,0),material(0xd2c8b5,{flatShading:true}),rocks);
- inst(new T.ConeGeometry(1,1,3),material(0xb0aa88,{flatShading:true}),grass);
+ inst(new T.IcosahedronGeometry(1,1),material(0xb1ac9e,{flatShading:true}),rocks);
+ // A low fallen trunk at the forest exit of the bridge is the jump tutorial.
+ const bz=-50.9,bx=1.45,by=terrain(bx,bz);
+ const fallen=mesh(new T.CylinderGeometry(.25,.28,2.50,12),material(0x6b5846,{map:woodMap}),bx,by+.22,bz);fallen.rotation.z=Math.PI/2;
+ mesh(new T.CircleGeometry(.211,14),material(0xb19260),bx+1.26,by+.22,bz).rotation.y=Math.PI/2;
+ for(let j=0;j<3;j++){const q=mesh(new T.CylinderGeometry(.03,.082,.47,5),beam,bx-.65+j*.62,by+.36,bz);q.rotation.z=.55-j*.24;}
+ obstacle(bx,bz,2.5,.52);solids.at(-1).hop=.53;
+ sign(-2.8,-48.8,'Повалено бурей');
  // Distant ridge shapes are geometry and are softened by fog.
- for(let j=0;j<16;j++){
-   const angle=(j/16)*Math.PI*2; const o=mesh(new T.ConeGeometry(16+rng()*26,17+rng()*28,5),material(0x4d564f,{flatShading:true}),Math.cos(angle)*111,-5,Math.sin(angle)*122-63);o.rotation.y=rng()*5;
+ for(let j=0;j<18;j++){
+   const angle=(j/16)*Math.PI*2; const o=mesh(new T.DodecahedronGeometry(17+rng()*23,1),material(0x4d564f,{flatShading:true}),Math.cos(angle)*111,-5,Math.sin(angle)*122-63);o.rotation.y=rng()*5;o.scale.set(1.6,.62,.94);
  }
  // Hanging smoke above rooftops.
  const smGeo=new T.BufferGeometry();const sp=new Float32Array(120*3);smGeo.setAttribute('position',new T.BufferAttribute(sp,3));

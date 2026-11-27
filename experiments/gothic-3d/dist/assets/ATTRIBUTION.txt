@@ -1,0 +1,4 @@
+Head and eye topology adapted from MakeHuman's hm08 base.obj.
+MakeHuman Team, CC0 1.0 Universal. Only asset geometry is used, not MakeHuman program code.
+https://github.com/makehumancommunity/makehuman/blob/master/makehuman/data/3dobjs/base.obj
+https://github.com/makehumancommunity/makehuman/blob/master/LICENSE.md#c-the-license-for-the-bundled-assets

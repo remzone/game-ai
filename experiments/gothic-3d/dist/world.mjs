@@ -34,13 +34,20 @@ export function travel(s,id){
   if(!p||!s.visited.includes(id)||s.hp<=0) return false;
   s.x=p.x;s.z=p.arrivalZ??p.z;s.minutes+=35;return true;
 }
-export function collide(x,z,solids,r=.29){
+export function collide(x,z,solids,r=.29,lift=0){
   return Math.abs(x)>62 || z>36 || z< -173 || (Math.abs(z+39)<6 && Math.abs(x)>3.15)
-    || solids.some(b=>Math.abs(x-b.x)<b.w/2+r && Math.abs(z-b.z)<b.d/2+r);
+    || solids.some(b=>(!b.hop||lift<b.hop)&&Math.abs(x-b.x)<b.w/2+r && Math.abs(z-b.z)<b.d/2+r);
 }
 export function caravanPos(minutes){
   const a=((minutes-START+9000)%150)/150;
   const span=a<.5?a*2:(1-a)*2;
   const z=3-86*span;
   return {x:roadX(z)+1.5,z,dir:a<.5?0:Math.PI};
+}
+
+export const JUMP_SPEED=5.4, GRAVITY=12.2;
+export function tickJump(arc,dt){
+ if(arc.y===0&&arc.v===0)return arc;
+ const t=Math.max(0,Math.min(.12,dt)), y=arc.y+arc.v*t-.5*GRAVITY*t*t, v=arc.v-GRAVITY*t;
+ return y<=0?{y:0,v:0}:{y,v};
 }
