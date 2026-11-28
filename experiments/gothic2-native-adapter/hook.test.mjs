@@ -96,3 +96,32 @@ test('accepts 0.3, 0.4 and 0.5 asset catalogs while retaining the version tag', 
    assert.equal((await ctx.LivingKhorinisPrepare({FS,gameRoot})).version,version);
  }
 });
+
+test('passes the patched parser to engines that only start the standard GOTHIC.DAT', async ()=>{
+ const ctx=vm.createContext({TextDecoder,Uint8Array,URLSearchParams});vm.runInContext(code,ctx);
+ const ini=fs.readFileSync(path.join(folder,'system/livingkhorinis.ini'));
+ const volume=new Uint8Array(fs.readFileSync(path.join(folder,'art.mod')));
+ const orig=volume.slice();
+ const gameFs={
+   files:new Map([['data',{path:'DaTa',isDir:true}],['data/scripts.vdf',{path:'DaTa/Scripts.vdf',isDir:false}]]),
+   addEntry(path,isDir,size){const entry={path,isDir,size};this.files.set(path.toLowerCase(),entry);return entry;}
+ };
+ const FS={
+   readdir(p){return ({'/game':['System','DaTa'],'/game/System':['LivingKhorinis.ini'],
+       '/game/DaTa':['ModVDF'],'/game/DaTa/ModVDF':['LivingKhorinis.mod']})[p]??[];},
+   stat:p=>({size:p.endsWith('.mod')?volume.length:ini.length,mode:0}),
+   isFile:()=>true,readFile:p=>p.endsWith('.mod')?volume:ini
+ };
+ const result=await ctx.LivingKhorinisPrepare({FS,gameRoot,gameFs});
+ assert.equal(result.runtime,'/game/DaTa/lk browser runtime.vdf');
+ const e=gameFs.files.get('data/lk browser runtime.vdf');
+ assert.equal(e.dirty,false);
+ assert.equal(e.hIdx,-1);
+ assert.equal(new DataView(e.mem.buffer).getUint32(280,true),0xff9fbf7d);
+ const decoder=new TextDecoder(), label=new TextEncoder().encode('LIVINGKHORINIS.DAT');
+ const row=Buffer.from(orig).indexOf(label);
+ assert.equal(decoder.decode(e.mem.subarray(row,row+64)).trim(),'GOTHIC.DAT');
+ assert.deepEqual(e.mem.subarray(row+64),orig.subarray(row+64));
+ assert.deepEqual(volume,orig);
+ assert.equal(gameFs.files.get('data/scripts.vdf').path,'DaTa/Scripts.vdf');
+});

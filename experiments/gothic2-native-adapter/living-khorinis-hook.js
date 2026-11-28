@@ -71,7 +71,7 @@
             u32(288) !== 296 || u32(292) !== 0x50 || volume.length < 296 + 80*rows.length + 1024) {
             throw err("неподдерживаемый формат пакета MOD.");
         }
-        let cursor = 296 + 80*rows.length, pos=0, end=0;
+        let cursor = 296 + 80*rows.length, pos=0, end=0, datRow=0;
         for (const [i,[name,index,last=true]] of rows.entries()) {
             const p = 296 + i*80, dir = index >= 0, size = u32(p+68);
             const flags = (dir ? 0x80000000 : 0) + (last ? 0x40000000 : 0);
@@ -81,7 +81,7 @@
                 throw err("содержимое пакета MOD не соответствует моду.");
             }
             if (dir) continue;
-            if (name === "LIVINGKHORINIS.DAT") { pos=cursor; end=cursor+size; }
+            if (name === "LIVINGKHORINIS.DAT") { pos=cursor; end=cursor+size; datRow=p; }
             else if (size > 1024*1024 || (name.endsWith(".TEX") ? ascii(cursor,cursor+4) !== "ZTEX" :
                 size < 6 || volume[cursor] !== 0 || volume[cursor+1] !== 0xb1)) throw err("файл модели повреждён.");
             cursor += size;
@@ -96,6 +96,7 @@
             !/(^|[^a-z0-9_])PATCH_LIVINGKHORINIS_ADVANCE[\n\r\0]/i.test(dat)) {
             throw err("DAT не содержит игровых функций мода.");
         }
+        return datRow;
     }
 
     const overlayLimit = 16 + 64*1024 + 65*1024*1024;
@@ -126,7 +127,29 @@
     }
     globalThis.LivingKhorinisOverlay = Object.freeze({limit:overlayLimit,parts:overlayParts,mount:mountOverlay});
 
-    globalThis.LivingKhorinisPrepare = async ({FS,gameRoot}) => {
+    // -game:<ini> can silently fall back to the original parser. The browser
+    // runtime reads standard archives directly from Data and defaults to GOTHIC.DAT.
+    // Alias only the validated DAT entry and keep all models/textures alongside it.
+    // This is a temporary GameFS view: never write to the base import or OPFS.
+    function runtimeVdf(gameFs, data, volume, datRow) {
+        const parent = gameFs.files.get('data');
+        if (!parent?.isDir) throw err("не найдена папка Data.");
+        const location = parent.path + '/lk browser runtime.vdf';
+        const key = location.toLowerCase();
+        if (gameFs.files.has(key)) throw err("служебное имя архива занято.");
+        const bytes = Uint8Array.from(volume);
+        bytes.fill(32,datRow,datRow+64);
+        bytes.set(Uint8Array.from("GOTHIC.DAT",c=>c.charCodeAt(0)),datRow);
+        // VDFS DOS timestamp 2107-12-31 23:59:58: outrank original archives.
+        new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength).setUint32(280,0xff9fbf7d,true);
+        const entry = gameFs.addEntry(location,false,bytes.length);
+        entry.mem = bytes;
+        entry.hIdx = -1;
+        entry.dirty = false;
+        return data + '/' + location.slice(location.lastIndexOf('/')+1);
+    }
+
+    globalThis.LivingKhorinisPrepare = async ({FS,gameRoot,gameFs}) => {
         if (typeof location !== "undefined" && new URLSearchParams(location.search).get("vanilla") === "1") {
             return null;
         }
@@ -142,8 +165,10 @@
             throw err("нужны обе части сборки: System/LivingKhorinis.ini и Data/ModVDF/LivingKhorinis.mod.");
         }
         const iniBytes = fileBytes(FS,ini,64*1024);
-        verify(iniBytes, fileBytes(FS,volume,65*1024*1024), volume.substring(volume.lastIndexOf("/")+1));
+        const archive = fileBytes(FS,volume,65*1024*1024);
+        const datRow = verify(iniBytes,archive,volume.substring(volume.lastIndexOf("/")+1));
         const version = new TextDecoder().decode(iniBytes).match(/^Version[ \t]*=[ \t]*(0\.[345])[ \t]*\r?$/im)?.[1] ?? 'legacy';
+        if (gameFs) return {runtime:runtimeVdf(gameFs,data,archive,datRow),version};
         return {ini: ini.substring(ini.lastIndexOf("/")+1),version};
     };
 })();

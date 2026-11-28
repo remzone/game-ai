@@ -86,10 +86,17 @@ s=s.replace("      g_offlineBusy = true;\n      await installFromZip(file);","  
 s=s.replace("if (!all.some(f => f.path.toLowerCase().startsWith('data/')))","if (!all.some(f => /^data\\/[^/]+\\.vdf$/i.test(f.path)))")
 s=s.replace("if (!list.some(f => /^data\\//i.test(f.rel)))\n          throw new Error('no Data folder: select the root folder of the installed game');","if (!list.some(f => /^data\\/[^/]+\\.vdf$/i.test(f.rel)))\n          throw new Error('Не найдено Data/*.vdf. Выбери корневую папку установленной Gothic II.');")
 s=s.replace("if (IS_ARCHOLOS) args.push(\"-game:\" + ARCHOLOS_INI);   // the engine looks for it in <game>/system","""if (typeof window.LivingKhorinisPrepare === 'function') {
-          const result = await window.LivingKhorinisPrepare({ FS: Module.FS, gameRoot: GAME_ROOT, Module });
+          const result = await window.LivingKhorinisPrepare({ FS: Module.FS, gameRoot: GAME_ROOT, gameFs: GameFS, Module });
           if (result != null) {
-            if (typeof result.ini !== 'string' || !/^[a-zA-Z0-9_.-]+\\.ini$/i.test(result.ini)) throw new Error('Неверное имя INI мода.');
-            args.push('-game:' + result.ini);
+            if (!result.runtime || !Module.FS.analyzePath(result.runtime).exists) throw new Error('Движку недоступен игровой архив мода.');
+            globalThis.lkModActive = true;
+            globalThis.lkModVersion = result.version;
+            lkShowBootMode('Живой Хоринис ' + (result.version === 'legacy' ? '(ранняя версия)' : result.version) + ' · пакет передан движку');
+            console.info('[LK] browser VDF',result.runtime,'version',result.version);
+          } else {
+            if (new URLSearchParams(location.search).get('checkmod') === '1')
+              throw new Error('Пакет мода не найден. В меню папки выбери свой .lkmod и нажми OK.');
+            lkShowBootMode('Обычная Gothic II · мод не выбран');
           }
         }""")
 s=s.replace('  {{{ SCRIPT }}}','''  <script src="living-khorinis-hook.js"></script>
@@ -150,7 +157,7 @@ s=s.replace('<script src="living-khorinis-hook.js"></script>','<script src="lk-s
 # Optional direct GitHub sync. The browser never stores the token.
 s=s.replace("connect-src 'self' blob:;", "connect-src 'self' blob: https://api.github.com;")
 s=s.replace('<script src="lk-saves.js"></script>', '<script src="lk-saves.js"></script>\n  <script src="lk-github-saves.js"></script>')
-s=s.replace('src="living-khorinis-hook.js"', 'src="living-khorinis-hook.js?v=05"').replace('src="lk-github-saves.js"', 'src="lk-github-saves.js?v=05"')
+s=s.replace('src="living-khorinis-hook.js"', 'src="living-khorinis-hook.js?v=05-bootfix"').replace('src="lk-github-saves.js"', 'src="lk-github-saves.js?v=05"')
 s=s.replace('<a class="fm-item" role="menuitem" href="../saves.html"','<button class="fm-item" role="menuitem" type="button" onclick="lkOpenSync()">Сейвы в GitHub</button>\n          <a class="fm-item" role="menuitem" href="../saves.html"')
 s=s.replace('<input type="file" id="saves-picker"', '''<dialog id="lk-cloud" style="max-width:min(90vw,32rem); color:#eee3c8; background:#171512; border:1px solid #8e7550; border-radius:8px; padding:1rem; z-index:99999">
           <h2>Сохранения мода в GitHub</h2>
@@ -164,7 +171,6 @@ s=s.replace('<input type="file" id="saves-picker"', '''<dialog id="lk-cloud" sty
           <p id="lk-gh-status" role="status" aria-live="polite"></p>
         </dialog>
         <input type="file" id="saves-picker"''')
-s=s.replace("          if (result != null) {\n            if (typeof result.ini", "          if (result != null) {\n            globalThis.lkModActive = true; globalThis.lkModVersion = result.version;\n            if (typeof result.ini",1)
 at=s.index('    // The canvas takes')
 s=s[:at]+'''    let lkCloudBusy = false;
     const lkId = id => document.getElementById(id);
@@ -232,8 +238,13 @@ s=s[:at]+'''    let lkCloudBusy = false;
 # Store one local mod overlay separately from base game files and saves.
 s=s.replace('<input type="file" id="saves-picker"', '<input type="file" id="lk-update-picker" class="file-input" accept=".lkmod" onchange="lkInstallLocalUpdate(event)">\n        <input type="file" id="saves-picker"')
 s=s.replace('<button class="fm-item" role="menuitem" type="button" onclick="lkOpenSync()">','<button class="fm-item" role="menuitem" type="button" onclick="document.getElementById(\'lk-update-picker\').click()">Выбрать обновление мода (.lkmod)</button>\n          <button class="fm-item" role="menuitem" type="button" onclick="lkOpenSync()">')
+s=s.replace('        <div id="fm-source">','        <p id="lk-boot-mode" hidden style="margin:0;padding:8px 10px;font-size:12px;color:#e0c995;max-width:24em"></p>\n        <div id="fm-source">')
 pos=s.index('    async function removeRootEntry(name)')
-s=s[:pos]+'''    const LK_OVERLAY_FILE = 'living-khorinis-local-overlay.lkmod';
+s=s[:pos]+'''    function lkShowBootMode(message) {
+      const e=document.getElementById('lk-boot-mode');
+      if(e) { e.textContent=message; e.hidden=false; }
+    }
+    const LK_OVERLAY_FILE = 'living-khorinis-local-overlay.lkmod';
     async function lkInstallLocalUpdate(e) {
       const f=e.target.files[0];e.target.value='';
       if(!f) return;
@@ -254,6 +265,7 @@ s=s[:pos]+'''    const LK_OVERLAY_FILE = 'living-khorinis-local-overlay.lkmod';
         u.searchParams.delete('lkbase');
         u.searchParams.delete('vanilla');
         u.searchParams.delete('nomenu');
+        u.searchParams.set('checkmod','1');
         location.href=u.toString();
       }catch(err){
         if(writer) try{await writer.abort();}catch{}
