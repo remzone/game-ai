@@ -19,6 +19,7 @@
       if (!/^github_pat_[a-zA-Z0-9_]{20,255}$/.test(token)) throw Error('Нужен fine-grained токен GitHub.');
       const h = {...headers, Authorization:'Bearer '+token};
       if (options.raw) h.Accept = 'application/vnd.github.raw+json';
+      if (options.object) h.Accept = 'application/vnd.github.object+json';
       if (options.body) h['Content-Type']='application/json';
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 45000);
@@ -58,7 +59,7 @@
         throw Error('Нужный репозиторий должен оставаться приватным. Синхронизация остановлена.');
     }
     async function head(token) {
-      const x = await req(token,path+'?ref='+branch,{allowMissing:true});
+      const x = await req(token,path+'?ref='+branch,{allowMissing:true,object:true});
       if (x && (x.type!=='file' || x.path!==name || !shaPattern.test(x.sha) || !Number.isSafeInteger(x.size) || x.size<1 || x.size>max))
         throw Error('Облачная копия не похожа на корректное сохранение до 12 МиБ.');
       return x;

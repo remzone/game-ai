@@ -53,3 +53,19 @@ test('downloads by commit blob SHA, bounds length, and does not accept another t
  await assert.rejects(f.api.pull('ghp_dont_use_classic'),/fine-grained/);
  assert.equal(f.calls.length,0);
 });
+
+test('metadata reads for large saves use GitHub object media type before pull and replacement',async()=>{
+ const bytes=new Uint8Array(1024*1024+1);
+ bytes[bytes.length-1]=42;
+ const large={...meta,size:bytes.length,content:'',encoding:'none'};
+ let f=fixture(json(info),json(large),new Response(bytes));
+ const got=await f.api.pull(token);
+ assert.equal(got.length,bytes.length);
+ assert.equal(got.at(-1),42);
+ assert.equal(f.calls[1][1].headers.Accept,'application/vnd.github.object+json');
+ assert.equal(f.calls[2][1].headers.Accept,'application/vnd.github.raw+json');
+ f=fixture(json(info),json(large),json({}));
+ assert.equal(await f.api.push(token,Uint8Array.of(5),()=>true),true);
+ assert.equal(f.calls[1][1].headers.Accept,'application/vnd.github.object+json');
+ assert.equal(JSON.parse(f.calls[2][1].body).sha,hash);
+});
