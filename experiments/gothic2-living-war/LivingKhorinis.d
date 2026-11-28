@@ -1,4 +1,4 @@
-// Living Khorinis 0.6: day-driven logistics for the original Gothic II world.
+// Living Khorinis 0.7: day-driven logistics for the original Gothic II world.
 const int Patch_LivingKhorinis_Militia = 1;
 const int Patch_LivingKhorinis_Mercenaries = 2;
 const int Patch_LivingKhorinis_Neutral = 3;
@@ -74,9 +74,17 @@ var int Patch_LivingKhorinis_WaterSupply;
 var int Patch_LivingKhorinis_WaterTroops;
 var int Patch_LivingKhorinis_MilitiaFire;
 var int Patch_LivingKhorinis_MilitiaWater;
-var int Patch_LivingKhorinis_MercenaryFire;
 var int Patch_LivingKhorinis_MercenaryWater;
 var int Patch_LivingKhorinis_MercenarySect;
+var int Patch_LivingKhorinis_SectFood;
+var int Patch_LivingKhorinis_SectGold;
+var int Patch_LivingKhorinis_SectCampLost;
+var int Patch_LivingKhorinis_WaterCampLost;
+var int Patch_LivingKhorinis_FireCampLost;
+var int Patch_LivingKhorinis_CityFireLost;
+var int Patch_LivingKhorinis_CityWaterLost;
+var int Patch_LivingKhorinis_OnarWaterLost;
+var int Patch_LivingKhorinis_OnarSectLost;
 
 func int Patch_LivingKhorinis_Bounded(var int value, var int maximum) {
     if (value < 0) { return 0; };
@@ -157,9 +165,17 @@ func void Patch_LivingKhorinis_Begin(var int day) {
     Patch_LivingKhorinis_WaterTroops = 3;
     Patch_LivingKhorinis_MilitiaFire = 0;
     Patch_LivingKhorinis_MilitiaWater = 0;
-    Patch_LivingKhorinis_MercenaryFire = 0;
     Patch_LivingKhorinis_MercenaryWater = 0;
     Patch_LivingKhorinis_MercenarySect = 0;
+    Patch_LivingKhorinis_SectFood = 14;
+    Patch_LivingKhorinis_SectGold = 4;
+    Patch_LivingKhorinis_SectCampLost = 0;
+    Patch_LivingKhorinis_WaterCampLost = 0;
+    Patch_LivingKhorinis_FireCampLost = 0;
+    Patch_LivingKhorinis_CityFireLost = 0;
+    Patch_LivingKhorinis_CityWaterLost = 0;
+    Patch_LivingKhorinis_OnarWaterLost = 0;
+    Patch_LivingKhorinis_OnarSectLost = 0;
 };
 
 func void Patch_LivingKhorinis_Deliver(var int side) {
@@ -388,7 +404,7 @@ func void Patch_LivingKhorinis_Trade() {
 func void Patch_LivingKhorinis_Upkeep() {
     Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply - Patch_LivingKhorinis_MilitiaTroops - 2 - Patch_LivingKhorinis_MilitiaFire - Patch_LivingKhorinis_MilitiaWater, 100);
     if ((Patch_LivingKhorinis_MilitiaSupply == 0) && (Patch_LivingKhorinis_MilitiaTroops > 2)) { Patch_LivingKhorinis_MilitiaTroops = Patch_LivingKhorinis_MilitiaTroops - 1; };
-    Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply - Patch_LivingKhorinis_MercenaryTroops - 2 - Patch_LivingKhorinis_MercenaryFire - Patch_LivingKhorinis_MercenaryWater - Patch_LivingKhorinis_MercenarySect, 100);
+    Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply - Patch_LivingKhorinis_MercenaryTroops - 2 - Patch_LivingKhorinis_MercenaryWater - Patch_LivingKhorinis_MercenarySect, 100);
     if ((Patch_LivingKhorinis_MercenarySupply == 0) && (Patch_LivingKhorinis_MercenaryTroops > 2)) { Patch_LivingKhorinis_MercenaryTroops = Patch_LivingKhorinis_MercenaryTroops - 1; };
     Patch_LivingKhorinis_FreeSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_FreeSupply - Patch_LivingKhorinis_FreeTroops - 2, 100);
     if ((Patch_LivingKhorinis_FreeSupply == 0) && (Patch_LivingKhorinis_FreeTroops > 2)) { Patch_LivingKhorinis_FreeTroops = Patch_LivingKhorinis_FreeTroops - 1; };
@@ -398,6 +414,25 @@ func void Patch_LivingKhorinis_Upkeep() {
     if ((Patch_LivingKhorinis_WaterSupply == 0) && (Patch_LivingKhorinis_WaterTroops > 2)) { Patch_LivingKhorinis_WaterTroops = Patch_LivingKhorinis_WaterTroops - 1; };
 };
 
+// The brotherhood eats from its own camp and is not a payroll option for the city.
+func void Patch_LivingKhorinis_TendSect() {
+    if (Patch_LivingKhorinis_SectCampLost == 0) {
+        Patch_LivingKhorinis_SectFood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_SectFood + 1,28);
+    };
+};
+func int Patch_LivingKhorinis_CanHireSect() {
+    if ((Patch_LivingKhorinis_SectCampLost != 0) || (Patch_LivingKhorinis_OnarSectLost != 0) || (Patch_LivingKhorinis_MercenarySect != 0)) { return 0; };
+    return (Patch_LivingKhorinis_SectFood >= 10) && (Patch_LivingKhorinis_MercenaryGold >= 16) && (Patch_LivingKhorinis_MercenarySupply >= 12);
+};
+func void Patch_LivingKhorinis_HireSect() {
+    if (!Patch_LivingKhorinis_CanHireSect()) { return; };
+    Patch_LivingKhorinis_MercenaryGold = Patch_LivingKhorinis_MercenaryGold - 12;
+    Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_MercenarySupply - 2;
+    Patch_LivingKhorinis_SectGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_SectGold + 12,100);
+    Patch_LivingKhorinis_SectFood = Patch_LivingKhorinis_SectFood - 3;
+    Patch_LivingKhorinis_MercenarySect = 1;
+};
+
 func void Patch_LivingKhorinis_Invest() {
     if ((Patch_LivingKhorinis_MilitiaSupply >= 22) && (Patch_LivingKhorinis_MilitiaIron >= 5) && (Patch_LivingKhorinis_MilitiaGold >= 3) && (Patch_LivingKhorinis_MilitiaTroops < 10)) {
         Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_MilitiaSupply - 3;
@@ -405,14 +440,16 @@ func void Patch_LivingKhorinis_Invest() {
         Patch_LivingKhorinis_MilitiaGold = Patch_LivingKhorinis_MilitiaGold - 3;
         Patch_LivingKhorinis_MilitiaTroops = Patch_LivingKhorinis_MilitiaTroops + 1;
     };
-    if ((Patch_LivingKhorinis_MilitiaFire == 0) && (Patch_LivingKhorinis_MilitiaGold >= 20) && (Patch_LivingKhorinis_MilitiaSupply >= 18) && (Patch_LivingKhorinis_FireSupply > 13)) {
+    if ((Patch_LivingKhorinis_MilitiaFire == 0) && (Patch_LivingKhorinis_CityFireLost == 0) && (Patch_LivingKhorinis_FireCampLost == 0) && (Patch_LivingKhorinis_MilitiaGold >= 20) && (Patch_LivingKhorinis_MilitiaSupply >= 18) && (Patch_LivingKhorinis_FireSupply > 13)) {
         Patch_LivingKhorinis_MilitiaGold = Patch_LivingKhorinis_MilitiaGold - 12;
         Patch_LivingKhorinis_MilitiaFire = 1;
+        Patch_LivingKhorinis_FireSupply = Patch_LivingKhorinis_FireSupply - 3;
         Patch_LivingKhorinis_FireGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_FireGold + 12, 100);
     };
-    if ((Patch_LivingKhorinis_MilitiaWater == 0) && (Patch_LivingKhorinis_MilitiaGold >= 20) && (Patch_LivingKhorinis_MilitiaSupply >= 18) && (Patch_LivingKhorinis_WaterSupply > 13)) {
+    if ((Patch_LivingKhorinis_MilitiaWater == 0) && (Patch_LivingKhorinis_CityWaterLost == 0) && (Patch_LivingKhorinis_WaterCampLost == 0) && (Patch_LivingKhorinis_MilitiaGold >= 20) && (Patch_LivingKhorinis_MilitiaSupply >= 18) && (Patch_LivingKhorinis_WaterSupply > 13)) {
         Patch_LivingKhorinis_MilitiaGold = Patch_LivingKhorinis_MilitiaGold - 12;
         Patch_LivingKhorinis_MilitiaWater = 1;
+        Patch_LivingKhorinis_WaterSupply = Patch_LivingKhorinis_WaterSupply - 3;
         Patch_LivingKhorinis_WaterGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_WaterGold + 12, 100);
     };
     if ((Patch_LivingKhorinis_MercenarySupply >= 22) && (Patch_LivingKhorinis_MercenaryIron >= 5) && (Patch_LivingKhorinis_MercenaryGold >= 3) && (Patch_LivingKhorinis_MercenaryTroops < 13)) {
@@ -421,20 +458,13 @@ func void Patch_LivingKhorinis_Invest() {
         Patch_LivingKhorinis_MercenaryGold = Patch_LivingKhorinis_MercenaryGold - 3;
         Patch_LivingKhorinis_MercenaryTroops = Patch_LivingKhorinis_MercenaryTroops + 1;
     };
-    if ((Patch_LivingKhorinis_MercenaryFire == 0) && (Patch_LivingKhorinis_MercenaryGold >= 20) && (Patch_LivingKhorinis_MercenarySupply >= 18) && (Patch_LivingKhorinis_FireSupply > 13)) {
-        Patch_LivingKhorinis_MercenaryGold = Patch_LivingKhorinis_MercenaryGold - 12;
-        Patch_LivingKhorinis_MercenaryFire = 1;
-        Patch_LivingKhorinis_FireGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_FireGold + 12, 100);
-    };
-    if ((Patch_LivingKhorinis_MercenaryWater == 0) && (Patch_LivingKhorinis_MercenaryGold >= 20) && (Patch_LivingKhorinis_MercenarySupply >= 18) && (Patch_LivingKhorinis_WaterSupply > 13)) {
+    if ((Patch_LivingKhorinis_MercenaryWater == 0) && (Patch_LivingKhorinis_OnarWaterLost == 0) && (Patch_LivingKhorinis_WaterCampLost == 0) && (Patch_LivingKhorinis_MercenaryGold >= 31) && (Patch_LivingKhorinis_MercenarySupply >= 22) && (Patch_LivingKhorinis_WaterSupply > 32)) {
         Patch_LivingKhorinis_MercenaryGold = Patch_LivingKhorinis_MercenaryGold - 12;
         Patch_LivingKhorinis_MercenaryWater = 1;
+        Patch_LivingKhorinis_WaterSupply = Patch_LivingKhorinis_WaterSupply - 5;
         Patch_LivingKhorinis_WaterGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_WaterGold + 12, 100);
     };
-    if ((Patch_LivingKhorinis_MercenarySect == 0) && (Patch_LivingKhorinis_MercenaryGold >= 20) && (Patch_LivingKhorinis_MercenarySupply >= 18)) {
-        Patch_LivingKhorinis_MercenaryGold = Patch_LivingKhorinis_MercenaryGold - 12;
-        Patch_LivingKhorinis_MercenarySect = 1;
-    };
+    Patch_LivingKhorinis_HireSect();
 };
 
 // The first level is a lookout. A two-day construction order spends real stocks once.
@@ -507,7 +537,7 @@ func int Patch_LivingKhorinis_PlanIndustry() {
     var int cityPower;
     var int onarPower;
     cityPower = Patch_LivingKhorinis_MilitiaTroops + Patch_LivingKhorinis_MilitiaFire + Patch_LivingKhorinis_MilitiaWater;
-    onarPower = Patch_LivingKhorinis_MercenaryTroops + Patch_LivingKhorinis_MercenaryFire + Patch_LivingKhorinis_MercenaryWater + Patch_LivingKhorinis_MercenarySect;
+    onarPower = Patch_LivingKhorinis_MercenaryTroops + Patch_LivingKhorinis_MercenaryWater + Patch_LivingKhorinis_MercenarySect;
     if (Patch_LivingKhorinis_Rounds < 9) { return 0; };
     // A defended home post requires a controlled supply route and manpower.
     if ((Patch_LivingKhorinis_Owner == Patch_LivingKhorinis_Mercenaries) &&
@@ -557,7 +587,7 @@ func void Patch_LivingKhorinis_PlanOperation() {
         Patch_LivingKhorinis_AttackPost = 1;
     } else if ((Patch_LivingKhorinis_Owner == Patch_LivingKhorinis_Militia) &&
                (Patch_LivingKhorinis_MercenarySupply >= 22) &&
-               (Patch_LivingKhorinis_MercenaryTroops + Patch_LivingKhorinis_MercenaryFire + Patch_LivingKhorinis_MercenaryWater + Patch_LivingKhorinis_MercenarySect >
+               (Patch_LivingKhorinis_MercenaryTroops + Patch_LivingKhorinis_MercenaryWater + Patch_LivingKhorinis_MercenarySect >
                 Patch_LivingKhorinis_MilitiaTroops + Patch_LivingKhorinis_PostLevel + 2)) {
         Patch_LivingKhorinis_AttackSide = Patch_LivingKhorinis_Mercenaries;
         Patch_LivingKhorinis_AttackPost = 1;
@@ -600,6 +630,7 @@ func void Patch_LivingKhorinis_Advance(var int day) {
         Patch_LivingKhorinis_OutpostFreight();
         Patch_LivingKhorinis_FeedGuards();
         Patch_LivingKhorinis_Industry();
+        Patch_LivingKhorinis_TendSect();
         Patch_LivingKhorinis_Invest();
         Patch_LivingKhorinis_Fortify();
         Patch_LivingKhorinis_ResolveOperation();

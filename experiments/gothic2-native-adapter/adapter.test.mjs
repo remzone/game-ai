@@ -19,13 +19,15 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange
     const messages=[];
     let calls=0;
     const c=vm.createContext({
-        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,ItAr_NOV_L:4,ItAr_Pal_M:6,ItMw_1H_Mil_Sword:5,AR_NONE:0,hero:other,NPC_RUN:2,
+        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,ItAr_NOV_L:4,ItAr_Pal_M:6,ItMw_1H_Mil_Sword:5,AR_NONE:0,SPL_Firebolt:1,SPL_Icelance:2,SPL_Sleep:3,SPL_Cost_Firebolt:5,SPL_Cost_Icelance:7,SPL_Cost_Sleep:8,hero:other,NPC_RUN:2,
         Npc_ClearAIQueue:()=>{}, AI_GotoWP:(npc,where)=>{npc.target=where;},Npc_GetDistToWP:(npc)=>npc===other?heroRange:0,Npc_GetDistToNpc:()=>0,CreateInvItems:()=>{},AI_EquipBestMeleeWeapon:()=>{},
         B_Attack:(a,b)=>{
-          assert.match(a.instance,/^LKN_((City|Onar)Scout|FortGuard[AB]|Raider[ABC])$/);
-          assert.match(b.instance,/^LKN_((City|Onar)Scout|FortGuard[AB]|Raider[ABC])$/);
+          assert.match(a.instance,/^LKN_((City|Onar)(Scout|Blade)|FortGuard[AB]|Raider[ABC])$/);
+          assert.match(b.instance,/^LKN_((City|Onar)(Scout|Blade)|FortGuard[AB]|Raider[ABC])$/);
           messages.push("clash");
         },
+        AI_RemoveWeapon:()=>{}, AI_Wait:()=>{}, Npc_SetTarget:(npc,target)=>{npc.spellTarget=target.instance;},
+        AI_ReadySpell:(npc,spell)=>messages.push(npc.instance+':spell:'+spell), AI_Attack:npc=>messages.push(npc.instance+':cast'),
         AI_SetWalkMode:()=>{}, AI_StartState:(actor,state)=>{actor.lastState=state.name;}, IntToString:String,
         B_SetNpcVisual: (npc,sex,head,face,body,armor)=>{ npc.armor=armor; },
         Npc_IsDead:npc=>!!npc?.dead, PrintScreen:line=>messages.push(line),
@@ -61,7 +63,7 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange
 test('new units and named posts are persistent; water novice only in Jharkendar',()=>{
  const sim=simulate();
  sim.enter();sim.enter();sim.tick();
- assert.equal(sim.calls,29);
+ assert.equal(sim.calls,43);
  assert.equal(sim.actors.get('LKN_Ridge').where,'NW_BIGFARM_FARM4_PATH_01');
  assert.equal(sim.actors.get('LKN_PostGuard').name[0],'Neutral tavern lookout');
  assert.equal(sim.actors.get('LKN_OnarScout').where,'NW_BIGFARM_PATH_01');
@@ -71,7 +73,7 @@ test('new units and named posts are persistent; water novice only in Jharkendar'
  assert.equal(sim.actors.get('LKN_WaterNovice').where,'ADW_ENTRANCE_BUILDING2_04');
  sim.c.Patch_LivingKhorinis_WarUnlocked=1;
  sim.day(4);sim.tick();sim.tick();
- assert.equal(sim.messages.filter(x=>x==='clash').length,2);
+ assert.equal(sim.messages.filter(x=>x==='clash').length,4);
  sim.day(8);sim.tick();
  assert.equal(sim.actors.get('LKN_PostGuard').name[0],"Onar's mercenary lookout");
  assert.equal(sim.actors.get('LKN_PostGuard').armor,2);
@@ -162,4 +164,43 @@ test('dead miner stops production and corpses are not replaced on load',()=>{
  assert.equal(sim.c.Patch_LivingKhorinis_MineClosed,1);
  const saved=sim.save();saved.actors.delete('LKN_MineWorker');
  const reload=simulate(saved);reload.enter();assert.ok(!reload.actors.has('LKN_MineWorker'));
+});
+
+test('Water camp and Brotherhood occupy separate NewWorld camps, with Water watch post',()=>{
+ const sim=simulate();sim.enter();sim.enter();
+ assert.equal(sim.actors.get('LKN_WaterMaster').where,'NW_TROLLAREA_PORTAL_KDWWAIT_01');
+ assert.equal(sim.actors.get('LKN_WaterGuard1').where,'NW_TROLLAREA_PORTAL_03');
+ assert.ok(sim.actors.has('LKN_WaterAcolyte1')&&sim.actors.has('LKN_WaterAcolyte2'));
+ assert.equal(sim.actors.get('LKN_SectMaster').where,'NW_XARDAS_TOWER_LESTER');
+ assert.ok(sim.actors.has('LKN_SectGuard')&&sim.actors.has('LKN_SectGuard2'));
+ assert.ok(sim.actors.has('LKN_FireGuard1')&&sim.actors.has('LKN_FireGuard2'));
+ for(const prop of ['LKN_WaterCampProp','LKN_WaterWatchProp','LKN_SectCampProp','LKN_FireWatchProp'])
+  assert.equal(sim.messages.filter(x=>x.startsWith(prop+':')).length,1);
+});
+test('hired Water and Brotherhood casters walk to battle, target only opposing faction and cast once',()=>{
+ const sim=simulate();sim.enter();
+ const c=sim.c;
+ c.Patch_LivingKhorinis_MilitiaWater=1;
+ c.Patch_LivingKhorinis_MercenarySect=1;
+ c.Patch_LivingKhorinis_AttackSide=2;
+ c.Patch_LivingKhorinis_AttackPost=1;
+ c.Patch_LivingKhorinis_Dispatched=1;
+ sim.tick();sim.tick();sim.tick();
+ const water=sim.actors.get('LKN_CityWaterMage'),sect=sim.actors.get('LKN_OnarSectMage');
+ assert.equal(sect.target,'TAVERNE');assert.equal(water.target,'TAVERNE');
+ assert.equal(sect.spellTarget,'LKN_CityScout');assert.equal(water.spellTarget,'LKN_OnarScout');
+ assert.equal(sim.messages.filter(x=>x==='LKN_OnarSectMage:spell:3').length,1);
+ assert.equal(sim.messages.filter(x=>x==='LKN_CityWaterMage:spell:2').length,1);
+ c.Patch_LivingKhorinis_AttackSide=0;sim.tick();
+ assert.equal(sect.target,'NW_XARDAS_TOWER_LESTER');
+ sect.dead=true;sim.tick();
+ assert.equal(c.Patch_LivingKhorinis_OnarSectLost,1);
+ assert.equal(c.Patch_LivingKhorinis_MercenarySect,0);
+});
+test('opening unlocks the campaign once even if both mortal storytellers die',()=>{
+ const sim=simulate();sim.enter();
+ sim.actors.get('LKN_FortCaptain').dead=true;sim.actors.get('LKN_FortSteward').dead=true;
+ sim.tick();sim.tick();
+ assert.equal(sim.c.LKN_RaidStage,3);assert.equal(sim.c.Patch_LivingKhorinis_WarUnlocked,1);
+ assert.ok(!sim.messages.includes('The paladins repelled the raid.'));
 });

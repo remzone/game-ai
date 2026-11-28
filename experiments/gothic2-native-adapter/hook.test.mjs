@@ -20,7 +20,9 @@ p=Path(${JSON.stringify(folder)})
 (p/'system'/'livingkhorinis.ini').write_bytes(mod_ini(INI))
 (p/'data'/'modvdf'/'LivingKhorinis.mod').write_bytes(vdf_for(fake_dat()))
 (p/'art.mod').write_bytes(vdf_for(fake_dat(), assets()))
-old={k:v for k,v in assets().items() if k not in ['LKN_LOGS.MRM','LKN_ORE.MRM','LKN_ORE-C.TEX']}
+logistics={k:v for k,v in assets().items() if k not in ['LKN_SECT.MRM','LKN_WATER.MRM','LKN_BLUE-C.TEX','LKN_GREEN-C.TEX','LKN_FIRE.MRM','LKN_RED-C.TEX']}
+(p/'v06-art.mod').write_bytes(vdf_for(fake_dat(), logistics))
+old={k:v for k,v in logistics.items() if k not in ['LKN_LOGS.MRM','LKN_ORE.MRM','LKN_ORE-C.TEX']}
 (p/'v04-art.mod').write_bytes(vdf_for(fake_dat(), old))
 (p/'old-art.mod').write_bytes(vdf_for(fake_dat(), {k:v for k,v in old.items() if k not in ['LKN_DOCK.MRM','LKN_MINE.MRM']}))
 `], {cwd:dir});
@@ -81,11 +83,11 @@ test('one .lkmod shadows only the engine view and does not touch base bytes or s
 });
 
 
-test('accepts 0.3, 0.4, 0.5 and 0.6 asset catalogs while retaining the version tag', async ()=>{
+test('accepts 0.3 through 0.7 asset catalogs while retaining the version tag', async ()=>{
  const ini=fs.readFileSync(path.join(folder,'system/livingkhorinis.ini'));
  const ctx=vm.createContext({TextDecoder,Uint8Array,URLSearchParams});vm.runInContext(code,ctx);
- for(const [version,asset] of [['0.3','old-art.mod'],['0.4','v04-art.mod'],['0.5','art.mod'],['0.6','art.mod']]){
-   const versioned=Buffer.from(ini.toString().replace('Version=0.6','Version='+version));
+ for(const [version,asset] of [['0.3','old-art.mod'],['0.4','v04-art.mod'],['0.5','v06-art.mod'],['0.6','v06-art.mod'],['0.7','art.mod']]){
+   const versioned=Buffer.from(ini.toString().replace('Version=0.7','Version='+version));
    const volume=fs.readFileSync(path.join(folder,asset));
    const FS={
     readdir(p){return ({'/game':['system','data'],'/game/system':['LivingKhorinis.ini'],'/game/data':['modvdf'],

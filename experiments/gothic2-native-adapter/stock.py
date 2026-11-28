@@ -9,6 +9,9 @@ PREFERRED = {
     "LKN_GATEFORT": ("OW_LOOKOUT",),
     "LKN_DOCK": ("MIN_LOB_SOLDIERSHUT", "NW_MISC_POOR_HUT_01"),
     "LKN_MINE": ("OW_PLANKHUTII", "OW_LONEHUT"),
+    "LKN_WATER": ("NW_MISC_BIG_TENT_430P",),
+    "LKN_SECT": ("OW_MISC_TENT_01",),
+    "LKN_FIRE": ("MIN_LOB_SOLDIERSHUT", "NW_MISC_POOR_HUT_01"),
 }
 SIGNATURE = b"PSVDSC_V2.00\n\r\n\r"
 NAMES = {name+".MRM" for names in PREFERRED.values() for name in names}

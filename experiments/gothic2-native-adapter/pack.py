@@ -96,7 +96,7 @@ def mod_ini(base):
         if current.group(2).lower() == b"info":
             info = current
             break
-    title = b"[INFO]" + nl + b"Title=Living Khorinis - Dead Harpy Crossing" + nl + b"Version=0.6" + nl + b"Authors=Chati" + nl + nl
+    title = b"[INFO]" + nl + b"Title=Living Khorinis - Dead Harpy Crossing" + nl + b"Version=0.7" + nl + b"Authors=Chati" + nl + nl
     if info is not None and info.group(2).lower() == b"info":
         e = _BASE_INI.search(diff, info.end())
         return diff[:info.start()] + title + diff[e.start() if e else len(diff):]

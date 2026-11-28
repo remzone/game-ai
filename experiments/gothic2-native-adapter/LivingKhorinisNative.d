@@ -926,6 +926,48 @@ func void LKN_RaidTick() {
     };
 };
 
+
+func void LKN_TA_CityBlade() {
+    TA_Stand_Guarding(6,0,18,0,LKN_CityScoutWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_CityScoutWP);
+};
+instance LKN_CityBlade(Npc_Default) {
+    id = 61084;
+    name[0] = "Edgar, Khorinis assault soldier";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,33);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_CityBlade;
+};
+
+func void LKN_TA_OnarBlade() {
+    TA_Stand_Guarding(6,0,18,0,LKN_OnarScoutWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_OnarScoutWP);
+};
+instance LKN_OnarBlade(Npc_Default) {
+    id = 61085;
+    name[0] = "Valden, Onar assault soldier";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_SLD_L);
+    B_SetFightSkills(self,33);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_OnarBlade;
+};
+
+func void LKN_OrderBlade(var C_NPC npc,var string objective) {
+    if ((!Hlp_IsValidNpc(npc)) || Npc_IsDead(npc)) { return; };
+    Npc_ClearAIQueue(npc);
+    AI_GotoWP(npc,objective);
+};
 func void LKN_RoadOrders() {
     var C_NPC cityScout;
     var C_NPC onarScout;
@@ -945,6 +987,8 @@ func void LKN_RoadOrders() {
             Npc_ClearAIQueue(onarScout);
             AI_GotoWP(cityScout,LKN_CityScoutWP);
             AI_GotoWP(onarScout,LKN_OnarScoutWP);
+            LKN_OrderBlade(Hlp_GetNpc(LKN_CityBlade),LKN_CityScoutWP);
+            LKN_OrderBlade(Hlp_GetNpc(LKN_OnarBlade),LKN_OnarScoutWP);
         };
         return;
     };
@@ -958,6 +1002,8 @@ func void LKN_RoadOrders() {
         Npc_ClearAIQueue(onarScout);
         AI_GotoWP(cityScout,objective);
         AI_GotoWP(onarScout,objective);
+        LKN_OrderBlade(Hlp_GetNpc(LKN_CityBlade),objective);
+        LKN_OrderBlade(Hlp_GetNpc(LKN_OnarBlade),objective);
     };
     // A close-range encounter has no authority to affect the simulated capture,
     // so distant events give the same result. Give them swords only for this encounter.
@@ -975,6 +1021,7 @@ func void LKN_RoadOrders() {
         other = cityScout;
         B_Attack(onarScout,cityScout,AR_NONE,0);
         other = prior;
+        LKN_RaidPair(Hlp_GetNpc(LKN_CityBlade),Hlp_GetNpc(LKN_OnarBlade));
     };
 };
 
@@ -1021,6 +1068,7 @@ func void LKN_Refresh() {
         LKN_Initialized = 1;
     };
     LKN_UpdateCrewLosses();
+    LKN_UpdateCampLosses();
     Patch_LivingKhorinis_Advance(today);
     // A persistent new post actor represents the currently assigned lookout.
     // Avoid Wld_RemoveNpc: OpenGothic retains removed NPC handles in its symbol
@@ -1049,6 +1097,7 @@ func void LKN_Refresh() {
     LKN_ConstructionVisuals();
     LKN_IndustryVisuals();
     LKN_RoadOrders();
+    LKN_MageOrders();
     LKN_Busy = 0;
 };
 
@@ -1145,7 +1194,10 @@ func void LKN_OnWorldInit() {
     if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_OnarSupplyGuard,LKN_OnarDepot); };
     quartermaster = Hlp_GetNpc(LKN_OnarSupplyRear);
     if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_OnarSupplyRear,LKN_OnarDepot); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_CityBlade))) { Wld_InsertNpc(LKN_CityBlade,LKN_CityScoutWP); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_OnarBlade))) { Wld_InsertNpc(LKN_OnarBlade,LKN_OnarScoutWP); };
     LKN_FortInit();
+    LKN_CampInit();
     LKN_Refresh();
     self = previousSelf;
     other = previousOther;
@@ -1720,6 +1772,783 @@ instance DIA_LKN_MineWorker_Bread(C_INFO) {
 
 instance DIA_LKN_MineWorker_Leave(C_INFO) {
     npc = LKN_MineWorker;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+const string LKN_WaterCampWP = "NW_TROLLAREA_PORTAL_KDWWAIT_01";
+const string LKN_WaterPostWP = "NW_TROLLAREA_PORTAL_03";
+const string LKN_SectCampWP = "NW_XARDAS_TOWER_LESTER";
+const string LKN_FireHireWP = "NW_MONASTERY_ENTRY_01";
+var int LKN_WaterCampPlaced;
+var int LKN_SectCampPlaced;
+var int LKN_FireWatchPlaced;
+var int LKN_FireDonation;
+var int LKN_WaterDonation;
+var int LKN_SectDonation;
+var int LKN_CaptainLost;
+var int LKN_StewardLost;
+
+instance LKN_WaterCampProp(C_Item) {
+    name = "Water Magi expedition camp";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_WATER.3DS";
+    value = 0;
+};
+instance LKN_WaterWatchProp(C_Item) {
+    name = "Water sentry outpost";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_CROSS.3DS";
+    value = 0;
+};
+instance LKN_SectCampProp(C_Item) {
+    name = "Brotherhood shelter";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_SECT.3DS";
+    value = 0;
+};
+
+func void LKN_TA_WaterMaster() {
+    TA_Min(self,6,0,18,0,ZS_LKN_Quartermaster,LKN_WaterCampWP);
+    TA_Min(self,18,0,6,0,ZS_LKN_Quartermaster,LKN_WaterCampWP);
+};
+instance LKN_WaterMaster(Npc_Default) {
+    id = 61067;
+    name[0] = "Nerian, Water Magus";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_H);
+    daily_routine = LKN_TA_WaterMaster;
+};
+
+func void LKN_TA_WaterGuard1() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WaterPostWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_WaterPostWP);
+};
+instance LKN_WaterGuard1(Npc_Default) {
+    id = 61068;
+    name[0] = "Tarek, Water sentry";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_L_Addon);
+    B_SetFightSkills(self,30);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_WaterGuard1;
+};
+
+func void LKN_TA_WaterGuard2() {
+    TA_Stand_Guarding(6,0,18,0,"NW_TROLLAREA_PORTAL_KDWWAIT_04");
+    TA_Stand_Guarding(18,0,6,0,"NW_TROLLAREA_PORTAL_KDWWAIT_04");
+};
+instance LKN_WaterGuard2(Npc_Default) {
+    id = 61069;
+    name[0] = "Ivar, Water sentry";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_L_Addon);
+    B_SetFightSkills(self,30);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_WaterGuard2;
+};
+
+func void LKN_TA_WaterAcolyte1() {
+    TA_Study_WP(6,0,18,0,"NW_TROLLAREA_PORTAL_KDWWAIT_05");
+    TA_Study_WP(18,0,6,0,"NW_TROLLAREA_PORTAL_KDWWAIT_05");
+};
+instance LKN_WaterAcolyte1(Npc_Default) {
+    id = 61070;
+    name[0] = "Maren, Water acolyte";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_L_Addon);
+    daily_routine = LKN_TA_WaterAcolyte1;
+};
+
+func void LKN_TA_WaterAcolyte2() {
+    TA_Study_WP(6,0,18,0,"NW_TROLLAREA_PORTAL_KDWWAIT_06");
+    TA_Study_WP(18,0,6,0,"NW_TROLLAREA_PORTAL_KDWWAIT_06");
+};
+instance LKN_WaterAcolyte2(Npc_Default) {
+    id = 61071;
+    name[0] = "Darin, Water acolyte";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_L_Addon);
+    daily_routine = LKN_TA_WaterAcolyte2;
+};
+
+func void LKN_TA_SectMaster() {
+    TA_Min(self,6,0,18,0,ZS_LKN_Quartermaster,LKN_SectCampWP);
+    TA_Min(self,18,0,6,0,ZS_LKN_Quartermaster,LKN_SectCampWP);
+};
+instance LKN_SectMaster(Npc_Default) {
+    id = 61072;
+    name[0] = "Sorem, Brotherhood guru";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_NOV_L);
+    daily_routine = LKN_TA_SectMaster;
+};
+
+func void LKN_TA_SectGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_SectCampWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_SectCampWP);
+};
+instance LKN_SectGuard(Npc_Default) {
+    id = 61073;
+    name[0] = "Varek, Brotherhood guard";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_BDT_M);
+    B_SetFightSkills(self,30);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_SectGuard;
+};
+
+func void LKN_TA_SectNovice() {
+    TA_Stand_WP(6,0,18,0,LKN_SectCampWP);
+    TA_Stand_WP(18,0,6,0,LKN_SectCampWP);
+};
+instance LKN_SectNovice(Npc_Default) {
+    id = 61074;
+    name[0] = "Larik, Brotherhood novice";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_NOV_L);
+    daily_routine = LKN_TA_SectNovice;
+};
+
+func void LKN_TA_CityFireMage() {
+    TA_Stand_Guarding(6,0,18,0,LKN_FireHireWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_FireHireWP);
+};
+instance LKN_CityFireMage(Npc_Default) {
+    id = 61075;
+    name[0] = "Aurel, Khorinis Fire mage";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    fight_tactic = FAI_HUMAN_STRONG;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDF_L);
+    attribute[ATR_MANA] = 78;
+    attribute[ATR_MANA_MAX] = 78;
+    CreateInvItems(self,ItRu_FireBolt,1);
+    daily_routine = LKN_TA_CityFireMage;
+};
+
+func void LKN_TA_CityWaterMage() {
+    TA_Stand_Guarding(6,0,18,0,"NW_TROLLAREA_PORTAL_KDWWAIT_02");
+    TA_Stand_Guarding(18,0,6,0,"NW_TROLLAREA_PORTAL_KDWWAIT_02");
+};
+instance LKN_CityWaterMage(Npc_Default) {
+    id = 61076;
+    name[0] = "Nelvar, Khorinis Water mage";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    fight_tactic = FAI_HUMAN_STRONG;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_H);
+    attribute[ATR_MANA] = 78;
+    attribute[ATR_MANA_MAX] = 78;
+    CreateInvItems(self,ItRu_Icelance,1);
+    daily_routine = LKN_TA_CityWaterMage;
+};
+
+func void LKN_TA_OnarWaterMage() {
+    TA_Stand_Guarding(6,0,18,0,"NW_TROLLAREA_PORTAL_KDWWAIT_03");
+    TA_Stand_Guarding(18,0,6,0,"NW_TROLLAREA_PORTAL_KDWWAIT_03");
+};
+instance LKN_OnarWaterMage(Npc_Default) {
+    id = 61078;
+    name[0] = "Sevran, Onar Water mage";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    fight_tactic = FAI_HUMAN_STRONG;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_H);
+    attribute[ATR_MANA] = 78;
+    attribute[ATR_MANA_MAX] = 78;
+    CreateInvItems(self,ItRu_Icelance,1);
+    daily_routine = LKN_TA_OnarWaterMage;
+};
+
+func void LKN_TA_OnarSectMage() {
+    TA_Stand_Guarding(6,0,18,0,LKN_SectCampWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_SectCampWP);
+};
+instance LKN_OnarSectMage(Npc_Default) {
+    id = 61079;
+    name[0] = "Koran, Brotherhood mercenary";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    fight_tactic = FAI_HUMAN_STRONG;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_NOV_L);
+    attribute[ATR_MANA] = 78;
+    attribute[ATR_MANA_MAX] = 78;
+    CreateInvItems(self,ItRu_Sleep,1);
+    daily_routine = LKN_TA_OnarSectMage;
+};
+
+
+instance LKN_FireWatchProp(C_Item) {
+    name = "Fire monastery guardhouse";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_FIRE.3DS";
+    value = 0;
+};
+
+func void LKN_TA_FireMaster() {
+    TA_Min(self,6,0,18,0,ZS_LKN_Quartermaster,LKN_FireHireWP);
+    TA_Min(self,18,0,6,0,ZS_LKN_Quartermaster,LKN_FireHireWP);
+};
+instance LKN_FireMaster(Npc_Default) {
+    id = 61080;
+    name[0] = "Albin, Fire Magus";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDF_L);
+    daily_routine = LKN_TA_FireMaster;
+};
+
+func void LKN_TA_FireGuard1() {
+    TA_Stand_Guarding(6,0,18,0,LKN_FireHireWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_FireHireWP);
+};
+instance LKN_FireGuard1(Npc_Default) {
+    id = 61081;
+    name[0] = "Raban, monastery guard";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,30);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_FireGuard1;
+};
+
+func void LKN_TA_FireGuard2() {
+    TA_Stand_Guarding(6,0,18,0,LKN_FireHireWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_FireHireWP);
+};
+instance LKN_FireGuard2(Npc_Default) {
+    id = 61082;
+    name[0] = "Silas, monastery guard";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,30);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_FireGuard2;
+};
+
+func void LKN_TA_SectGuard2() {
+    TA_Stand_Guarding(6,0,18,0,LKN_SectCampWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_SectCampWP);
+};
+instance LKN_SectGuard2(Npc_Default) {
+    id = 61083;
+    name[0] = "Yorik, Brotherhood guard";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_BDT_M);
+    B_SetFightSkills(self,30);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_SectGuard2;
+};
+func void LKN_CampInit() {
+    var C_NPC previousSelf;
+    var C_NPC previousOther;
+    previousSelf = self;
+    previousOther = other;
+    if (LKN_WaterCampPlaced == 0) {
+        Wld_InsertItem(LKN_WaterCampProp,LKN_WaterCampWP);
+        Wld_InsertItem(LKN_WaterWatchProp,LKN_WaterPostWP);
+        LKN_WaterCampPlaced = 1;
+    };
+    if (LKN_SectCampPlaced == 0) { Wld_InsertItem(LKN_SectCampProp,LKN_SectCampWP); LKN_SectCampPlaced = 1; };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_WaterMaster))) && Patch_LivingKhorinis_WaterCampLost == 0) { Wld_InsertNpc(LKN_WaterMaster,LKN_WaterCampWP); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_WaterGuard1)))) { Wld_InsertNpc(LKN_WaterGuard1,LKN_WaterPostWP); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_WaterGuard2)))) { Wld_InsertNpc(LKN_WaterGuard2,"NW_TROLLAREA_PORTAL_KDWWAIT_04"); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_WaterAcolyte1)))) { Wld_InsertNpc(LKN_WaterAcolyte1,"NW_TROLLAREA_PORTAL_KDWWAIT_05"); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_WaterAcolyte2)))) { Wld_InsertNpc(LKN_WaterAcolyte2,"NW_TROLLAREA_PORTAL_KDWWAIT_06"); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_SectMaster))) && Patch_LivingKhorinis_SectCampLost == 0) { Wld_InsertNpc(LKN_SectMaster,LKN_SectCampWP); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_SectGuard)))) { Wld_InsertNpc(LKN_SectGuard,LKN_SectCampWP); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_SectNovice)))) { Wld_InsertNpc(LKN_SectNovice,LKN_SectCampWP); };
+    if (LKN_FireWatchPlaced == 0) { Wld_InsertItem(LKN_FireWatchProp,LKN_FireHireWP); LKN_FireWatchPlaced = 1; };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FireMaster))) && Patch_LivingKhorinis_FireCampLost == 0) { Wld_InsertNpc(LKN_FireMaster,LKN_FireHireWP); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FireGuard1)))) { Wld_InsertNpc(LKN_FireGuard1,LKN_FireHireWP); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FireGuard2)))) { Wld_InsertNpc(LKN_FireGuard2,LKN_FireHireWP); };
+    if ((!Hlp_IsValidNpc(Hlp_GetNpc(LKN_SectGuard2)))) { Wld_InsertNpc(LKN_SectGuard2,LKN_SectCampWP); };
+    self = previousSelf;
+    other = previousOther;
+};
+
+func int LKN_CampActorDead(var C_NPC actor) {
+    if (!Hlp_IsValidNpc(actor)) { return 0; };
+    return Npc_IsDead(actor);
+};
+func void LKN_UpdateCampLosses() {
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_FireMaster))) { Patch_LivingKhorinis_FireCampLost = 1; };
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_WaterMaster))) { Patch_LivingKhorinis_WaterCampLost = 1; };
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_SectMaster))) { Patch_LivingKhorinis_SectCampLost = 1; };
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_FortCaptain))) { LKN_CaptainLost = 1; };
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_FortSteward))) { LKN_StewardLost = 1; };
+    if ((LKN_CaptainLost == 1) && (LKN_StewardLost == 1) && (LKN_RaidStage != 3)) {
+        LKN_RaidStage = 3;
+        Patch_LivingKhorinis_WarUnlocked = 1;
+        LKN_RaidLeave(Hlp_GetNpc(LKN_RaiderA));
+        LKN_RaidLeave(Hlp_GetNpc(LKN_RaiderB));
+        LKN_RaidLeave(Hlp_GetNpc(LKN_RaiderC));
+    };
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_CityFireMage))) { Patch_LivingKhorinis_CityFireLost=1; Patch_LivingKhorinis_MilitiaFire=0; };
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_CityWaterMage))) { Patch_LivingKhorinis_CityWaterLost=1; Patch_LivingKhorinis_MilitiaWater=0; };
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_OnarWaterMage))) { Patch_LivingKhorinis_OnarWaterLost=1; Patch_LivingKhorinis_MercenaryWater=0; };
+    if (LKN_CampActorDead(Hlp_GetNpc(LKN_OnarSectMage))) { Patch_LivingKhorinis_OnarSectLost=1; Patch_LivingKhorinis_MercenarySect=0; };
+};
+
+func int LKN_CasterBeat(var C_NPC mage,var C_NPC enemy,var string origin,var int spell,var int mana,var int order,var int cast) {
+    var string objective;
+    if ((!Hlp_IsValidNpc(mage)) || Npc_IsDead(mage)) { return 0; };
+    if (Patch_LivingKhorinis_AttackSide == 0) {
+        if (order != 0) {
+            Npc_ClearAIQueue(mage);
+            AI_RemoveWeapon(mage);
+            AI_GotoWP(mage,origin);
+            return 3;
+        };
+        return 0;
+    };
+    objective = LKN_SupplyDestination(Patch_LivingKhorinis_AttackPost);
+    if (order != Patch_LivingKhorinis_Dispatched) {
+        Npc_ClearAIQueue(mage);
+        AI_RemoveWeapon(mage);
+        AI_GotoWP(mage,objective);
+        return 1;
+    };
+    if ((!Hlp_IsValidNpc(enemy)) || Npc_IsDead(enemy)) { return 0; };
+    if ((cast != Patch_LivingKhorinis_Dispatched) &&
+        (Npc_GetDistToWP(mage,objective) < 1450) &&
+        (Npc_GetDistToNpc(mage,enemy) < 1900) &&
+        (Npc_GetDistToNpc(mage,hero) < 3000)) {
+        Npc_ClearAIQueue(mage);
+        AI_RemoveWeapon(mage);
+        Npc_SetTarget(mage,enemy);
+        AI_ReadySpell(mage,spell,mana);
+        AI_Wait(mage,1);
+        AI_Attack(mage);
+        return 2;
+    };
+    return 0;
+};
+
+var int LKN_Order_CityFireMage;
+var int LKN_Cast_CityFireMage;
+func void LKN_Handle_CityFireMage() {
+    var C_NPC mage;
+    var int result;
+    if ((Patch_LivingKhorinis_MilitiaFire == 0) || (Patch_LivingKhorinis_CityFireLost != 0)) { return; };
+    mage = Hlp_GetNpc(LKN_CityFireMage);
+    if (!Hlp_IsValidNpc(mage)) {
+        Wld_InsertNpc(LKN_CityFireMage,LKN_FireHireWP);
+        mage = Hlp_GetNpc(LKN_CityFireMage);
+        LKN_Order_CityFireMage = 0;
+    };
+    result = LKN_CasterBeat(mage,Hlp_GetNpc(LKN_OnarScout),LKN_FireHireWP,SPL_Firebolt,SPL_Cost_Firebolt,LKN_Order_CityFireMage,LKN_Cast_CityFireMage);
+    if (result == 1) { LKN_Order_CityFireMage = Patch_LivingKhorinis_Dispatched; };
+    if (result == 2) { LKN_Cast_CityFireMage = Patch_LivingKhorinis_Dispatched; };
+    if (result == 3) { LKN_Order_CityFireMage = 0; };
+};
+
+var int LKN_Order_CityWaterMage;
+var int LKN_Cast_CityWaterMage;
+func void LKN_Handle_CityWaterMage() {
+    var C_NPC mage;
+    var int result;
+    if ((Patch_LivingKhorinis_MilitiaWater == 0) || (Patch_LivingKhorinis_CityWaterLost != 0)) { return; };
+    mage = Hlp_GetNpc(LKN_CityWaterMage);
+    if (!Hlp_IsValidNpc(mage)) {
+        Wld_InsertNpc(LKN_CityWaterMage,"NW_TROLLAREA_PORTAL_KDWWAIT_02");
+        mage = Hlp_GetNpc(LKN_CityWaterMage);
+        LKN_Order_CityWaterMage = 0;
+    };
+    result = LKN_CasterBeat(mage,Hlp_GetNpc(LKN_OnarScout),"NW_TROLLAREA_PORTAL_KDWWAIT_02",SPL_Icelance,SPL_Cost_Icelance,LKN_Order_CityWaterMage,LKN_Cast_CityWaterMage);
+    if (result == 1) { LKN_Order_CityWaterMage = Patch_LivingKhorinis_Dispatched; };
+    if (result == 2) { LKN_Cast_CityWaterMage = Patch_LivingKhorinis_Dispatched; };
+    if (result == 3) { LKN_Order_CityWaterMage = 0; };
+};
+
+var int LKN_Order_OnarWaterMage;
+var int LKN_Cast_OnarWaterMage;
+func void LKN_Handle_OnarWaterMage() {
+    var C_NPC mage;
+    var int result;
+    if ((Patch_LivingKhorinis_MercenaryWater == 0) || (Patch_LivingKhorinis_OnarWaterLost != 0)) { return; };
+    mage = Hlp_GetNpc(LKN_OnarWaterMage);
+    if (!Hlp_IsValidNpc(mage)) {
+        Wld_InsertNpc(LKN_OnarWaterMage,"NW_TROLLAREA_PORTAL_KDWWAIT_03");
+        mage = Hlp_GetNpc(LKN_OnarWaterMage);
+        LKN_Order_OnarWaterMage = 0;
+    };
+    result = LKN_CasterBeat(mage,Hlp_GetNpc(LKN_CityScout),"NW_TROLLAREA_PORTAL_KDWWAIT_03",SPL_Icelance,SPL_Cost_Icelance,LKN_Order_OnarWaterMage,LKN_Cast_OnarWaterMage);
+    if (result == 1) { LKN_Order_OnarWaterMage = Patch_LivingKhorinis_Dispatched; };
+    if (result == 2) { LKN_Cast_OnarWaterMage = Patch_LivingKhorinis_Dispatched; };
+    if (result == 3) { LKN_Order_OnarWaterMage = 0; };
+};
+
+var int LKN_Order_OnarSectMage;
+var int LKN_Cast_OnarSectMage;
+func void LKN_Handle_OnarSectMage() {
+    var C_NPC mage;
+    var int result;
+    if ((Patch_LivingKhorinis_MercenarySect == 0) || (Patch_LivingKhorinis_OnarSectLost != 0)) { return; };
+    mage = Hlp_GetNpc(LKN_OnarSectMage);
+    if (!Hlp_IsValidNpc(mage)) {
+        Wld_InsertNpc(LKN_OnarSectMage,LKN_SectCampWP);
+        mage = Hlp_GetNpc(LKN_OnarSectMage);
+        LKN_Order_OnarSectMage = 0;
+    };
+    result = LKN_CasterBeat(mage,Hlp_GetNpc(LKN_CityScout),LKN_SectCampWP,SPL_Sleep,SPL_Cost_Sleep,LKN_Order_OnarSectMage,LKN_Cast_OnarSectMage);
+    if (result == 1) { LKN_Order_OnarSectMage = Patch_LivingKhorinis_Dispatched; };
+    if (result == 2) { LKN_Cast_OnarSectMage = Patch_LivingKhorinis_Dispatched; };
+    if (result == 3) { LKN_Order_OnarSectMage = 0; };
+};
+func void LKN_MageOrders() {
+    var C_NPC previousSelf;
+    var C_NPC previousOther;
+    previousSelf = self;
+    previousOther = other;
+    LKN_Handle_CityFireMage();
+    LKN_Handle_CityWaterMage();
+    LKN_Handle_OnarWaterMage();
+    LKN_Handle_OnarSectMage();
+    self = previousSelf;
+    other = previousOther;
+};
+
+const string LKN_CampRationsText = "Camp rations: ";
+const string LKN_CampAskText = "Ask about the camp and its contracts.";
+const string LKN_CampBreadText = "Give the camp a loaf of bread.";
+func void LKN_CampReport() {
+    if (((self.id >= 61072) && (self.id <= 61074)) || (self.id == 61083)) {
+        LKN_Subtitle("Our Brotherhood shelters here. We hire out to Onar, never the paladins.");
+        Print(ConcatStrings(LKN_CampRationsText,IntToString(Patch_LivingKhorinis_SectFood)));
+        if (Patch_LivingKhorinis_MercenarySect > 0) { Print("Onar has hired our caster."); };
+    } else if ((self.id >= 61080) && (self.id <= 61082)) {
+        LKN_Subtitle("The monastery keeps its own watch. Our battle mages only serve Khorinis paladins.");
+        Print(ConcatStrings(LKN_CampRationsText,IntToString(Patch_LivingKhorinis_FireSupply)));
+        if (Patch_LivingKhorinis_MilitiaFire > 0) { Print("Khorinis has hired a Fire mage."); };
+    } else {
+        LKN_Subtitle("The Water watch guards the ruins. We send mages to either side under contract, but our camp stays neutral.");
+        Print(ConcatStrings(LKN_CampRationsText,IntToString(Patch_LivingKhorinis_WaterSupply)));
+        if (Patch_LivingKhorinis_MilitiaWater > 0) { Print("Khorinis has hired a Water mage."); };
+        if (Patch_LivingKhorinis_MercenaryWater > 0) { Print("Onar has hired a Water mage."); };
+    };
+};
+func int LKN_CampCanDonate() {
+    if (Npc_HasItems(other,ItFo_Bread) < 1) { return FALSE; };
+    if (self.id == 61072) {
+        return (LKN_SectDonation < Wld_GetDay()+1) && (Patch_LivingKhorinis_SectFood <= 23);
+    };
+    if (self.id == 61080) { return (LKN_FireDonation < Wld_GetDay()+1) && (Patch_LivingKhorinis_FireSupply <= 95); };
+    return (LKN_WaterDonation < Wld_GetDay()+1) && (Patch_LivingKhorinis_WaterSupply <= 95);
+};
+func void LKN_CampDonate() {
+    if (!LKN_CampCanDonate()) { return; };
+    Npc_RemoveInvItems(other,ItFo_Bread,1);
+    if (self.id == 61072) {
+        Patch_LivingKhorinis_SectFood = Patch_LivingKhorinis_SectFood + 5;
+        LKN_SectDonation = Wld_GetDay()+1;
+    } else if (self.id == 61080) {
+        Patch_LivingKhorinis_FireSupply = Patch_LivingKhorinis_FireSupply + 5;
+        LKN_FireDonation = Wld_GetDay()+1;
+    } else {
+        Patch_LivingKhorinis_WaterSupply = Patch_LivingKhorinis_WaterSupply + 5;
+        LKN_WaterDonation = Wld_GetDay()+1;
+    };
+    LKN_Subtitle("The camp accepts your bread.");
+};
+
+instance DIA_LKN_WaterMaster_Camp(C_INFO) {
+    npc = LKN_WaterMaster;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_WaterMaster_Gift(C_INFO) {
+    npc = LKN_WaterMaster;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CampCanDonate;
+    information = LKN_CampDonate;
+    description = LKN_CampBreadText;
+};
+
+instance DIA_LKN_WaterMaster_Leave(C_INFO) {
+    npc = LKN_WaterMaster;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_WaterGuard1_Camp(C_INFO) {
+    npc = LKN_WaterGuard1;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_WaterGuard1_Leave(C_INFO) {
+    npc = LKN_WaterGuard1;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_WaterGuard2_Camp(C_INFO) {
+    npc = LKN_WaterGuard2;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_WaterGuard2_Leave(C_INFO) {
+    npc = LKN_WaterGuard2;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_WaterAcolyte1_Camp(C_INFO) {
+    npc = LKN_WaterAcolyte1;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_WaterAcolyte1_Leave(C_INFO) {
+    npc = LKN_WaterAcolyte1;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_WaterAcolyte2_Camp(C_INFO) {
+    npc = LKN_WaterAcolyte2;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_WaterAcolyte2_Leave(C_INFO) {
+    npc = LKN_WaterAcolyte2;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_SectMaster_Camp(C_INFO) {
+    npc = LKN_SectMaster;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_SectMaster_Gift(C_INFO) {
+    npc = LKN_SectMaster;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CampCanDonate;
+    information = LKN_CampDonate;
+    description = LKN_CampBreadText;
+};
+
+instance DIA_LKN_SectMaster_Leave(C_INFO) {
+    npc = LKN_SectMaster;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_SectGuard_Camp(C_INFO) {
+    npc = LKN_SectGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_SectGuard_Leave(C_INFO) {
+    npc = LKN_SectGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_SectNovice_Camp(C_INFO) {
+    npc = LKN_SectNovice;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_SectNovice_Leave(C_INFO) {
+    npc = LKN_SectNovice;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_FireMaster_Camp(C_INFO) {
+    npc = LKN_FireMaster;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_FireMaster_Gift(C_INFO) {
+    npc = LKN_FireMaster;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CampCanDonate;
+    information = LKN_CampDonate;
+    description = LKN_CampBreadText;
+};
+
+instance DIA_LKN_FireMaster_Leave(C_INFO) {
+    npc = LKN_FireMaster;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_FireGuard1_Camp(C_INFO) {
+    npc = LKN_FireGuard1;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_FireGuard1_Leave(C_INFO) {
+    npc = LKN_FireGuard1;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_FireGuard2_Camp(C_INFO) {
+    npc = LKN_FireGuard2;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_FireGuard2_Leave(C_INFO) {
+    npc = LKN_FireGuard2;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_SectGuard2_Camp(C_INFO) {
+    npc = LKN_SectGuard2;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_CampReport;
+    description = LKN_CampAskText;
+};
+
+instance DIA_LKN_SectGuard2_Leave(C_INFO) {
+    npc = LKN_SectGuard2;
     nr = 999;
     permanent = TRUE;
     condition = LKN_Always;

@@ -124,3 +124,26 @@ test('war is held for the first-approach prologue, while both supply chains work
  assert.ok(f('Arrivals')>0);
  f.set('WarUnlocked',1);f('Advance')(27);assert.ok(f('Dispatched')>0);
 });
+
+test('Brotherhood mage is actually hired only by Onar and the neutral camp is paid',()=>{
+ const f=rules();
+ f.set('MercenaryGold',20);f.set('MercenarySupply',21);f.set('SectFood',9);
+ assert.equal(Number(f('CanHireSect')()),0);
+ f('TendSect')();assert.equal(Number(f('CanHireSect')()),1);
+ f('HireSect')();f('HireSect')();
+ assert.equal(f('MercenarySect'),1);assert.equal(f('SectGold'),16);
+ assert.equal(f('MercenaryGold'),8);assert.equal(f('MercenarySupply'),19);
+ assert.equal(typeof f('MilitiaSect'),'undefined');
+});
+
+test('Fire serves only the city, with a higher threshold for Onar to hire Water',()=>{
+ const f=rules();
+ f.set('MilitiaGold',75);f.set('MilitiaSupply',40);
+ f.set('MercenaryGold',28);f.set('MercenarySupply',40);
+ f.set('WaterSupply',40);
+ f('Invest')();
+ assert.equal(f('MilitiaFire'),1);assert.equal(f('MilitiaWater'),1);
+ assert.equal(f('MercenaryWater'),0);assert.equal(typeof f('MercenaryFire'),'undefined');
+ f.set('MercenaryGold',50);f('Invest')();
+ assert.equal(f('MercenaryWater'),1);
+});

@@ -18,6 +18,9 @@ PALETTE={
     "LKN_CLOTH":(167,152,112),
     "LKN_IRON":(76,75,70),
     "LKN_ORE":(103,143,158),
+    "LKN_BLUE":(55,85,112),
+    "LKN_GREEN":(76,94,61),
+    "LKN_RED":(131,60,44),
 }
 
 def texture(key):
@@ -30,7 +33,7 @@ def texture(key):
             if key=="LKN_OAK": q+=3*(x%6)-9 - (14 if x%8==0 else 0)
             if key=="LKN_ORE": q+=20 if (x+y*3)%13<3 else -10
             if key=="LKN_STONE": q-=15 if y%8==0 or (x+((y//8)%2)*8)%16==0 else 0
-            if key=="LKN_CLOTH":
+            if key in ("LKN_CLOTH","LKN_BLUE","LKN_GREEN","LKN_RED"):
                 # Woven lozenge on a muted campaign standard.
                 if abs(x-15)+abs(y-15)<8: q-=50
                 q+=(-3 if (x+y)%2 else 3)
@@ -113,6 +116,17 @@ class Mesh:
             self.cone("LKN_OAK",x,z,h,h+31,12,6)
         for y in (40,86):
             self.box("LKN_OAK",start,y,z+10,stop-start,8,7)
+
+    def tent(self,key,x,z,w,d,h):
+        a=(x,8,z); b=(x+w,8,z); c=(x+w,8,z+d); e=(x,8,z+d)
+        p=(x+w/2,h,z); q=(x+w/2,h,z+d)
+        self.face(key,[a,e,q,p]);self.face(key,[b,p,q,c])
+        left=(x+w/2-24,8,z);right=(x+w/2+24,8,z)
+        self.face(key,[a,p,left]);self.face(key,[right,p,b]);self.face(key,[e,c,q])
+        self.box("LKN_OAK",x+w/2-3,0,z+2,6,h,6)
+        self.box("LKN_OAK",x+w/2-3,0,z+d-3,6,h,6)
+        for at in (x-9,x+w+6):
+            for depth in (z+5,z+d-9):self.box("LKN_OAK",at,0,depth,5,20,5)
 
     def roof(self,x,y,z,w,h,d):
         a=(x,y,z);b=(x+w,y,z);c=(x+w,y,z+d);d0=(x,y,z+d)
@@ -212,8 +226,32 @@ def assets():
         ore.boulder("LKN_STONE",x,0,z,size)
     for x,y,z,size in [(-34,30,-20,8),(-22,39,-16,10),(-11,29,-23,8),(13,22,2,10),(22,18,5,8)]:
         ore.boulder("LKN_ORE",x,y,z,size)
+    water=Mesh(234,208)
+    water.tent("LKN_BLUE",-168,-89,182,193,150)
+    water.tent("LKN_BLUE",44,-29,148,157,124)
+    water.box("LKN_STONE",-35,0,-161,192,19,69)
+    water.box("LKN_OAK",51,19,-157,49,43,41)
+    water.box("LKN_OAK",107,19,-155,51,39,40)
+    water.banner(23,7,-102)
+    sect=Mesh(-202,144)
+    sect.tent("LKN_GREEN",-99,-68,180,216,139)
+    sect.tent("LKN_GREEN",82,26,139,147,109)
+    sect.palisade(-145,46,177)
+    for x,z in [(-67,-133),(-26,-103),(12,-124)]:
+        sect.boulder("LKN_STONE",x,0,z,15)
+    sect.banner(116,5,-27)
+    fire=Mesh(257,158)
+    fire.box("LKN_STONE",-101,0,-75,202,20,150)
+    fire.box("LKN_STONE",-97,20,-70,194,113,19)
+    for x in (-97,77):fire.box("LKN_STONE",x,20,-48,20,112,109)
+    fire.roof(-111,133,-86,222,73,172)
+    fire.box("LKN_OAK",-102,128,-77,206,9,154)
+    fire.box("LKN_OAK",-104,17,-62,8,120,9)
+    fire.face("LKN_RED",[(-18,129,80),(22,129,80),(22,61,80),(-18,61,80)])
+    fire.face("LKN_RED",[(-18,61,80),(22,61,80),(22,129,80),(-18,129,80)])
     result={"LKN_CROSS.MRM":m.emit(),"LKN_RIDGE.MRM":n.emit(),
             "LKN_DOCK.MRM":dock.emit(),"LKN_MINE.MRM":mine.emit(),
-            "LKN_LOGS.MRM":logs.emit(),"LKN_ORE.MRM":ore.emit()}
+            "LKN_LOGS.MRM":logs.emit(),"LKN_ORE.MRM":ore.emit(),
+            "LKN_WATER.MRM":water.emit(),"LKN_SECT.MRM":sect.emit(),"LKN_FIRE.MRM":fire.emit()}
     result.update({k+"-C.TEX":texture(k) for k in PALETTE})
     return result
