@@ -147,3 +147,19 @@ test('Fire serves only the city, with a higher threshold for Onar to hire Water'
  f.set('MercenaryGold',50);f('Invest')();
  assert.equal(f('MercenaryWater'),1);
 });
+
+test('each of the five factions may claim a neutral camp through supplies',()=>{
+ for(const [side,name] of [[1,'MilitiaSupply'],[2,'MercenarySupply'],[4,'FireSupply'],[5,'WaterSupply'],[6,'SectFood']]){
+  const f=rules();
+  f.set('Rounds',10);
+  for(const n of ['MilitiaSupply','MercenarySupply','FireSupply','WaterSupply','SectFood'])f.set(n,0);
+  f.set(name,30);
+  f('NeutralClaims')();
+  const site=f('ClaimSite');
+  assert.ok([6,7,8].includes(site));assert.equal(f('PostOwner')(site),3);
+  assert.equal(f('ClaimSide'),side);assert.equal(f(name),22);
+  f('NeutralClaims')();assert.equal(f('PostOwner')(site),3);
+  f('NeutralClaims')();assert.equal(f('PostOwner')(site),side);
+  assert.equal(f('PostFood')(site),8);
+ }
+});

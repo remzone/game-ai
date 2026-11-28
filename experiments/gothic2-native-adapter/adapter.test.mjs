@@ -19,7 +19,7 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange
     const messages=[];
     let calls=0;
     const c=vm.createContext({
-        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,ItAr_NOV_L:4,ItAr_Pal_M:6,ItMw_1H_Mil_Sword:5,AR_NONE:0,SPL_Firebolt:1,SPL_Icelance:2,SPL_Sleep:3,SPL_Cost_Firebolt:5,SPL_Cost_Icelance:7,SPL_Cost_Sleep:8,hero:other,NPC_RUN:2,
+        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,ItAr_NOV_L:4,ItAr_Pal_M:6,ITAR_MIL_L:1,ITAR_SLD_L:2,ITAR_NOV_L:4,ITAR_KDF_L:7,ITAR_KDW_L_Addon:8,ItMw_1H_Mil_Sword:5,AR_NONE:0,SPL_Firebolt:1,SPL_Icelance:2,SPL_Sleep:3,SPL_Cost_Firebolt:5,SPL_Cost_Icelance:7,SPL_Cost_Sleep:8,hero:other,NPC_RUN:2,
         Npc_ClearAIQueue:()=>{}, AI_GotoWP:(npc,where)=>{npc.target=where;},Npc_GetDistToWP:(npc)=>npc===other?heroRange:0,Npc_GetDistToNpc:()=>0,CreateInvItems:()=>{},AI_EquipBestMeleeWeapon:()=>{},
         B_Attack:(a,b)=>{
           assert.match(a.instance,/^LKN_((City|Onar)(Scout|Blade)|FortGuard[AB]|Raider[ABC])$/);
@@ -63,7 +63,7 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange
 test('new units and named posts are persistent; water novice only in Jharkendar',()=>{
  const sim=simulate();
  sim.enter();sim.enter();sim.tick();
- assert.equal(sim.calls,43);
+ assert.equal(sim.calls,57);
  assert.equal(sim.actors.get('LKN_Ridge').where,'NW_BIGFARM_FARM4_PATH_01');
  assert.equal(sim.actors.get('LKN_PostGuard').name[0],'Neutral tavern lookout');
  assert.equal(sim.actors.get('LKN_OnarScout').where,'NW_BIGFARM_PATH_01');
@@ -203,4 +203,19 @@ test('opening unlocks the campaign once even if both mortal storytellers die',()
  sim.tick();sim.tick();
  assert.equal(sim.c.LKN_RaidStage,3);assert.equal(sim.c.Patch_LivingKhorinis_WarUnlocked,1);
  assert.ok(!sim.messages.includes('The paladins repelled the raid.'));
+});
+
+test('roads have distinct posts, an expanded pass garrison, and neutral uniforms follow the owner',()=>{
+ const sim=simulate();sim.enter();sim.enter();
+ assert.equal(sim.actors.get('LKN_LighthouseGuard').where,'NW_CITY_TO_LIGHTHOUSE_03');
+ assert.equal(sim.actors.get('LKN_FarmRoadGuard').where,'NW_FARM1_OUT_05');
+ assert.equal(sim.actors.get('LKN_XardasRoadGuard').where,'NW_XARDAS_TOWER_PATH_01');
+ assert.equal(sim.actors.get('LKN_TavernRoadGuard').where,'NW_TAVERNE_OUT_01');
+ assert.equal(sim.actors.get('LKN_ValleyRoadGuard').where,'NW_TO_PASS_01');
+ assert.equal([...sim.actors.keys()].filter(n=>n.startsWith('LKN_Pass')).length,6);
+ assert.equal(sim.messages.filter(n=>n.startsWith('LKN_Build_')).length,9);
+ sim.c.Patch_LivingKhorinis_ForestCampOwner=5;sim.tick();
+ assert.equal(sim.actors.get('LKN_ForestCampGuard').armor,8);
+ sim.c.Patch_LivingKhorinis_ForestCampOwner=2;sim.tick();
+ assert.equal(sim.actors.get('LKN_ForestCampGuard').armor,2);
 });

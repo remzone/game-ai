@@ -19,6 +19,21 @@ var int Patch_LivingKhorinis_MineFood;
 var int Patch_LivingKhorinis_RidgeFood;
 var int Patch_LivingKhorinis_CrossFood;
 var int Patch_LivingKhorinis_GateFood;
+var int Patch_LivingKhorinis_ForestCampRations;
+var int Patch_LivingKhorinis_BridgeCampRations;
+var int Patch_LivingKhorinis_RiverCampRations;
+var int Patch_LivingKhorinis_LighthouseRoadRations;
+var int Patch_LivingKhorinis_FarmRoadRations;
+var int Patch_LivingKhorinis_XardasRoadRations;
+var int Patch_LivingKhorinis_TavernRoadRations;
+var int Patch_LivingKhorinis_ValleyRoadRations;
+var int Patch_LivingKhorinis_ValleyGateRations;
+var int Patch_LivingKhorinis_ForestCampOwner;
+var int Patch_LivingKhorinis_BridgeCampOwner;
+var int Patch_LivingKhorinis_RiverCampOwner;
+var int Patch_LivingKhorinis_ClaimSide;
+var int Patch_LivingKhorinis_ClaimSite;
+var int Patch_LivingKhorinis_ClaimDays;
 var int Patch_LivingKhorinis_CityCargo;
 var int Patch_LivingKhorinis_MercCargo;
 var int Patch_LivingKhorinis_CityRoute;
@@ -112,6 +127,21 @@ func void Patch_LivingKhorinis_Begin(var int day) {
     Patch_LivingKhorinis_RidgeFood = 4;
     Patch_LivingKhorinis_CrossFood = 0;
     Patch_LivingKhorinis_GateFood = 6;
+    Patch_LivingKhorinis_ForestCampRations = 0;
+    Patch_LivingKhorinis_BridgeCampRations = 0;
+    Patch_LivingKhorinis_RiverCampRations = 0;
+    Patch_LivingKhorinis_LighthouseRoadRations = 11;
+    Patch_LivingKhorinis_FarmRoadRations = 11;
+    Patch_LivingKhorinis_XardasRoadRations = 11;
+    Patch_LivingKhorinis_TavernRoadRations = 11;
+    Patch_LivingKhorinis_ValleyRoadRations = 11;
+    Patch_LivingKhorinis_ValleyGateRations = 16;
+    Patch_LivingKhorinis_ForestCampOwner = 3;
+    Patch_LivingKhorinis_BridgeCampOwner = 3;
+    Patch_LivingKhorinis_RiverCampOwner = 3;
+    Patch_LivingKhorinis_ClaimSide = 0;
+    Patch_LivingKhorinis_ClaimSite = 0;
+    Patch_LivingKhorinis_ClaimDays = 0;
     Patch_LivingKhorinis_CityCargo = 0;
     Patch_LivingKhorinis_MercCargo = 0;
     Patch_LivingKhorinis_CityRoute = 0;
@@ -224,12 +254,15 @@ func void Patch_LivingKhorinis_Harvest() {
 };
 
 
-// 1 tavern, 2 ridge, 3 docks, 4 mine, 5 road fort; a convoy never feeds an enemy or an active siege.
+// 1 tavern, 2 ridge, 3 docks, 4 mine, 5 road fort, 6–8 camps, 9–14 city stations; a convoy never feeds an enemy or an active siege.
 func int Patch_LivingKhorinis_PostOwner(var int site) {
     if (site == 1) { return Patch_LivingKhorinis_Owner; };
     if (site == 2) { return Patch_LivingKhorinis_RidgeOwner; };
     if (site == 3) { return Patch_LivingKhorinis_DockOwner; };
     if (site == 4) { return Patch_LivingKhorinis_MineOwner; };
+    if (site == 6) { return Patch_LivingKhorinis_ForestCampOwner; };
+    if (site == 7) { return Patch_LivingKhorinis_BridgeCampOwner; };
+    if (site == 8) { return Patch_LivingKhorinis_RiverCampOwner; };
     return Patch_LivingKhorinis_Militia;
 };
 func int Patch_LivingKhorinis_PostFood(var int site) {
@@ -237,6 +270,15 @@ func int Patch_LivingKhorinis_PostFood(var int site) {
     if (site == 2) { return Patch_LivingKhorinis_RidgeFood; };
     if (site == 3) { return Patch_LivingKhorinis_DockFood; };
     if (site == 4) { return Patch_LivingKhorinis_MineFood; };
+    if (site == 6) { return Patch_LivingKhorinis_ForestCampRations; };
+    if (site == 7) { return Patch_LivingKhorinis_BridgeCampRations; };
+    if (site == 8) { return Patch_LivingKhorinis_RiverCampRations; };
+    if (site == 9) { return Patch_LivingKhorinis_LighthouseRoadRations; };
+    if (site == 10) { return Patch_LivingKhorinis_FarmRoadRations; };
+    if (site == 11) { return Patch_LivingKhorinis_XardasRoadRations; };
+    if (site == 12) { return Patch_LivingKhorinis_TavernRoadRations; };
+    if (site == 13) { return Patch_LivingKhorinis_ValleyRoadRations; };
+    if (site == 14) { return Patch_LivingKhorinis_ValleyGateRations; };
     return Patch_LivingKhorinis_GateFood;
 };
 func void Patch_LivingKhorinis_SetPostFood(var int site,var int food) {
@@ -246,9 +288,19 @@ func void Patch_LivingKhorinis_SetPostFood(var int site,var int food) {
     if (site == 3) { Patch_LivingKhorinis_DockFood = food; };
     if (site == 4) { Patch_LivingKhorinis_MineFood = food; };
     if (site == 5) { Patch_LivingKhorinis_GateFood = food; };
+    if (site == 6) { Patch_LivingKhorinis_ForestCampRations = food; };
+    if (site == 7) { Patch_LivingKhorinis_BridgeCampRations = food; };
+    if (site == 8) { Patch_LivingKhorinis_RiverCampRations = food; };
+    if (site == 9) { Patch_LivingKhorinis_LighthouseRoadRations = food; };
+    if (site == 10) { Patch_LivingKhorinis_FarmRoadRations = food; };
+    if (site == 11) { Patch_LivingKhorinis_XardasRoadRations = food; };
+    if (site == 12) { Patch_LivingKhorinis_TavernRoadRations = food; };
+    if (site == 13) { Patch_LivingKhorinis_ValleyRoadRations = food; };
+    if (site == 14) { Patch_LivingKhorinis_ValleyGateRations = food; };
 };
 func int Patch_LivingKhorinis_Blocked(var int site) {
     if ((Patch_LivingKhorinis_AttackSide != 0) && (Patch_LivingKhorinis_AttackPost == site)) { return 1; };
+    if ((Patch_LivingKhorinis_ClaimSide != 0) && (Patch_LivingKhorinis_ClaimSite == site)) { return 1; };
     return 0;
 };
 func int Patch_LivingKhorinis_PriorityPost(var int side) {
@@ -265,10 +317,12 @@ func int Patch_LivingKhorinis_PriorityPost(var int side) {
     site = 1;
     best = 0;
     mostUrgent = 0;
-    while (site <= 5) {
+    while (site <= 14) {
         if ((Patch_LivingKhorinis_PostOwner(site) == side) && (!Patch_LivingKhorinis_Blocked(site))) {
             need = 9 - Patch_LivingKhorinis_PostFood(site);
             if ((site == 3) || (site == 4)) { need = need + 2; };
+            if (site >= 9) { need = need - 4; };
+            if (site == 14) { need = need + 2; };
             if (need > mostUrgent) { best = site; mostUrgent = need; };
         };
         site = site + 1;
@@ -307,6 +361,80 @@ func void Patch_LivingKhorinis_FarmFreight() {
         Patch_LivingKhorinis_BengarFood = Patch_LivingKhorinis_BengarFood - Patch_LivingKhorinis_BengarCart;
     };
 };
+
+// Claim of an open camp is a two-day supply expedition. Camps can change hands
+// but the neutral orders do not join the main city-versus-Onar war.
+func int Patch_LivingKhorinis_CampStrength(var int side,var int site) {
+    var int stock;
+    var int power;
+    if (side == 1) { stock = Patch_LivingKhorinis_MilitiaSupply; power = Patch_LivingKhorinis_MilitiaTroops; }
+    else if (side == 2) { stock = Patch_LivingKhorinis_MercenarySupply; power = Patch_LivingKhorinis_MercenaryTroops; }
+    else if (side == 4 && Patch_LivingKhorinis_FireCampLost == 0) { stock = Patch_LivingKhorinis_FireSupply; power = Patch_LivingKhorinis_FireTroops; }
+    else if (side == 5 && Patch_LivingKhorinis_WaterCampLost == 0) { stock = Patch_LivingKhorinis_WaterSupply; power = Patch_LivingKhorinis_WaterTroops; }
+    else if (side == 6 && Patch_LivingKhorinis_SectCampLost == 0) { stock = Patch_LivingKhorinis_SectFood; power = 3; }
+    else { return 0; };
+    if (stock < 15) { return 0; };
+    power = power*2 + stock/6;
+    if (site == 6 && side == 5) { power = power + 13; };
+    if (site == 7 && (side == 1 || side == 4)) { power = power + 10; };
+    if (site == 8 && (side == 2 || side == 6)) { power = power + 10; };
+    return power;
+};
+func void Patch_LivingKhorinis_SpendCampFood(var int side) {
+    if (side == 1) { Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_MilitiaSupply - 8; };
+    if (side == 2) { Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_MercenarySupply - 8; };
+    if (side == 4) { Patch_LivingKhorinis_FireSupply = Patch_LivingKhorinis_FireSupply - 8; };
+    if (side == 5) { Patch_LivingKhorinis_WaterSupply = Patch_LivingKhorinis_WaterSupply - 8; };
+    if (side == 6) { Patch_LivingKhorinis_SectFood = Patch_LivingKhorinis_SectFood - 8; };
+};
+func void Patch_LivingKhorinis_NeutralClaims() {
+    var int site;
+    var int side;
+    var int owner;
+    var int power;
+    var int margin;
+    var int best;
+    if ((Patch_LivingKhorinis_WarUnlocked == 0) || (Patch_LivingKhorinis_Rounds < 9)) { return; };
+    if (Patch_LivingKhorinis_ClaimSide != 0) {
+        Patch_LivingKhorinis_ClaimDays = Patch_LivingKhorinis_ClaimDays - 1;
+        if (Patch_LivingKhorinis_ClaimDays == 0) {
+            if (Patch_LivingKhorinis_CampStrength(Patch_LivingKhorinis_ClaimSide,Patch_LivingKhorinis_ClaimSite) > 0) {
+                if (Patch_LivingKhorinis_ClaimSite == 6) { Patch_LivingKhorinis_ForestCampOwner = Patch_LivingKhorinis_ClaimSide; };
+                if (Patch_LivingKhorinis_ClaimSite == 7) { Patch_LivingKhorinis_BridgeCampOwner = Patch_LivingKhorinis_ClaimSide; };
+                if (Patch_LivingKhorinis_ClaimSite == 8) { Patch_LivingKhorinis_RiverCampOwner = Patch_LivingKhorinis_ClaimSide; };
+                Patch_LivingKhorinis_SetPostFood(Patch_LivingKhorinis_ClaimSite,Patch_LivingKhorinis_PostFood(Patch_LivingKhorinis_ClaimSite)+8);
+                Patch_LivingKhorinis_Revision = Patch_LivingKhorinis_Revision + 1;
+            };
+            Patch_LivingKhorinis_ClaimSide = 0;
+        };
+        return;
+    };
+    site = 6;
+    best = 0;
+    while (site <= 8) {
+        owner = Patch_LivingKhorinis_PostOwner(site);
+        side = 1;
+        while (side <= 6) {
+            if (side != owner) {
+                power = Patch_LivingKhorinis_CampStrength(side,site);
+                margin = power - Patch_LivingKhorinis_CampStrength(owner,site);
+                if (owner != Patch_LivingKhorinis_Neutral) { margin = margin - 12; };
+                if (power > 0 && margin > best) {
+                    best = margin;
+                    Patch_LivingKhorinis_ClaimSide = side;
+                    Patch_LivingKhorinis_ClaimSite = site;
+                };
+            };
+            side = side + 1;
+        };
+        site = site + 1;
+    };
+    if (Patch_LivingKhorinis_ClaimSide != 0) {
+        Patch_LivingKhorinis_SpendCampFood(Patch_LivingKhorinis_ClaimSide);
+        Patch_LivingKhorinis_ClaimDays = 2;
+    };
+};
+
 func void Patch_LivingKhorinis_OutpostFreight() {
     var int remainder;
     if (Patch_LivingKhorinis_CityCargo > 0) {
@@ -345,8 +473,10 @@ func void Patch_LivingKhorinis_OutpostFreight() {
 func void Patch_LivingKhorinis_FeedGuards() {
     var int site;
     site = 1;
-    while (site <= 5) {
-        if (Patch_LivingKhorinis_PostOwner(site) != Patch_LivingKhorinis_Neutral) {
+    while (site <= 14) {
+        if ((Patch_LivingKhorinis_PostOwner(site) != Patch_LivingKhorinis_Neutral) && (site <= 5)) {
+            Patch_LivingKhorinis_SetPostFood(site,Patch_LivingKhorinis_PostFood(site) - 1);
+        } else if ((site >= 6) && (Patch_LivingKhorinis_PostOwner(site) != Patch_LivingKhorinis_Neutral) && ((Patch_LivingKhorinis_Rounds % 3 == 0) || (site == 14))) {
             Patch_LivingKhorinis_SetPostFood(site,Patch_LivingKhorinis_PostFood(site) - 1);
         };
         site = site + 1;
@@ -635,6 +765,7 @@ func void Patch_LivingKhorinis_Advance(var int day) {
         Patch_LivingKhorinis_Fortify();
         Patch_LivingKhorinis_ResolveOperation();
         Patch_LivingKhorinis_PlanOperation();
+        Patch_LivingKhorinis_NeutralClaims();
         Patch_LivingKhorinis_Day = Patch_LivingKhorinis_Day + 1;
         remaining = remaining - 1;
     };

@@ -477,11 +477,29 @@ const string LKN_CityDepot = "NW_CITY_ENTRANCE_01";
 const string LKN_OnarDepot = "NW_BIGFARM_PATH_01";
 const string LKN_FortWP = "NW_FARM1_PATH_CITY_19_B";
 const string LKN_RaidStartWP = "NW_FARM1_PATH_CITY_SHEEP_09";
+const string LKN_WP_ForestCamp = "NW_TAVERNE_TROLLAREA_08";
+const string LKN_WP_BridgeCamp = "NW_FARM2_PATH_01_B";
+const string LKN_WP_RiverCamp = "NW_FARM3_PATH_11_SMALLRIVER_02";
+const string LKN_WP_LighthouseRoad = "NW_CITY_TO_LIGHTHOUSE_03";
+const string LKN_WP_FarmRoad = "NW_FARM1_OUT_05";
+const string LKN_WP_XardasRoad = "NW_XARDAS_TOWER_PATH_01";
+const string LKN_WP_TavernRoad = "NW_TAVERNE_OUT_01";
+const string LKN_WP_ValleyRoad = "NW_TO_PASS_01";
+const string LKN_WP_ValleyGate = "NW_PASS_GATE_02";
 func string LKN_SupplyDestination(var int route) {
     if (route == 1) { return LKN_RoadPost; };
     if (route == 2) { return LKN_RidgeWP; };
     if (route == 3) { return LKN_DockWP; };
     if (route == 5) { return LKN_FortWP; };
+    if (route == 6) { return LKN_WP_ForestCamp; };
+    if (route == 7) { return LKN_WP_BridgeCamp; };
+    if (route == 8) { return LKN_WP_RiverCamp; };
+    if (route == 9) { return LKN_WP_LighthouseRoad; };
+    if (route == 10) { return LKN_WP_FarmRoad; };
+    if (route == 11) { return LKN_WP_XardasRoad; };
+    if (route == 12) { return LKN_WP_TavernRoad; };
+    if (route == 13) { return LKN_WP_ValleyRoad; };
+    if (route == 14) { return LKN_WP_ValleyGate; };
     return LKN_MineWP;
 };
 func string LKN_FreightGoal(var int who) {
@@ -1098,6 +1116,7 @@ func void LKN_Refresh() {
     LKN_IndustryVisuals();
     LKN_RoadOrders();
     LKN_MageOrders();
+    LKN_RoadNetworkVisuals();
     LKN_Busy = 0;
 };
 
@@ -1198,6 +1217,7 @@ func void LKN_OnWorldInit() {
     if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_OnarBlade))) { Wld_InsertNpc(LKN_OnarBlade,LKN_OnarScoutWP); };
     LKN_FortInit();
     LKN_CampInit();
+    LKN_RoadNetworkInit();
     LKN_Refresh();
     self = previousSelf;
     other = previousOther;
@@ -1358,6 +1378,15 @@ var int LKN_GiftCrossDay;
 var int LKN_GiftRidgeDay;
 var int LKN_GiftDockDay;
 var int LKN_GiftMineDay;
+var int LKN_GiftRoad6;
+var int LKN_GiftRoad7;
+var int LKN_GiftRoad8;
+var int LKN_GiftRoad9;
+var int LKN_GiftRoad10;
+var int LKN_GiftRoad11;
+var int LKN_GiftRoad12;
+var int LKN_GiftRoad13;
+var int LKN_GiftRoad14;
 var int LKN_GiftGateDay;
 
 func int LKN_SpeakerPost() {
@@ -1365,6 +1394,20 @@ func int LKN_SpeakerPost() {
     if (self.id == 61033) { return 2; };
     if ((self.id == 61046) || (self.id == 61048)) { return 3; };
     if ((self.id == 61047) || (self.id == 61049)) { return 4; };
+    if (self.id == 61086) { return 6; };
+    if (self.id == 61087) { return 7; };
+    if (self.id == 61088) { return 8; };
+    if (self.id == 61089) { return 9; };
+    if (self.id == 61090) { return 10; };
+    if (self.id == 61091) { return 11; };
+    if (self.id == 61092) { return 12; };
+    if (self.id == 61093) { return 13; };
+    if (self.id == 61094) { return 14; };
+    if (self.id == 61095) { return 14; };
+    if (self.id == 61096) { return 14; };
+    if (self.id == 61097) { return 14; };
+    if (self.id == 61098) { return 14; };
+    if (self.id == 61099) { return 14; };
     return 5;
 };
 func string LKN_PostJob(var int site) {
@@ -1372,17 +1415,29 @@ func string LKN_PostJob(var int site) {
     if (site == 2) { return "The ridge guards the farm road. Fresh supplies keep the watch on duty."; };
     if (site == 3) { return "You will find Jan and the logs at the harbour sawbench. No rations, no timber."; };
     if (site == 4) { return "Mikkel works the vein beside the guard. Without rations we cannot dig."; };
+    if (site >= 13) { return "The pass is garrisoned to keep the Mining Valley road closed to the orcs."; };
+    if (site >= 9) { return "The road watch escorts supplies and protects the route for Khorinis."; };
+    if (site >= 6) { return "Travelers shelter here. The camp changes hands when a faction can keep it supplied."; };
     if (LKN_RaidStage < 3) { return "Stay by the road. The watch has spotted mercenaries nearby."; };
     return "We held the fort. Food for the watch gives us a chance to hold it next time.";
 };
 func void LKN_Subtitle(var string line) {
     PrintScreen(line,-1,67,"FONT_OLD_10_WHITE.TGA",5);
 };
+func string LKN_RoadOwnerText(var int owner) {
+    if (owner == 1) { return "Under Khorinis control."; };
+    if (owner == 2) { return "Under Onar's control."; };
+    if (owner == 4) { return "Held by the Fire Order."; };
+    if (owner == 5) { return "Held by the Water Order."; };
+    if (owner == 6) { return "Held by the Brotherhood."; };
+    return "Still independent.";
+};
 func void LKN_PostSpeak() {
     var int site;
     LKN_Refresh();
     site = LKN_SpeakerPost();
     LKN_Subtitle(LKN_PostJob(site));
+    if ((site >= 6) && (site <= 8)) { Print(LKN_RoadOwnerText(Patch_LivingKhorinis_PostOwner(site))); };
     Print(ConcatStrings("Post rations: ",IntToString(Patch_LivingKhorinis_PostFood(site))));
 };
 func int LKN_LastPostGift(var int site) {
@@ -1390,6 +1445,15 @@ func int LKN_LastPostGift(var int site) {
     if (site == 2) { return LKN_GiftRidgeDay; };
     if (site == 3) { return LKN_GiftDockDay; };
     if (site == 4) { return LKN_GiftMineDay; };
+    if (site == 6) { return LKN_GiftRoad6; };
+    if (site == 7) { return LKN_GiftRoad7; };
+    if (site == 8) { return LKN_GiftRoad8; };
+    if (site == 9) { return LKN_GiftRoad9; };
+    if (site == 10) { return LKN_GiftRoad10; };
+    if (site == 11) { return LKN_GiftRoad11; };
+    if (site == 12) { return LKN_GiftRoad12; };
+    if (site == 13) { return LKN_GiftRoad13; };
+    if (site == 14) { return LKN_GiftRoad14; };
     return LKN_GiftGateDay;
 };
 func int LKN_CanFeedPost() {
@@ -1417,6 +1481,15 @@ func void LKN_FeedPost() {
     if (site == 3) { LKN_GiftDockDay = today; };
     if (site == 4) { LKN_GiftMineDay = today; };
     if (site == 5) { LKN_GiftGateDay = today; };
+    if (site == 6) { LKN_GiftRoad6 = today; };
+    if (site == 7) { LKN_GiftRoad7 = today; };
+    if (site == 8) { LKN_GiftRoad8 = today; };
+    if (site == 9) { LKN_GiftRoad9 = today; };
+    if (site == 10) { LKN_GiftRoad10 = today; };
+    if (site == 11) { LKN_GiftRoad11 = today; };
+    if (site == 12) { LKN_GiftRoad12 = today; };
+    if (site == 13) { LKN_GiftRoad13 = today; };
+    if (site == 14) { LKN_GiftRoad14 = today; };
     if (owner == Patch_LivingKhorinis_Militia) {
         Patch_LivingKhorinis_CityStanding = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_CityStanding+1,4);
     } else if (owner == Patch_LivingKhorinis_Mercenaries) {
@@ -2549,6 +2622,795 @@ instance DIA_LKN_SectGuard2_Camp(C_INFO) {
 
 instance DIA_LKN_SectGuard2_Leave(C_INFO) {
     npc = LKN_SectGuard2;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+var int LKN_RoadNetworkPlaced;
+var int LKN_Appearance_ForestCamp;
+var int LKN_Appearance_BridgeCamp;
+var int LKN_Appearance_RiverCamp;
+
+instance LKN_Build_ForestCamp(C_Item) {
+    name = "Forest crossing camp";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_SECT.3DS";
+    value = 0;
+};
+
+instance LKN_Build_BridgeCamp(C_Item) {
+    name = "Bridge road camp";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_SECT.3DS";
+    value = 0;
+};
+
+instance LKN_Build_RiverCamp(C_Item) {
+    name = "Riverbank camp";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_SECT.3DS";
+    value = 0;
+};
+
+instance LKN_Build_LighthouseRoad(C_Item) {
+    name = "Lighthouse road watch";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_DOCK.3DS";
+    value = 0;
+};
+
+instance LKN_Build_FarmRoad(C_Item) {
+    name = "Lobart road watch";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_CROSS.3DS";
+    value = 0;
+};
+
+instance LKN_Build_XardasRoad(C_Item) {
+    name = "Xardas road watch";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_CROSS.3DS";
+    value = 0;
+};
+
+instance LKN_Build_TavernRoad(C_Item) {
+    name = "Tavern road watch";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_CROSS.3DS";
+    value = 0;
+};
+
+instance LKN_Build_ValleyRoad(C_Item) {
+    name = "Valley approach watch";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_CROSS.3DS";
+    value = 0;
+};
+
+instance LKN_Build_ValleyGate(C_Item) {
+    name = "Valley of Mines garrison";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_RIDGE.3DS";
+    value = 0;
+};
+
+func void LKN_TA_ForestCampGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WP_ForestCamp);
+    TA_Stand_Guarding(18,0,6,0,LKN_WP_ForestCamp);
+};
+instance LKN_ForestCampGuard(Npc_Default) {
+    id = 61086;
+    name[0] = "Forest camp sentry";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ForestCampGuard;
+};
+
+func void LKN_TA_BridgeCampGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WP_BridgeCamp);
+    TA_Stand_Guarding(18,0,6,0,LKN_WP_BridgeCamp);
+};
+instance LKN_BridgeCampGuard(Npc_Default) {
+    id = 61087;
+    name[0] = "Bridge camp sentry";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_BridgeCampGuard;
+};
+
+func void LKN_TA_RiverCampGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WP_RiverCamp);
+    TA_Stand_Guarding(18,0,6,0,LKN_WP_RiverCamp);
+};
+instance LKN_RiverCampGuard(Npc_Default) {
+    id = 61088;
+    name[0] = "River camp sentry";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_RiverCampGuard;
+};
+
+func void LKN_TA_LighthouseGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WP_LighthouseRoad);
+    TA_Stand_Guarding(18,0,6,0,LKN_WP_LighthouseRoad);
+};
+instance LKN_LighthouseGuard(Npc_Default) {
+    id = 61089;
+    name[0] = "Khorinis guard on Lighthouse Road";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_LighthouseGuard;
+};
+
+func void LKN_TA_FarmRoadGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WP_FarmRoad);
+    TA_Stand_Guarding(18,0,6,0,LKN_WP_FarmRoad);
+};
+instance LKN_FarmRoadGuard(Npc_Default) {
+    id = 61090;
+    name[0] = "Khorinis guard at the farm junction";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_FarmRoadGuard;
+};
+
+func void LKN_TA_XardasRoadGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WP_XardasRoad);
+    TA_Stand_Guarding(18,0,6,0,LKN_WP_XardasRoad);
+};
+instance LKN_XardasRoadGuard(Npc_Default) {
+    id = 61091;
+    name[0] = "Khorinis guard on Xardas Road";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_XardasRoadGuard;
+};
+
+func void LKN_TA_TavernRoadGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WP_TavernRoad);
+    TA_Stand_Guarding(18,0,6,0,LKN_WP_TavernRoad);
+};
+instance LKN_TavernRoadGuard(Npc_Default) {
+    id = 61092;
+    name[0] = "Khorinis guard on the tavern road";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_TavernRoadGuard;
+};
+
+func void LKN_TA_ValleyRoadGuard() {
+    TA_Stand_Guarding(6,0,18,0,LKN_WP_ValleyRoad);
+    TA_Stand_Guarding(18,0,6,0,LKN_WP_ValleyRoad);
+};
+instance LKN_ValleyRoadGuard(Npc_Default) {
+    id = 61093;
+    name[0] = "Khorinis guard below the pass";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ValleyRoadGuard;
+};
+
+func void LKN_TA_PassCaptain() {
+    TA_Min(self,6,0,18,0,ZS_LKN_Quartermaster,"NW_PASS_GATEGUARD_01");
+    TA_Min(self,18,0,6,0,ZS_LKN_Quartermaster,"NW_PASS_GATEGUARD_01");
+};
+instance LKN_PassCaptain(Npc_Default) {
+    id = 61094;
+    name[0] = "Gerwin, captain of the pass";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_PAL_M);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_PassCaptain;
+};
+
+func void LKN_TA_PassKnight1() {
+    TA_Stand_Guarding(6,0,18,0,"NW_PASS_GATEGUARD_02");
+    TA_Stand_Guarding(18,0,6,0,"NW_PASS_GATEGUARD_02");
+};
+instance LKN_PassKnight1(Npc_Default) {
+    id = 61095;
+    name[0] = "Balin, knight of the pass";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_PAL_M);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_PassKnight1;
+};
+
+func void LKN_TA_PassKnight2() {
+    TA_Stand_Guarding(6,0,18,0,"NW_PASS_01");
+    TA_Stand_Guarding(18,0,6,0,"NW_PASS_01");
+};
+instance LKN_PassKnight2(Npc_Default) {
+    id = 61096;
+    name[0] = "Hardin, knight of the pass";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_PAL_M);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_PassKnight2;
+};
+
+func void LKN_TA_PassShield1() {
+    TA_Stand_Guarding(6,0,18,0,"NW_PASS_06");
+    TA_Stand_Guarding(18,0,6,0,"NW_PASS_06");
+};
+instance LKN_PassShield1(Npc_Default) {
+    id = 61097;
+    name[0] = "Otwin, pass militia";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_PassShield1;
+};
+
+func void LKN_TA_PassShield2() {
+    TA_Stand_Guarding(6,0,18,0,"NW_PASS_11");
+    TA_Stand_Guarding(18,0,6,0,"NW_PASS_11");
+};
+instance LKN_PassShield2(Npc_Default) {
+    id = 61098;
+    name[0] = "Gernot, pass militia";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_PassShield2;
+};
+
+func void LKN_TA_PassShield3() {
+    TA_Stand_Guarding(6,0,18,0,"NW_PASS_GATE_02");
+    TA_Stand_Guarding(18,0,6,0,"NW_PASS_GATE_02");
+};
+instance LKN_PassShield3(Npc_Default) {
+    id = 61099;
+    name[0] = "Arnulf, pass militia";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    B_SetFightSkills(self,34);
+    fight_tactic = FAI_HUMAN_NORMAL;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_PassShield3;
+};
+
+func void LKN_CampUniform(var C_NPC guard,var int side) {
+    if ((!Hlp_IsValidNpc(guard)) || Npc_IsDead(guard)) { return; };
+    if (side == 1) {
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_MIL_L);
+    } else if (side == 2) {
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_SLD_L);
+    } else if (side == 4) {
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_KDF_L);
+    } else if (side == 5) {
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_KDW_L_Addon);
+    } else if (side == 6) {
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_NOV_L);
+    };
+};
+func void LKN_RoadNetworkVisuals() {
+    var C_NPC guard;
+    if (LKN_Appearance_ForestCamp != Patch_LivingKhorinis_ForestCampOwner) {
+        guard = Hlp_GetNpc(LKN_ForestCampGuard);
+        if (Hlp_IsValidNpc(guard)) {
+            LKN_CampUniform(guard,Patch_LivingKhorinis_ForestCampOwner);
+            LKN_Appearance_ForestCamp = Patch_LivingKhorinis_ForestCampOwner;
+        };
+    };
+    if (LKN_Appearance_BridgeCamp != Patch_LivingKhorinis_BridgeCampOwner) {
+        guard = Hlp_GetNpc(LKN_BridgeCampGuard);
+        if (Hlp_IsValidNpc(guard)) {
+            LKN_CampUniform(guard,Patch_LivingKhorinis_BridgeCampOwner);
+            LKN_Appearance_BridgeCamp = Patch_LivingKhorinis_BridgeCampOwner;
+        };
+    };
+    if (LKN_Appearance_RiverCamp != Patch_LivingKhorinis_RiverCampOwner) {
+        guard = Hlp_GetNpc(LKN_RiverCampGuard);
+        if (Hlp_IsValidNpc(guard)) {
+            LKN_CampUniform(guard,Patch_LivingKhorinis_RiverCampOwner);
+            LKN_Appearance_RiverCamp = Patch_LivingKhorinis_RiverCampOwner;
+        };
+    };
+};
+func void LKN_RoadNetworkInit() {
+    var C_NPC oldSelf;
+    var C_NPC oldOther;
+    oldSelf = self;
+    oldOther = other;
+    if (LKN_RoadNetworkPlaced == 0) {
+        Wld_InsertItem(LKN_Build_ForestCamp,LKN_WP_ForestCamp);
+        Wld_InsertItem(LKN_Build_BridgeCamp,LKN_WP_BridgeCamp);
+        Wld_InsertItem(LKN_Build_RiverCamp,LKN_WP_RiverCamp);
+        Wld_InsertItem(LKN_Build_LighthouseRoad,LKN_WP_LighthouseRoad);
+        Wld_InsertItem(LKN_Build_FarmRoad,LKN_WP_FarmRoad);
+        Wld_InsertItem(LKN_Build_XardasRoad,LKN_WP_XardasRoad);
+        Wld_InsertItem(LKN_Build_TavernRoad,LKN_WP_TavernRoad);
+        Wld_InsertItem(LKN_Build_ValleyRoad,LKN_WP_ValleyRoad);
+        Wld_InsertItem(LKN_Build_ValleyGate,LKN_WP_ValleyGate);
+        LKN_RoadNetworkPlaced = 1;
+    };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_ForestCampGuard))) { Wld_InsertNpc(LKN_ForestCampGuard,LKN_WP_ForestCamp); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_BridgeCampGuard))) { Wld_InsertNpc(LKN_BridgeCampGuard,LKN_WP_BridgeCamp); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_RiverCampGuard))) { Wld_InsertNpc(LKN_RiverCampGuard,LKN_WP_RiverCamp); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_LighthouseGuard))) { Wld_InsertNpc(LKN_LighthouseGuard,LKN_WP_LighthouseRoad); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FarmRoadGuard))) { Wld_InsertNpc(LKN_FarmRoadGuard,LKN_WP_FarmRoad); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_XardasRoadGuard))) { Wld_InsertNpc(LKN_XardasRoadGuard,LKN_WP_XardasRoad); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_TavernRoadGuard))) { Wld_InsertNpc(LKN_TavernRoadGuard,LKN_WP_TavernRoad); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_ValleyRoadGuard))) { Wld_InsertNpc(LKN_ValleyRoadGuard,LKN_WP_ValleyRoad); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_PassCaptain))) { Wld_InsertNpc(LKN_PassCaptain,"NW_PASS_GATEGUARD_01"); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_PassKnight1))) { Wld_InsertNpc(LKN_PassKnight1,"NW_PASS_GATEGUARD_02"); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_PassKnight2))) { Wld_InsertNpc(LKN_PassKnight2,"NW_PASS_01"); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_PassShield1))) { Wld_InsertNpc(LKN_PassShield1,"NW_PASS_06"); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_PassShield2))) { Wld_InsertNpc(LKN_PassShield2,"NW_PASS_11"); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_PassShield3))) { Wld_InsertNpc(LKN_PassShield3,"NW_PASS_GATE_02"); };
+    self = oldSelf;
+    other = oldOther;
+};
+
+instance DIA_LKN_ForestCampGuard_Status(C_INFO) {
+    npc = LKN_ForestCampGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_ForestCampGuard_Bread(C_INFO) {
+    npc = LKN_ForestCampGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_ForestCampGuard_Leave(C_INFO) {
+    npc = LKN_ForestCampGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_BridgeCampGuard_Status(C_INFO) {
+    npc = LKN_BridgeCampGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_BridgeCampGuard_Bread(C_INFO) {
+    npc = LKN_BridgeCampGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_BridgeCampGuard_Leave(C_INFO) {
+    npc = LKN_BridgeCampGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_RiverCampGuard_Status(C_INFO) {
+    npc = LKN_RiverCampGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_RiverCampGuard_Bread(C_INFO) {
+    npc = LKN_RiverCampGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_RiverCampGuard_Leave(C_INFO) {
+    npc = LKN_RiverCampGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_LighthouseGuard_Status(C_INFO) {
+    npc = LKN_LighthouseGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_LighthouseGuard_Bread(C_INFO) {
+    npc = LKN_LighthouseGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_LighthouseGuard_Leave(C_INFO) {
+    npc = LKN_LighthouseGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_FarmRoadGuard_Status(C_INFO) {
+    npc = LKN_FarmRoadGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_FarmRoadGuard_Bread(C_INFO) {
+    npc = LKN_FarmRoadGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_FarmRoadGuard_Leave(C_INFO) {
+    npc = LKN_FarmRoadGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_XardasRoadGuard_Status(C_INFO) {
+    npc = LKN_XardasRoadGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_XardasRoadGuard_Bread(C_INFO) {
+    npc = LKN_XardasRoadGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_XardasRoadGuard_Leave(C_INFO) {
+    npc = LKN_XardasRoadGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_TavernRoadGuard_Status(C_INFO) {
+    npc = LKN_TavernRoadGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_TavernRoadGuard_Bread(C_INFO) {
+    npc = LKN_TavernRoadGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_TavernRoadGuard_Leave(C_INFO) {
+    npc = LKN_TavernRoadGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_ValleyRoadGuard_Status(C_INFO) {
+    npc = LKN_ValleyRoadGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_ValleyRoadGuard_Bread(C_INFO) {
+    npc = LKN_ValleyRoadGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_ValleyRoadGuard_Leave(C_INFO) {
+    npc = LKN_ValleyRoadGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_PassCaptain_Status(C_INFO) {
+    npc = LKN_PassCaptain;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_PassCaptain_Bread(C_INFO) {
+    npc = LKN_PassCaptain;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_PassCaptain_Leave(C_INFO) {
+    npc = LKN_PassCaptain;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_PassKnight1_Status(C_INFO) {
+    npc = LKN_PassKnight1;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_PassKnight1_Bread(C_INFO) {
+    npc = LKN_PassKnight1;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_PassKnight1_Leave(C_INFO) {
+    npc = LKN_PassKnight1;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_PassKnight2_Status(C_INFO) {
+    npc = LKN_PassKnight2;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_PassKnight2_Bread(C_INFO) {
+    npc = LKN_PassKnight2;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_PassKnight2_Leave(C_INFO) {
+    npc = LKN_PassKnight2;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_PassShield1_Status(C_INFO) {
+    npc = LKN_PassShield1;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_PassShield1_Bread(C_INFO) {
+    npc = LKN_PassShield1;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_PassShield1_Leave(C_INFO) {
+    npc = LKN_PassShield1;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_PassShield2_Status(C_INFO) {
+    npc = LKN_PassShield2;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_PassShield2_Bread(C_INFO) {
+    npc = LKN_PassShield2;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_PassShield2_Leave(C_INFO) {
+    npc = LKN_PassShield2;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_PassShield3_Status(C_INFO) {
+    npc = LKN_PassShield3;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_PassShield3_Bread(C_INFO) {
+    npc = LKN_PassShield3;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_PassShield3_Leave(C_INFO) {
+    npc = LKN_PassShield3;
     nr = 999;
     permanent = TRUE;
     condition = LKN_Always;
