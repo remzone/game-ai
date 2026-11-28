@@ -147,4 +147,85 @@ s=s[:start]+'''    let lkSaveImportBusy = false;
 
 '''+s[end:]
 s=s.replace('<script src="living-khorinis-hook.js"></script>','<script src="lk-saves.js"></script>\n  <script src="living-khorinis-hook.js"></script>')
+# Optional direct GitHub sync. The browser never stores the token.
+s=s.replace("connect-src 'self' blob:;", "connect-src 'self' blob: https://api.github.com;")
+s=s.replace('<script src="lk-saves.js"></script>', '<script src="lk-saves.js"></script>\n  <script src="lk-github-saves.js"></script>')
+s=s.replace('<a class="fm-item" role="menuitem" href="../saves.html"','<button class="fm-item" role="menuitem" type="button" onclick="lkOpenSync()">Сейвы в GitHub</button>\n          <a class="fm-item" role="menuitem" href="../saves.html"')
+s=s.replace('<input type="file" id="saves-picker"', '''<dialog id="lk-cloud" style="max-width:min(90vw,32rem); color:#eee3c8; background:#171512; border:1px solid #8e7550; border-radius:8px; padding:1rem; z-index:99999">
+          <h2>Сохранения мода в GitHub</h2>
+          <p>Отправляется один выбранный сейв. Токен не сохраняется после закрытия окна.</p>
+          <p><a href="../saves.html#github" target="_blank" rel="noopener" style="color:#ead19c">Как дать доступ только к репозиторию сейвов ↗</a></p>
+          <p><label>Fine-grained токен <input id="lk-gh-token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" style="width:100%;box-sizing:border-box"></label></p>
+          <p><label>Слот для отправки <select id="lk-gh-slot"></select></label></p>
+          <button type="button" id="lk-gh-push" onclick="lkSync('push')">Отправить в GitHub</button>
+          <button type="button" id="lk-gh-pull" onclick="lkSync('pull')">Загрузить из GitHub</button>
+          <button type="button" id="lk-gh-close" onclick="document.getElementById('lk-cloud').close()">Закрыть</button>
+          <p id="lk-gh-status" role="status" aria-live="polite"></p>
+        </dialog>
+        <input type="file" id="saves-picker"''')
+s=s.replace("          if (result != null) {\n            if (typeof result.ini", "          if (result != null) {\n            globalThis.lkModActive = true;\n            if (typeof result.ini",1)
+at=s.index('    // The canvas takes')
+s=s[:at]+'''    let lkCloudBusy = false;
+    const lkId = id => document.getElementById(id);
+    lkId('lk-cloud').addEventListener('close', () => { lkId('lk-gh-token').value = ''; });
+    lkId('lk-cloud').addEventListener('cancel', e => { if (lkCloudBusy) e.preventDefault(); });
+    lkId('lk-cloud').addEventListener('keydown', e => e.stopPropagation());
+    async function lkOpenSync() {
+      if (!globalThis.lkModActive) {
+        alert('Синхронизация доступна только в запущенной игре с модом. Обычные сейвы можно переносить ZIP-архивом.');
+        return;
+      }
+      if (lkId('lk-cloud').open) return;
+      const slots = lkId('lk-gh-slot');
+      const status = lkId('lk-gh-status');
+      slots.replaceChildren();
+      status.textContent = 'Выбирай только сейв из этой версии мода. Занятые слоты не перезаписываются.';
+      lkId('lk-cloud').showModal();
+      try {
+        const files = (await collectSaves()).filter(f => /^save_slot_(?:[0-9]|1[0-9]|20)\\.sav$/i.test(f.name));
+        files.sort((a,b) => a.name.localeCompare(b.name,undefined,{numeric:true}));
+        for (const f of files) {
+          const n = Number(SAVE_RE.exec(f.name)[1]);
+          slots.add(new Option(n ? 'Слот '+n : 'Быстрое сохранение',f.name));
+        }
+        lkId('lk-gh-push').disabled = !slots.value;
+      } catch { status.textContent = 'Не удалось прочитать местные сейвы.'; }
+    }
+    async function lkSync(action) {
+      const status = lkId('lk-gh-status'), picker = lkId('lk-gh-slot');
+      if (!globalThis.lkModActive || lkCloudBusy || lkSaveImportBusy) return;
+      lkCloudBusy = lkSaveImportBusy = true;
+      for (const id of ['lk-gh-push','lk-gh-pull','lk-gh-close']) lkId(id).disabled = true;
+      status.textContent = 'Ждём ответ GitHub…';
+      try {
+        const api = LivingKhorinisGitHub.create(fetch.bind(window));
+        const token = lkId('lk-gh-token').value.trim();
+        if (action === 'push') {
+          const selected = (await collectSaves()).find(f => f.name === picker.value);
+          if (!selected) throw Error('Сначала создай и выбери сохранение мода.');
+          const changed = await api.push(token, selected.bytes, () => confirm('Заменить последнюю облачную копию? Предыдущая останется в истории GitHub.'));
+          status.textContent = changed ? 'Сохранение отправлено в ветку mod-ru.' : 'Отправка отменена.';
+        } else {
+          const bytes = await api.pull(token);
+          if (!bytes) { status.textContent = 'В GitHub ещё нет сохранения. Сначала отправь его с другого устройства.'; return; }
+          const current = await collectSaves();
+          if (current.some(f => f.name.toLowerCase() !== 'save_slot_99.sav' && f.bytes.length === bytes.length && f.bytes.every((v,i) => v === bytes[i]))) {
+            status.textContent = 'Этот сейв уже есть.';
+            return;
+          }
+          const {writes} = LivingKhorinisSaves.plan(current, [{name:'save_slot_1.sav', bytes}], 20);
+          if (!writes.length) { status.textContent = 'Этот сейв уже есть.'; return; }
+          for (const s of writes) await writeSave(s.name,s.bytes);
+          status.textContent = 'Сохранение добавлено в слот '+writes[0].index+'. Открой «Загрузить игру».';
+        }
+      } catch (e) {
+        status.textContent = e instanceof TypeError || e.name === 'AbortError' ? 'Не удалось связаться с GitHub. Проверь интернет и повтори.' : (e.message || 'Ошибка синхронизации.');
+      } finally {
+        lkCloudBusy = lkSaveImportBusy = false;
+        lkId('lk-gh-push').disabled = !picker.value;
+        lkId('lk-gh-pull').disabled = lkId('lk-gh-close').disabled = false;
+      }
+    }
+
+'''+s[at:]
 Path('dist/index.html').write_text(s)

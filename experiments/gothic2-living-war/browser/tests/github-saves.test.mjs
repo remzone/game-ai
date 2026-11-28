@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import vm from 'node:vm';
+const src = readFileSync(new URL('../lk-github-saves.js',import.meta.url),'utf8');
+const token = 'github_pat_'+'x'.repeat(30);
+const hash = 'b'.repeat(40);
+const info = {private:true,visibility:'private',full_name:'remzone/living-khorinis-saves',id:1475762857};
+const meta = {type:'file',path:'latest.sav',sha:hash,size:3};
+const json = data=>Response.json(data);
+function fixture(...responses) {
+ const calls = [];
+ const box=vm.createContext({AbortController,setTimeout,clearTimeout,btoa,Uint8Array});
+ vm.runInContext(src,box);
+ const api=box.LivingKhorinisGitHub.create(async (u,o)=>{
+  assert.ok(u.startsWith('https://api.github.com/repos/remzone/living-khorinis-saves'));
+  assert.equal(o.headers.Authorization,'Bearer '+token);
+  assert.equal(o.redirect,'error');
+  calls.push([u,o]);
+  return responses.shift();
+ });
+ return {api,calls};
+}
+test('publishes only selected save bytes, to the fixed private branch',async()=>{
+ const {api,calls}=fixture(json(info),new Response(null,{status:404}),json({}));
+ const bytes = new Uint8Array(25001).map((_,i)=>i%241);
+ assert.equal(await api.push(token,bytes,()=>assert.fail()),true);
+ const body = JSON.parse(calls[2][1].body);
+ assert.equal(body.branch,'mod-ru');
+ assert.deepEqual(Buffer.from(body.content,'base64'),Buffer.from(bytes));
+ assert.equal(body.sha,undefined);
+ assert.ok(calls[2][0].endsWith('/contents/latest.sav'));
+});
+test('verifies repository identity and preserves previous writes on conflict or user cancellation',async()=>{
+ let f=fixture(json({...info,private:false}));
+ await assert.rejects(f.api.push(token,Uint8Array.of(1),()=>true),/приватным/);
+ assert.equal(f.calls.length,1);
+ f=fixture(json(info),json(meta));
+ assert.equal(await f.api.push(token,Uint8Array.of(1),()=>false),false);
+ assert.equal(f.calls.length,2);
+ f=fixture(json(info),json(meta),new Response(null,{status:409}));
+ await assert.rejects(f.api.push(token,Uint8Array.of(1),()=>true),/обновилась/);
+ assert.equal(JSON.parse(f.calls[2][1].body).sha,hash);
+});
+test('downloads by commit blob SHA, bounds length, and does not accept another token type',async()=>{
+ let f=fixture(json(info),json(meta),new Response(Uint8Array.of(2,4,6)));
+ assert.deepEqual(Array.from(await f.api.pull(token)),[2,4,6]);
+ assert.ok(f.calls[2][0].endsWith('/git/blobs/'+hash));
+ assert.equal(f.calls[2][1].headers.Accept,'application/vnd.github.raw+json');
+ f=fixture(json(info),json(meta),new Response(Uint8Array.of(2,4)));
+ await assert.rejects(f.api.pull(token),/не вся/);
+ f=fixture();
+ await assert.rejects(f.api.pull('ghp_dont_use_classic'),/fine-grained/);
+ assert.equal(f.calls.length,0);
+});

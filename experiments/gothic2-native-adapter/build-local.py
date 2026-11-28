@@ -178,7 +178,7 @@ def build(args):
         dat = scratch / "GOTHIC.DAT"
         print("Compiling Daedalus to a local DAT…", flush=True)
         subprocess.run([str(compiler), str(staged), "--runtime", str(externals),
-                        "--output-dat", str(dat)], check=True)
+                        "--output-dat", str(dat)], cwd=scratch, check=True)
         pack.package(dat, base_ini, out)
 
     return out

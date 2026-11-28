@@ -17,8 +17,13 @@
 <li>На втором устройстве запусти ту же версию игры и мода. В том же меню выбери <b>Импортировать сохранения</b>, затем в игре открой <b>Загрузить игру</b>.</li>
 <li>Занятые слоты не перезаписываются: импорт использует свободные. Если места не хватает для всего импорта, он не начнётся. Импортируй из главного меню и закрой другие вкладки с игрой на этом устройстве.</li>
 </ol>
-<h2>Личный архив в GitHub</h2>
-<p><a href="https://github.com/new" target="_blank" rel="noopener noreferrer">Создай репозиторий</a> <code>living-khorinis-saves</code>, выбери <b>Private</b> и добавь README. Заведи отдельные ветки <code>mod-ru</code> и, при необходимости, <code>vanilla-ru</code>. Ветки Git не разделяют слоты в игре.</p>
-<p>В нужной ветке выбери <b>Add file → Upload files</b>, загрузи только <code>gothic-saves.zip</code> и сделай коммит в эту ветку. На другом устройстве открой нужную ветку, скачай сам файл ZIP и импортируй через меню игры. Предыдущие копии останутся в истории коммитов. Не загружай туда <code>LivingKhorinis-import.zip</code> или папку Steam. Если архив крупнее 25 МиБ, используй <a href="https://docs.github.com/en/repositories/working-with-files/managing-files/adding-a-file-to-a-repository?platform=windows" target="_blank" rel="noopener noreferrer">загрузку через Git</a> вместо браузера.</p>
-<p>Это ручное резервное копирование. Лаунчер не отправляет сейвы сам и не просит токен GitHub.</p>
+<h2 id="github">Синхронизация мода через GitHub</h2>
+<p>Репозиторий <a href="https://github.com/remzone/living-khorinis-saves" target="_blank" rel="noopener noreferrer">living-khorinis-saves</a> уже создан и приватен. Синхронизация работает по кнопке с одним выбранным сейвом в ветке <code>mod-ru</code>. Предыдущие версии остаются в истории.</p>
+<ol>
+<li>На GitHub создай <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">fine-grained токен</a> с ограниченным сроком. В <b>Repository access</b> выбери <b>Only select repositories</b> → <code>living-khorinis-saves</code>. В <b>Repository permissions</b> укажи только <b>Contents: Read and write</b> (для загрузки на втором устройстве достаточно <b>Read-only</b>).</li>
+<li>В игре с модом открой папку → <b>Сейвы в GitHub</b>. Вставь токен только в это окно. Выбери сохранение нужного прохождения и нажми <b>Отправить в GitHub</b>.</li>
+<li>На другом устройстве запусти тот же мод, открой то же окно, введи токен и нажми <b>Загрузить из GitHub</b>. Сейв окажется в свободном слоте; номер будет указан в окне. Затем выбери его в меню «Загрузить игру».</li>
+</ol>
+<p>Токен уходит только напрямую в GitHub API и очищается при закрытии окна. Не отправляй его в чат. Файлы игры не синхронизируются. Ветка <code>vanilla-ru</code> оставлена для ручного хранения сейвов обычной игры. Не смешивай сейвы обычной игры и мода.</p>
+<p>Можно переносить все сейвы вручную по инструкции выше. Для GitHub-ветки загружай только экспорт сохранений, а не установочный ZIP игры.</p>
 </main></body></html>

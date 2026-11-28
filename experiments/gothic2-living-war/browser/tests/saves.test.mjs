@@ -29,7 +29,7 @@ test('shipped picker round-trips a synthetic ZIP without touching occupied stora
  assert.match(html,/href="\.\.\/saves\.html"/);
  assert.match(html,/src="lk-saves\.js"/);
  const codec=html.slice(html.indexOf('    const SAVE_RE'),html.indexOf('    async function downloadSaves'));
- const handler=html.slice(html.indexOf('    let lkSaveImportBusy'),html.indexOf('    // The canvas takes'));
+ const handler=html.slice(html.indexOf('    let lkSaveImportBusy'),html.indexOf('    let lkCloudBusy'));
  const box=context(), existing=[file(2,99)], writes=[], toasts=[];
  vm.runInContext(codec+'\nglobalThis.pack=zipStore;',box);
  box.collectSaves=async()=>existing;
