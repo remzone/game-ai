@@ -1,4 +1,4 @@
-// Living Khorinis 0.7: day-driven logistics for the original Gothic II world.
+// Living Khorinis 0.8: day-driven logistics for the original Gothic II world.
 const int Patch_LivingKhorinis_Militia = 1;
 const int Patch_LivingKhorinis_Mercenaries = 2;
 const int Patch_LivingKhorinis_Neutral = 3;
@@ -33,6 +33,7 @@ var int Patch_LivingKhorinis_BridgeCampOwner;
 var int Patch_LivingKhorinis_RiverCampOwner;
 var int Patch_LivingKhorinis_ClaimSide;
 var int Patch_LivingKhorinis_ClaimSite;
+var int Patch_LivingKhorinis_ScoutReserved;
 var int Patch_LivingKhorinis_ClaimDays;
 var int Patch_LivingKhorinis_CityCargo;
 var int Patch_LivingKhorinis_MercCargo;
@@ -141,6 +142,7 @@ func void Patch_LivingKhorinis_Begin(var int day) {
     Patch_LivingKhorinis_RiverCampOwner = 3;
     Patch_LivingKhorinis_ClaimSide = 0;
     Patch_LivingKhorinis_ClaimSite = 0;
+    Patch_LivingKhorinis_ScoutReserved = 0;
     Patch_LivingKhorinis_ClaimDays = 0;
     Patch_LivingKhorinis_CityCargo = 0;
     Patch_LivingKhorinis_MercCargo = 0;
@@ -387,6 +389,17 @@ func void Patch_LivingKhorinis_SpendCampFood(var int side) {
     if (side == 5) { Patch_LivingKhorinis_WaterSupply = Patch_LivingKhorinis_WaterSupply - 8; };
     if (side == 6) { Patch_LivingKhorinis_SectFood = Patch_LivingKhorinis_SectFood - 8; };
 };
+// The same ownership ledger is used by strategy and the physically arriving patrol.
+func int Patch_LivingKhorinis_ScoutCapture(var int side,var int site) {
+    if ((site < 6) || (site > 8) || (side < 1) || (side > 6) || (side == 3)) { return 0; };
+    if (site == 6) { Patch_LivingKhorinis_ForestCampOwner = side; };
+    if (site == 7) { Patch_LivingKhorinis_BridgeCampOwner = side; };
+    if (site == 8) { Patch_LivingKhorinis_RiverCampOwner = side; };
+    Patch_LivingKhorinis_SetPostFood(site,Patch_LivingKhorinis_PostFood(site)+8);
+    Patch_LivingKhorinis_Revision = Patch_LivingKhorinis_Revision + 1;
+    return 1;
+};
+
 func void Patch_LivingKhorinis_NeutralClaims() {
     var int site;
     var int side;
@@ -399,11 +412,7 @@ func void Patch_LivingKhorinis_NeutralClaims() {
         Patch_LivingKhorinis_ClaimDays = Patch_LivingKhorinis_ClaimDays - 1;
         if (Patch_LivingKhorinis_ClaimDays == 0) {
             if (Patch_LivingKhorinis_CampStrength(Patch_LivingKhorinis_ClaimSide,Patch_LivingKhorinis_ClaimSite) > 0) {
-                if (Patch_LivingKhorinis_ClaimSite == 6) { Patch_LivingKhorinis_ForestCampOwner = Patch_LivingKhorinis_ClaimSide; };
-                if (Patch_LivingKhorinis_ClaimSite == 7) { Patch_LivingKhorinis_BridgeCampOwner = Patch_LivingKhorinis_ClaimSide; };
-                if (Patch_LivingKhorinis_ClaimSite == 8) { Patch_LivingKhorinis_RiverCampOwner = Patch_LivingKhorinis_ClaimSide; };
-                Patch_LivingKhorinis_SetPostFood(Patch_LivingKhorinis_ClaimSite,Patch_LivingKhorinis_PostFood(Patch_LivingKhorinis_ClaimSite)+8);
-                Patch_LivingKhorinis_Revision = Patch_LivingKhorinis_Revision + 1;
+                Patch_LivingKhorinis_ScoutCapture(Patch_LivingKhorinis_ClaimSide,Patch_LivingKhorinis_ClaimSite);
             };
             Patch_LivingKhorinis_ClaimSide = 0;
         };
@@ -415,7 +424,7 @@ func void Patch_LivingKhorinis_NeutralClaims() {
         owner = Patch_LivingKhorinis_PostOwner(site);
         side = 1;
         while (side <= 6) {
-            if (side != owner) {
+            if ((side != owner) && (site != Patch_LivingKhorinis_ScoutReserved)) {
                 power = Patch_LivingKhorinis_CampStrength(side,site);
                 margin = power - Patch_LivingKhorinis_CampStrength(owner,site);
                 if (owner != Patch_LivingKhorinis_Neutral) { margin = margin - 12; };

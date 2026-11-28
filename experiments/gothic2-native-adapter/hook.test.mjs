@@ -83,11 +83,11 @@ test('one .lkmod shadows only the engine view and does not touch base bytes or s
 });
 
 
-test('accepts 0.3 through 0.7 asset catalogs while retaining the version tag', async ()=>{
+test('accepts 0.3 through 0.8 asset catalogs while retaining the version tag', async ()=>{
  const ini=fs.readFileSync(path.join(folder,'system/livingkhorinis.ini'));
  const ctx=vm.createContext({TextDecoder,Uint8Array,URLSearchParams});vm.runInContext(code,ctx);
- for(const [version,asset] of [['0.3','old-art.mod'],['0.4','v04-art.mod'],['0.5','v06-art.mod'],['0.6','v06-art.mod'],['0.7','art.mod']]){
-   const versioned=Buffer.from(ini.toString().replace('Version=0.7','Version='+version));
+ for(const [version,asset] of [['0.3','old-art.mod'],['0.4','v04-art.mod'],['0.5','v06-art.mod'],['0.6','v06-art.mod'],['0.7','art.mod'],['0.8','art.mod']]){
+   const versioned=Buffer.from(ini.toString().replace('Version=0.8','Version='+version));
    const volume=fs.readFileSync(path.join(folder,asset));
    const FS={
     readdir(p){return ({'/game':['system','data'],'/game/system':['LivingKhorinis.ini'],'/game/data':['modvdf'],

@@ -60,6 +60,16 @@ class Native(unittest.TestCase):
             self.assertEqual(src.read_bytes(), b'"OW_LOOKOUT.3DS" "OW_LOOKOUT.3DS" "LKN_DOCK.3DS"')
             self.assertFalse((data / "OW_LOOKOUT.MRM").exists())
 
+    def test_death_hook_only_notifies_scouting_roster(self):
+        original = b'// ignored FUNC VOID ZS_Dead() {\nfunc void ZS_Dead ()\r\n{\r\n    NormalDeath();\r\n};'
+        patched = stage.patch_human_death(original)
+        self.assertIn(stage.DEATH_HOOK, patched)
+        self.assertEqual(patched.count(b'NormalDeath();'), 1)
+        self.assertIn(b'self.id >= 61086', stage.DEATH_HOOK)
+        self.assertIn(b'self.id <= 61108', stage.DEATH_HOOK)
+        with self.assertRaises(ValueError):
+            stage.patch_human_death(patched)
+
     def test_vdf_layout_roundtrip(self):
         payload = fake_dat()
         pack.check_dat(payload)

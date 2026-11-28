@@ -18,6 +18,8 @@ COMMENT_OR_STRING = re.compile(rb'//[^\r\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"')
 HOOK = b'LKN_OnWorldInit(); // Chati Living Khorinis'
 ADDON_BODY = re.compile(rb'\bfunc\s+void\s+init_addonworld\s*\(\s*\)\s*\{', re.I)
 ADDON_HOOK = b'LKN_OnAddonInit(); // Chati Living Khorinis'
+DEATH_BODY = re.compile(rb'\bfunc\s+void\s+zs_dead\s*\(\s*\)\s*\{', re.I)
+DEATH_HOOK = b'if (((self.id >= 61086) && (self.id <= 61088)) || ((self.id >= 61100) && (self.id <= 61108))) { LKN_ScoutDeath(); };'
 
 
 def ci_child(parent, name):
@@ -46,6 +48,16 @@ def patch_bytes(startup):
     return startup
 
 
+def patch_human_death(data):
+    masked = COMMENT_OR_STRING.sub(lambda m: b' ' * len(m.group()), data)
+    candidates = list(DEATH_BODY.finditer(masked))
+    if len(candidates) != 1 or re.search(rb'\bLKN_ScoutDeath\s*\(', masked, re.I):
+        raise ValueError('Unexpected human death state; cannot track recon casualties safely.')
+    pos = candidates[0].end()
+    nl = b'\r\n' if b'\r\n' in data else b'\n'
+    return data[:pos] + nl + b'    ' + DEATH_HOOK + nl + data[pos:]
+
+
 def prepare(source, dest, rules=RULES):
     source, dest = source.resolve(strict=True), dest.resolve()
     if not source.is_dir():
@@ -72,6 +84,10 @@ def prepare(source, dest, rules=RULES):
     for part in parts:
         startup = ci_child(startup, part)
     startup_patch = patch_bytes(startup.read_bytes())
+    death = [p for p in source.rglob('*') if p.is_file() and p.name.lower()=='zs_dead.d' and p.parent.name.lower()=='zs_human']
+    if len(death) > 1:
+        raise ValueError('Expected at most one human ZS_Dead source.')
+    dead_patch = patch_human_death(death[0].read_bytes()) if death else None
     core = rules.resolve(strict=True).read_bytes()
     adapter = ADAPTER.read_bytes()
     nl = b'\r\n' if b'\r\n' in data else b'\n'
@@ -87,6 +103,8 @@ def prepare(source, dest, rules=RULES):
         (mod / 'LivingKhorinisNative.d').write_bytes(adapter)
         (dest / src.name).write_bytes(new_src)
         (dest / startup.relative_to(source)).write_bytes(startup_patch)
+        if dead_patch is not None:
+            (dest / death[0].relative_to(source)).write_bytes(dead_patch)
     except Exception:
         shutil.rmtree(dest)
         raise

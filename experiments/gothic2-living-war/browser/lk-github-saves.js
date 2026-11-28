@@ -13,7 +13,7 @@
   };
   const valid = bytes => bytes?.length > 0 && bytes.length <= max;
   function create(fetcher, version) {
-    const name = version === '0.7' ? 'latest-v07.sav' : version === '0.6' ? 'latest-v06.sav' : version === '0.5' ? 'latest-v05.sav' : version === '0.4' ? 'latest-v04.sav' : version === '0.3' ? 'latest-v03.sav' : 'latest.sav';
+    const name = version === '0.8' ? 'latest-v08.sav' : version === '0.7' ? 'latest-v07.sav' : version === '0.6' ? 'latest-v06.sav' : version === '0.5' ? 'latest-v05.sav' : version === '0.4' ? 'latest-v04.sav' : version === '0.3' ? 'latest-v03.sav' : 'latest.sav';
     const path = '/contents/' + name;
     async function req(token, endpoint, options = {}) {
       if (!/^github_pat_[a-zA-Z0-9_]{20,255}$/.test(token)) throw Error('Нужен fine-grained токен GitHub.');

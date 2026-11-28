@@ -1116,6 +1116,8 @@ func void LKN_Refresh() {
     LKN_IndustryVisuals();
     LKN_RoadOrders();
     LKN_MageOrders();
+    LKN_ScoutTick();
+    LKN_ScoutUniforms();
     LKN_RoadNetworkVisuals();
     LKN_Busy = 0;
 };
@@ -1218,6 +1220,7 @@ func void LKN_OnWorldInit() {
     LKN_FortInit();
     LKN_CampInit();
     LKN_RoadNetworkInit();
+    LKN_ScoutWorldInit();
     LKN_Refresh();
     self = previousSelf;
     other = previousOther;
@@ -2716,8 +2719,8 @@ instance LKN_Build_ValleyGate(C_Item) {
 };
 
 func void LKN_TA_ForestCampGuard() {
-    TA_Stand_Guarding(6,0,18,0,LKN_WP_ForestCamp);
-    TA_Stand_Guarding(18,0,6,0,LKN_WP_ForestCamp);
+    TA_Min(self,6,0,18,0,ZS_LKN_CampWatch,LKN_WP_ForestCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_CampWatch,LKN_WP_ForestCamp);
 };
 instance LKN_ForestCampGuard(Npc_Default) {
     id = 61086;
@@ -2734,8 +2737,8 @@ instance LKN_ForestCampGuard(Npc_Default) {
 };
 
 func void LKN_TA_BridgeCampGuard() {
-    TA_Stand_Guarding(6,0,18,0,LKN_WP_BridgeCamp);
-    TA_Stand_Guarding(18,0,6,0,LKN_WP_BridgeCamp);
+    TA_Min(self,6,0,18,0,ZS_LKN_CampWatch,LKN_WP_BridgeCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_CampWatch,LKN_WP_BridgeCamp);
 };
 instance LKN_BridgeCampGuard(Npc_Default) {
     id = 61087;
@@ -2752,8 +2755,8 @@ instance LKN_BridgeCampGuard(Npc_Default) {
 };
 
 func void LKN_TA_RiverCampGuard() {
-    TA_Stand_Guarding(6,0,18,0,LKN_WP_RiverCamp);
-    TA_Stand_Guarding(18,0,6,0,LKN_WP_RiverCamp);
+    TA_Min(self,6,0,18,0,ZS_LKN_CampWatch,LKN_WP_RiverCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_CampWatch,LKN_WP_RiverCamp);
 };
 instance LKN_RiverCampGuard(Npc_Default) {
     id = 61088;
@@ -3022,9 +3025,9 @@ func void LKN_RoadNetworkInit() {
         Wld_InsertItem(LKN_Build_ValleyGate,LKN_WP_ValleyGate);
         LKN_RoadNetworkPlaced = 1;
     };
-    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_ForestCampGuard))) { Wld_InsertNpc(LKN_ForestCampGuard,LKN_WP_ForestCamp); };
-    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_BridgeCampGuard))) { Wld_InsertNpc(LKN_BridgeCampGuard,LKN_WP_BridgeCamp); };
-    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_RiverCampGuard))) { Wld_InsertNpc(LKN_RiverCampGuard,LKN_WP_RiverCamp); };
+    if ((LKN_ScoutDef6ADead == 0) && !Hlp_IsValidNpc(Hlp_GetNpc(LKN_ForestCampGuard))) { Wld_InsertNpc(LKN_ForestCampGuard,LKN_WP_ForestCamp); };
+    if ((LKN_ScoutDef7ADead == 0) && !Hlp_IsValidNpc(Hlp_GetNpc(LKN_BridgeCampGuard))) { Wld_InsertNpc(LKN_BridgeCampGuard,LKN_WP_BridgeCamp); };
+    if ((LKN_ScoutDef8ADead == 0) && !Hlp_IsValidNpc(Hlp_GetNpc(LKN_RiverCampGuard))) { Wld_InsertNpc(LKN_RiverCampGuard,LKN_WP_RiverCamp); };
     if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_LighthouseGuard))) { Wld_InsertNpc(LKN_LighthouseGuard,LKN_WP_LighthouseRoad); };
     if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FarmRoadGuard))) { Wld_InsertNpc(LKN_FarmRoadGuard,LKN_WP_FarmRoad); };
     if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_XardasRoadGuard))) { Wld_InsertNpc(LKN_XardasRoadGuard,LKN_WP_XardasRoad); };
@@ -3416,4 +3419,847 @@ instance DIA_LKN_PassShield3_Leave(C_INFO) {
     condition = LKN_Always;
     information = LKN_Leave;
     description = LKN_EndPostTalk;
+};
+
+
+// A single active reconnaissance assignment. The owner changes only after
+// a living patrol has reached the objective and the previous garrison is gone.
+var int LKN_ScoutStatus;
+var int LKN_ScoutSite;
+var int LKN_ScoutSide;
+var int LKN_ScoutSeen;
+var int LKN_ScoutKnown;
+var int LKN_ScoutContact;
+var int LKN_ScoutMoved;
+const string LKN_ScoutReportText = "Report on the camp.";
+const string LKN_ScoutCancelText = "Abandon the scouting mission.";
+var int LKN_ScoutUsed6;
+var int LKN_ScoutLogged6;
+var int LKN_ScoutDef6ADead;
+var int LKN_ScoutDef6BDead;
+var int LKN_ScoutPatrol6ADead;
+var int LKN_ScoutPatrol6BDead;
+var int LKN_ScoutPatrol6Reported;
+const string LKN_ScoutTopic6 = "Scout: Forest camp";
+const string LKN_ScoutChoice6 = "Scout the forest camp.";
+var int LKN_ScoutUsed7;
+var int LKN_ScoutLogged7;
+var int LKN_ScoutDef7ADead;
+var int LKN_ScoutDef7BDead;
+var int LKN_ScoutPatrol7ADead;
+var int LKN_ScoutPatrol7BDead;
+var int LKN_ScoutPatrol7Reported;
+const string LKN_ScoutTopic7 = "Scout: Bridge camp";
+const string LKN_ScoutChoice7 = "Scout the bridge camp.";
+var int LKN_ScoutUsed8;
+var int LKN_ScoutLogged8;
+var int LKN_ScoutDef8ADead;
+var int LKN_ScoutDef8BDead;
+var int LKN_ScoutPatrol8ADead;
+var int LKN_ScoutPatrol8BDead;
+var int LKN_ScoutPatrol8Reported;
+const string LKN_ScoutTopic8 = "Scout: River camp";
+const string LKN_ScoutChoice8 = "Scout the river camp.";
+
+func void ZS_LKN_CampWatch() {
+    Perception_Set_Normal();
+    AI_SetWalkMode(self,NPC_WALK);
+    AI_GotoWP(self,self.wp);
+};
+func int ZS_LKN_CampWatch_Loop() {
+    LKN_Refresh();
+    AI_Wait(self,2);
+    return LOOP_CONTINUE;
+};
+func void ZS_LKN_CampWatch_End() {};
+
+func void ZS_LKN_ScoutPatrol() {
+    Perception_Set_Normal();
+    AI_SetWalkMode(self,NPC_WALK);
+    AI_GotoWP(self,self.wp);
+};
+func int ZS_LKN_ScoutPatrol_Loop() {
+    LKN_Refresh();
+    AI_Wait(self,2);
+    return LOOP_CONTINUE;
+};
+func void ZS_LKN_ScoutPatrol_End() {};
+
+func void LKN_TA_ScoutDef6B() {
+    TA_Min(self,6,0,18,0,ZS_LKN_CampWatch,LKN_WP_ForestCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_CampWatch,LKN_WP_ForestCamp);
+};
+instance LKN_ScoutDef6B(Npc_Default) {
+    id = 61100;
+    name[0] = "Forest camp second sentry";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutDef6B;
+};
+
+func void LKN_TA_ScoutPatrol6A() {
+    TA_Min(self,6,0,18,0,ZS_LKN_ScoutPatrol,LKN_WP_ForestCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_ScoutPatrol,LKN_WP_ForestCamp);
+};
+instance LKN_ScoutPatrol6A(Npc_Default) {
+    id = 61101;
+    name[0] = "Forest camp patrol leader";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutPatrol6A;
+};
+
+func void LKN_TA_ScoutPatrol6B() {
+    TA_Min(self,6,0,18,0,ZS_LKN_ScoutPatrol,LKN_WP_ForestCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_ScoutPatrol,LKN_WP_ForestCamp);
+};
+instance LKN_ScoutPatrol6B(Npc_Default) {
+    id = 61102;
+    name[0] = "Forest camp patrol soldier";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutPatrol6B;
+};
+
+func void LKN_TA_ScoutDef7B() {
+    TA_Min(self,6,0,18,0,ZS_LKN_CampWatch,LKN_WP_BridgeCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_CampWatch,LKN_WP_BridgeCamp);
+};
+instance LKN_ScoutDef7B(Npc_Default) {
+    id = 61103;
+    name[0] = "Bridge camp second sentry";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutDef7B;
+};
+
+func void LKN_TA_ScoutPatrol7A() {
+    TA_Min(self,6,0,18,0,ZS_LKN_ScoutPatrol,LKN_WP_BridgeCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_ScoutPatrol,LKN_WP_BridgeCamp);
+};
+instance LKN_ScoutPatrol7A(Npc_Default) {
+    id = 61104;
+    name[0] = "Bridge camp patrol leader";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutPatrol7A;
+};
+
+func void LKN_TA_ScoutPatrol7B() {
+    TA_Min(self,6,0,18,0,ZS_LKN_ScoutPatrol,LKN_WP_BridgeCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_ScoutPatrol,LKN_WP_BridgeCamp);
+};
+instance LKN_ScoutPatrol7B(Npc_Default) {
+    id = 61105;
+    name[0] = "Bridge camp patrol soldier";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutPatrol7B;
+};
+
+func void LKN_TA_ScoutDef8B() {
+    TA_Min(self,6,0,18,0,ZS_LKN_CampWatch,LKN_WP_RiverCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_CampWatch,LKN_WP_RiverCamp);
+};
+instance LKN_ScoutDef8B(Npc_Default) {
+    id = 61106;
+    name[0] = "River camp second sentry";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutDef8B;
+};
+
+func void LKN_TA_ScoutPatrol8A() {
+    TA_Min(self,6,0,18,0,ZS_LKN_ScoutPatrol,LKN_WP_RiverCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_ScoutPatrol,LKN_WP_RiverCamp);
+};
+instance LKN_ScoutPatrol8A(Npc_Default) {
+    id = 61107;
+    name[0] = "River camp patrol leader";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutPatrol8A;
+};
+
+func void LKN_TA_ScoutPatrol8B() {
+    TA_Min(self,6,0,18,0,ZS_LKN_ScoutPatrol,LKN_WP_RiverCamp);
+    TA_Min(self,18,0,6,0,ZS_LKN_ScoutPatrol,LKN_WP_RiverCamp);
+};
+instance LKN_ScoutPatrol8B(Npc_Default) {
+    id = 61108;
+    name[0] = "River camp patrol soldier";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_BAU_M);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_ScoutPatrol8B;
+};
+
+func void LKN_TA_OnarCommander() {
+    TA_Min(self,6,0,18,0,ZS_LKN_CampWatch,LKN_OnarDepot);
+    TA_Min(self,18,0,6,0,ZS_LKN_CampWatch,LKN_OnarDepot);
+};
+instance LKN_OnarCommander(Npc_Default) {
+    id = 61109;
+    name[0] = "Eberhard, Onar patrol commander";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_SLD_L);
+    B_SetFightSkills(self,48);
+    fight_tactic = FAI_HUMAN_STRONG;
+    EquipItem(self,ItMw_1H_Mil_Sword);
+    daily_routine = LKN_TA_OnarCommander;
+};
+
+func int LKN_ScoutSponsor() {
+    if (self.id == 61109) { return 2; };
+    if (self.id == 61080) { return 4; };
+    if (self.id == 61067) { return 5; };
+    if (self.id == 61072) { return 6; };
+    if ((self.id == 61060) || (self.id == 61094)) { return 1; };
+    return 0;
+};
+func string LKN_ScoutHome(var int side) {
+    if (side == 2) { return LKN_OnarDepot; };
+    if (side == 4) { return LKN_FireHireWP; };
+    if (side == 5) { return LKN_WaterCampWP; };
+    if (side == 6) { return LKN_SectCampWP; };
+    return LKN_FortWP;
+};
+func string LKN_ScoutTopic(var int site) {
+    if (site == 6) { return LKN_ScoutTopic6; };
+    if (site == 7) { return LKN_ScoutTopic7; };
+    return LKN_ScoutTopic8;
+};
+func int LKN_ScoutUsed(var int site) {
+    if (site == 6) { return LKN_ScoutUsed6; };
+    if (site == 7) { return LKN_ScoutUsed7; };
+    return LKN_ScoutUsed8;
+};
+func int LKN_ScoutMayAccept(var int site) {
+    if ((site < 6) || (site > 8) || !LKN_ScoutSponsor() || (Patch_LivingKhorinis_WarUnlocked == 0) || (LKN_ScoutStatus != 0) || LKN_ScoutUsed(site)) { return FALSE; };
+    if (Patch_LivingKhorinis_Blocked(site)) { return FALSE; };
+    return Patch_LivingKhorinis_PostOwner(site) != LKN_ScoutSponsor();
+};
+func void LKN_ScoutAccept(var int site) {
+    if (!LKN_ScoutMayAccept(site)) { return; };
+    LKN_ScoutSite = site;
+    LKN_ScoutSide = LKN_ScoutSponsor();
+    LKN_ScoutStatus = 1;
+    LKN_ScoutSeen = 0;
+    LKN_ScoutKnown = -1;
+    Patch_LivingKhorinis_ScoutReserved = site;
+    if ((site == 6 && LKN_ScoutLogged6 == 0) || (site == 7 && LKN_ScoutLogged7 == 0) || (site == 8 && LKN_ScoutLogged8 == 0)) {
+        Log_CreateTopic(LKN_ScoutTopic(site),LOG_MISSION);
+        if (site == 6) { LKN_ScoutLogged6 = 1; };
+        if (site == 7) { LKN_ScoutLogged7 = 1; };
+        if (site == 8) { LKN_ScoutLogged8 = 1; };
+    };
+    Log_SetTopicStatus(LKN_ScoutTopic(site),LOG_RUNNING);
+    Log_AddEntry(LKN_ScoutTopic(site),"Reach the camp, count the sentries and report. If you clear the post, we can occupy it without a fight.");
+    if (site == 6) { LKN_Subtitle("Follow the road from the Dead Harpy towards the woods."); };
+    if (site == 7) { LKN_Subtitle("Look for the camp on the road by Akil's farm."); };
+    if (site == 8) { LKN_Subtitle("Find the camp by the stream on the road towards Bengar."); };
+};
+func int LKN_ScoutAlive(var C_NPC actor,var int confirmedDead) {
+    if (confirmedDead) { return 0; };
+    if (!Hlp_IsValidNpc(actor)) { return -1; };
+    if (Npc_IsDead(actor)) { return 0; };
+    return 1;
+};
+func int LKN_ScoutCount(var int site) {
+    var int first;
+    var int second;
+    if (site == 6) {
+        first = LKN_ScoutAlive(Hlp_GetNpc(LKN_ForestCampGuard),LKN_ScoutDef6ADead);
+        second = LKN_ScoutAlive(Hlp_GetNpc(LKN_ScoutDef6B),LKN_ScoutDef6BDead);
+    };
+    if (site == 7) {
+        first = LKN_ScoutAlive(Hlp_GetNpc(LKN_BridgeCampGuard),LKN_ScoutDef7ADead);
+        second = LKN_ScoutAlive(Hlp_GetNpc(LKN_ScoutDef7B),LKN_ScoutDef7BDead);
+    };
+    if (site == 8) {
+        first = LKN_ScoutAlive(Hlp_GetNpc(LKN_RiverCampGuard),LKN_ScoutDef8ADead);
+        second = LKN_ScoutAlive(Hlp_GetNpc(LKN_ScoutDef8B),LKN_ScoutDef8BDead);
+    };
+    if ((first < 0) || (second < 0)) { return -1; };
+    return first+second;
+};
+func void LKN_ScoutObserve() {
+    var int count;
+    if (LKN_ScoutStatus != 1 || !Hlp_IsValidNpc(hero)) { return; };
+    if (Npc_GetDistToWP(hero,LKN_SupplyDestination(LKN_ScoutSite)) > 1750) { return; };
+    count = LKN_ScoutCount(LKN_ScoutSite);
+    if (count < 0) { return; };
+    if ((LKN_ScoutSeen == 0) || (count != LKN_ScoutKnown)) {
+        LKN_ScoutSeen = 1;
+        LKN_ScoutKnown = count;
+        LKN_Subtitle(ConcatStrings("Living sentries observed: ",IntToString(count)));
+    };
+};
+func void LKN_ScoutDeath() {
+    if (self.id == 61086) { LKN_ScoutDef6ADead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61100) { LKN_ScoutDef6BDead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61101) { LKN_ScoutPatrol6ADead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61102) { LKN_ScoutPatrol6BDead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61087) { LKN_ScoutDef7ADead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61103) { LKN_ScoutDef7BDead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61104) { LKN_ScoutPatrol7ADead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61105) { LKN_ScoutPatrol7BDead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61088) { LKN_ScoutDef8ADead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61106) { LKN_ScoutDef8BDead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61107) { LKN_ScoutPatrol8ADead = 1; LKN_ScoutObserve(); return; };
+    if (self.id == 61108) { LKN_ScoutPatrol8BDead = 1; LKN_ScoutObserve(); return; };
+};
+func void LKN_ScoutUniforms() {
+    if (LKN_Appearance_ForestCamp != Patch_LivingKhorinis_PostOwner(6)) {
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutDef6B),Patch_LivingKhorinis_PostOwner(6));
+        if (LKN_ScoutPatrol6Reported != 0) {
+            LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol6A),Patch_LivingKhorinis_PostOwner(6));
+            LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol6B),Patch_LivingKhorinis_PostOwner(6));
+        };
+    };
+    if (LKN_Appearance_BridgeCamp != Patch_LivingKhorinis_PostOwner(7)) {
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutDef7B),Patch_LivingKhorinis_PostOwner(7));
+        if (LKN_ScoutPatrol7Reported != 0) {
+            LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol7A),Patch_LivingKhorinis_PostOwner(7));
+            LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol7B),Patch_LivingKhorinis_PostOwner(7));
+        };
+    };
+    if (LKN_Appearance_RiverCamp != Patch_LivingKhorinis_PostOwner(8)) {
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutDef8B),Patch_LivingKhorinis_PostOwner(8));
+        if (LKN_ScoutPatrol8Reported != 0) {
+            LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol8A),Patch_LivingKhorinis_PostOwner(8));
+            LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol8B),Patch_LivingKhorinis_PostOwner(8));
+        };
+    };
+};
+func void LKN_ScoutWorldInit() {
+    var C_NPC before;
+    var C_NPC sense;
+    before = self;
+    sense = other;
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_OnarCommander))) { Wld_InsertNpc(LKN_OnarCommander,LKN_OnarDepot); };
+    if ((LKN_ScoutDef6BDead == 0) && !Hlp_IsValidNpc(Hlp_GetNpc(LKN_ScoutDef6B))) { Wld_InsertNpc(LKN_ScoutDef6B,LKN_WP_ForestCamp); };
+    if ((LKN_ScoutDef7BDead == 0) && !Hlp_IsValidNpc(Hlp_GetNpc(LKN_ScoutDef7B))) { Wld_InsertNpc(LKN_ScoutDef7B,LKN_WP_BridgeCamp); };
+    if ((LKN_ScoutDef8BDead == 0) && !Hlp_IsValidNpc(Hlp_GetNpc(LKN_ScoutDef8B))) { Wld_InsertNpc(LKN_ScoutDef8B,LKN_WP_RiverCamp); };
+    self = before;
+    other = sense;
+};
+
+func int LKN_ScoutCanReport() {
+    return (LKN_ScoutStatus == 1) && (LKN_ScoutSeen == 1) && (LKN_ScoutSide == LKN_ScoutSponsor());
+};
+func int LKN_ScoutCanCancel() {
+    return (LKN_ScoutStatus == 1);
+};
+func void LKN_ScoutRelease() {
+    LKN_ScoutStatus = 0;
+    Patch_LivingKhorinis_ScoutReserved = 0;
+};
+func void LKN_ScoutCancel() {
+    if (!LKN_ScoutCanCancel()) { return; };
+    Log_AddEntry(LKN_ScoutTopic(LKN_ScoutSite),"I abandoned the assignment.");
+    Log_SetTopicStatus(LKN_ScoutTopic(LKN_ScoutSite),LOG_FAILED);
+    LKN_ScoutRelease();
+};
+func void LKN_ScoutNudge(var C_NPC who,var string point) {
+    if ((!Hlp_IsValidNpc(who)) || Npc_IsDead(who)) { return; };
+    Npc_ClearAIQueue(who);
+    AI_SetWalkMode(who,NPC_WALK);
+    AI_GotoWP(who,point);
+};
+func void LKN_ScoutLaunch(var int site,var int side) {
+    var C_NPC before;
+    var C_NPC sense;
+    var string origin;
+    before = self;
+    sense = other;
+    origin = LKN_ScoutHome(side);
+    if (site == 6) {
+        LKN_ScoutUsed6 = 1;
+        Wld_InsertNpc(LKN_ScoutPatrol6A,origin);
+        Wld_InsertNpc(LKN_ScoutPatrol6B,origin);
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol6A),side);
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol6B),side);
+        LKN_ScoutNudge(Hlp_GetNpc(LKN_ScoutPatrol6A),LKN_WP_ForestCamp);
+        LKN_ScoutNudge(Hlp_GetNpc(LKN_ScoutPatrol6B),LKN_WP_ForestCamp);
+    };
+    if (site == 7) {
+        LKN_ScoutUsed7 = 1;
+        Wld_InsertNpc(LKN_ScoutPatrol7A,origin);
+        Wld_InsertNpc(LKN_ScoutPatrol7B,origin);
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol7A),side);
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol7B),side);
+        LKN_ScoutNudge(Hlp_GetNpc(LKN_ScoutPatrol7A),LKN_WP_BridgeCamp);
+        LKN_ScoutNudge(Hlp_GetNpc(LKN_ScoutPatrol7B),LKN_WP_BridgeCamp);
+    };
+    if (site == 8) {
+        LKN_ScoutUsed8 = 1;
+        Wld_InsertNpc(LKN_ScoutPatrol8A,origin);
+        Wld_InsertNpc(LKN_ScoutPatrol8B,origin);
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol8A),side);
+        LKN_CampUniform(Hlp_GetNpc(LKN_ScoutPatrol8B),side);
+        LKN_ScoutNudge(Hlp_GetNpc(LKN_ScoutPatrol8A),LKN_WP_RiverCamp);
+        LKN_ScoutNudge(Hlp_GetNpc(LKN_ScoutPatrol8B),LKN_WP_RiverCamp);
+    };
+    self = before;
+    other = sense;
+};
+func void LKN_ScoutReport() {
+    var int count;
+    if (!LKN_ScoutCanReport()) { return; };
+    count = LKN_ScoutCount(LKN_ScoutSite);
+    if (count < 0) { count = LKN_ScoutKnown; };
+    if (count < 0) { return; };
+    if (Patch_LivingKhorinis_CampStrength(LKN_ScoutSide,LKN_ScoutSite) <= 0) {
+        LKN_Subtitle("The report is useful, but we need provisions before we can send a patrol.");
+        return;
+    };
+    LKN_ScoutKnown = count;
+    Log_AddEntry(LKN_ScoutTopic(LKN_ScoutSite),ConcatStrings("I reported the surviving sentries: ",IntToString(count)));
+    if (count == 0) { LKN_Subtitle("Then no assault. Our patrol will march in and take the empty post."); }
+    else { LKN_Subtitle("We know their numbers now. The patrol will move in against the remaining guards."); };
+    Patch_LivingKhorinis_SpendCampFood(LKN_ScoutSide);
+    LKN_ScoutStatus = 2;
+    LKN_ScoutContact = 0;
+    LKN_ScoutMoved = 0;
+    LKN_ScoutLaunch(LKN_ScoutSite,LKN_ScoutSide);
+};
+func int LKN_ScoutArrived(var C_NPC who,var string point) {
+    if ((!Hlp_IsValidNpc(who)) || Npc_IsDead(who)) { return 0; };
+    return Npc_GetDistToWP(who,point) < 1050;
+};
+func void LKN_ScoutFight(var C_NPC our,var C_NPC theirs) {
+    var C_NPC prev;
+    if ((!Hlp_IsValidNpc(our)) || (!Hlp_IsValidNpc(theirs)) || Npc_IsDead(our) || Npc_IsDead(theirs)) { return; };
+    Npc_ClearAIQueue(our);
+    Npc_ClearAIQueue(theirs);
+    prev = other;
+    other = theirs;
+    B_Attack(our,theirs,AR_KILL,0);
+    other = our;
+    B_Attack(theirs,our,AR_KILL,0);
+    other = prev;
+};
+func void LKN_ScoutTick() {
+    var C_NPC first;
+    var C_NPC second;
+    var C_NPC enemyA;
+    var C_NPC enemyB;
+    var int aliveA;
+    var int aliveB;
+    var int defenders;
+    var string point;
+    LKN_ScoutObserve();
+    if (LKN_ScoutStatus != 2) { return; };
+    if (LKN_ScoutMoved == 0) { LKN_ScoutMoved = 1; return; };
+    point = LKN_SupplyDestination(LKN_ScoutSite);
+    if (LKN_ScoutSite == 6) {
+        first = Hlp_GetNpc(LKN_ScoutPatrol6A);
+        second = Hlp_GetNpc(LKN_ScoutPatrol6B);
+        enemyA = Hlp_GetNpc(LKN_ForestCampGuard);
+        enemyB = Hlp_GetNpc(LKN_ScoutDef6B);
+        aliveA = LKN_ScoutAlive(first,LKN_ScoutPatrol6ADead);
+        aliveB = LKN_ScoutAlive(second,LKN_ScoutPatrol6BDead);
+    };
+    if (LKN_ScoutSite == 7) {
+        first = Hlp_GetNpc(LKN_ScoutPatrol7A);
+        second = Hlp_GetNpc(LKN_ScoutPatrol7B);
+        enemyA = Hlp_GetNpc(LKN_BridgeCampGuard);
+        enemyB = Hlp_GetNpc(LKN_ScoutDef7B);
+        aliveA = LKN_ScoutAlive(first,LKN_ScoutPatrol7ADead);
+        aliveB = LKN_ScoutAlive(second,LKN_ScoutPatrol7BDead);
+    };
+    if (LKN_ScoutSite == 8) {
+        first = Hlp_GetNpc(LKN_ScoutPatrol8A);
+        second = Hlp_GetNpc(LKN_ScoutPatrol8B);
+        enemyA = Hlp_GetNpc(LKN_RiverCampGuard);
+        enemyB = Hlp_GetNpc(LKN_ScoutDef8B);
+        aliveA = LKN_ScoutAlive(first,LKN_ScoutPatrol8ADead);
+        aliveB = LKN_ScoutAlive(second,LKN_ScoutPatrol8BDead);
+    };
+    if ((aliveA == 0) && (aliveB == 0)) {
+        Log_AddEntry(LKN_ScoutTopic(LKN_ScoutSite),"The patrol was defeated. The camp did not change hands.");
+        Log_SetTopicStatus(LKN_ScoutTopic(LKN_ScoutSite),LOG_FAILED);
+        LKN_ScoutRelease();
+        return;
+    };
+    if ((aliveA < 0) || (aliveB < 0)) { return; };
+    if ((aliveA != 0 && !LKN_ScoutArrived(first,point)) || (aliveB != 0 && !LKN_ScoutArrived(second,point))) { return; };
+    defenders = LKN_ScoutCount(LKN_ScoutSite);
+    if (defenders < 0) { return; };
+    if (defenders > 0) {
+        if (LKN_ScoutContact == 0) {
+            LKN_ScoutContact = 1;
+            if (aliveA > 0) {
+                if (Hlp_IsValidNpc(enemyA) && !Npc_IsDead(enemyA)) { LKN_ScoutFight(first,enemyA); }
+                else { LKN_ScoutFight(first,enemyB); };
+            };
+            if (aliveB > 0) {
+                if (Hlp_IsValidNpc(enemyB) && !Npc_IsDead(enemyB)) { LKN_ScoutFight(second,enemyB); }
+                else { LKN_ScoutFight(second,enemyA); };
+            };
+        };
+        return;
+    };
+    if (Patch_LivingKhorinis_ScoutCapture(LKN_ScoutSide,LKN_ScoutSite)) {
+        if (LKN_ScoutSite == 6) { LKN_ScoutPatrol6Reported = 1; };
+        if (LKN_ScoutSite == 7) { LKN_ScoutPatrol7Reported = 1; };
+        if (LKN_ScoutSite == 8) { LKN_ScoutPatrol8Reported = 1; };
+        Log_AddEntry(LKN_ScoutTopic(LKN_ScoutSite),"Our patrol reached the camp and took control.");
+        Log_SetTopicStatus(LKN_ScoutTopic(LKN_ScoutSite),LOG_SUCCESS);
+        LKN_ScoutRelease();
+    };
+};
+
+func int LKN_CanScout6() { return LKN_ScoutMayAccept(6); };
+func void LKN_StartScout6() { LKN_ScoutAccept(6); };
+
+func int LKN_CanScout7() { return LKN_ScoutMayAccept(7); };
+func void LKN_StartScout7() { LKN_ScoutAccept(7); };
+
+func int LKN_CanScout8() { return LKN_ScoutMayAccept(8); };
+func void LKN_StartScout8() { LKN_ScoutAccept(8); };
+
+instance DIA_LKN_Scout_FortCaptain_Cancel(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 69;
+    permanent = TRUE;
+    condition = LKN_ScoutCanCancel;
+    information = LKN_ScoutCancel;
+    description = LKN_ScoutCancelText;
+};
+
+instance DIA_LKN_Scout_FortCaptain_Report(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 68;
+    permanent = TRUE;
+    condition = LKN_ScoutCanReport;
+    information = LKN_ScoutReport;
+    description = LKN_ScoutReportText;
+};
+
+instance DIA_LKN_Scout_FortCaptain_Task6(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 60;
+    permanent = TRUE;
+    condition = LKN_CanScout6;
+    information = LKN_StartScout6;
+    description = LKN_ScoutChoice6;
+};
+
+instance DIA_LKN_Scout_FortCaptain_Task7(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 61;
+    permanent = TRUE;
+    condition = LKN_CanScout7;
+    information = LKN_StartScout7;
+    description = LKN_ScoutChoice7;
+};
+
+instance DIA_LKN_Scout_FortCaptain_Task8(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 62;
+    permanent = TRUE;
+    condition = LKN_CanScout8;
+    information = LKN_StartScout8;
+    description = LKN_ScoutChoice8;
+};
+
+instance DIA_LKN_Scout_PassCaptain_Cancel(C_INFO) {
+    npc = LKN_PassCaptain;
+    nr = 69;
+    permanent = TRUE;
+    condition = LKN_ScoutCanCancel;
+    information = LKN_ScoutCancel;
+    description = LKN_ScoutCancelText;
+};
+
+instance DIA_LKN_Scout_PassCaptain_Report(C_INFO) {
+    npc = LKN_PassCaptain;
+    nr = 68;
+    permanent = TRUE;
+    condition = LKN_ScoutCanReport;
+    information = LKN_ScoutReport;
+    description = LKN_ScoutReportText;
+};
+
+instance DIA_LKN_Scout_PassCaptain_Task6(C_INFO) {
+    npc = LKN_PassCaptain;
+    nr = 60;
+    permanent = TRUE;
+    condition = LKN_CanScout6;
+    information = LKN_StartScout6;
+    description = LKN_ScoutChoice6;
+};
+
+instance DIA_LKN_Scout_PassCaptain_Task7(C_INFO) {
+    npc = LKN_PassCaptain;
+    nr = 61;
+    permanent = TRUE;
+    condition = LKN_CanScout7;
+    information = LKN_StartScout7;
+    description = LKN_ScoutChoice7;
+};
+
+instance DIA_LKN_Scout_PassCaptain_Task8(C_INFO) {
+    npc = LKN_PassCaptain;
+    nr = 62;
+    permanent = TRUE;
+    condition = LKN_CanScout8;
+    information = LKN_StartScout8;
+    description = LKN_ScoutChoice8;
+};
+
+instance DIA_LKN_Scout_OnarCommander_Cancel(C_INFO) {
+    npc = LKN_OnarCommander;
+    nr = 69;
+    permanent = TRUE;
+    condition = LKN_ScoutCanCancel;
+    information = LKN_ScoutCancel;
+    description = LKN_ScoutCancelText;
+};
+
+instance DIA_LKN_Scout_OnarCommander_Report(C_INFO) {
+    npc = LKN_OnarCommander;
+    nr = 68;
+    permanent = TRUE;
+    condition = LKN_ScoutCanReport;
+    information = LKN_ScoutReport;
+    description = LKN_ScoutReportText;
+};
+
+instance DIA_LKN_Scout_OnarCommander_Task6(C_INFO) {
+    npc = LKN_OnarCommander;
+    nr = 60;
+    permanent = TRUE;
+    condition = LKN_CanScout6;
+    information = LKN_StartScout6;
+    description = LKN_ScoutChoice6;
+};
+
+instance DIA_LKN_Scout_OnarCommander_Task7(C_INFO) {
+    npc = LKN_OnarCommander;
+    nr = 61;
+    permanent = TRUE;
+    condition = LKN_CanScout7;
+    information = LKN_StartScout7;
+    description = LKN_ScoutChoice7;
+};
+
+instance DIA_LKN_Scout_OnarCommander_Task8(C_INFO) {
+    npc = LKN_OnarCommander;
+    nr = 62;
+    permanent = TRUE;
+    condition = LKN_CanScout8;
+    information = LKN_StartScout8;
+    description = LKN_ScoutChoice8;
+};
+
+instance DIA_LKN_Scout_OnarCommander_Leave(C_INFO) {
+    npc = LKN_OnarCommander;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_Scout_FireMaster_Cancel(C_INFO) {
+    npc = LKN_FireMaster;
+    nr = 69;
+    permanent = TRUE;
+    condition = LKN_ScoutCanCancel;
+    information = LKN_ScoutCancel;
+    description = LKN_ScoutCancelText;
+};
+
+instance DIA_LKN_Scout_FireMaster_Report(C_INFO) {
+    npc = LKN_FireMaster;
+    nr = 68;
+    permanent = TRUE;
+    condition = LKN_ScoutCanReport;
+    information = LKN_ScoutReport;
+    description = LKN_ScoutReportText;
+};
+
+instance DIA_LKN_Scout_FireMaster_Task6(C_INFO) {
+    npc = LKN_FireMaster;
+    nr = 60;
+    permanent = TRUE;
+    condition = LKN_CanScout6;
+    information = LKN_StartScout6;
+    description = LKN_ScoutChoice6;
+};
+
+instance DIA_LKN_Scout_FireMaster_Task7(C_INFO) {
+    npc = LKN_FireMaster;
+    nr = 61;
+    permanent = TRUE;
+    condition = LKN_CanScout7;
+    information = LKN_StartScout7;
+    description = LKN_ScoutChoice7;
+};
+
+instance DIA_LKN_Scout_FireMaster_Task8(C_INFO) {
+    npc = LKN_FireMaster;
+    nr = 62;
+    permanent = TRUE;
+    condition = LKN_CanScout8;
+    information = LKN_StartScout8;
+    description = LKN_ScoutChoice8;
+};
+
+instance DIA_LKN_Scout_WaterMaster_Cancel(C_INFO) {
+    npc = LKN_WaterMaster;
+    nr = 69;
+    permanent = TRUE;
+    condition = LKN_ScoutCanCancel;
+    information = LKN_ScoutCancel;
+    description = LKN_ScoutCancelText;
+};
+
+instance DIA_LKN_Scout_WaterMaster_Report(C_INFO) {
+    npc = LKN_WaterMaster;
+    nr = 68;
+    permanent = TRUE;
+    condition = LKN_ScoutCanReport;
+    information = LKN_ScoutReport;
+    description = LKN_ScoutReportText;
+};
+
+instance DIA_LKN_Scout_WaterMaster_Task6(C_INFO) {
+    npc = LKN_WaterMaster;
+    nr = 60;
+    permanent = TRUE;
+    condition = LKN_CanScout6;
+    information = LKN_StartScout6;
+    description = LKN_ScoutChoice6;
+};
+
+instance DIA_LKN_Scout_WaterMaster_Task7(C_INFO) {
+    npc = LKN_WaterMaster;
+    nr = 61;
+    permanent = TRUE;
+    condition = LKN_CanScout7;
+    information = LKN_StartScout7;
+    description = LKN_ScoutChoice7;
+};
+
+instance DIA_LKN_Scout_WaterMaster_Task8(C_INFO) {
+    npc = LKN_WaterMaster;
+    nr = 62;
+    permanent = TRUE;
+    condition = LKN_CanScout8;
+    information = LKN_StartScout8;
+    description = LKN_ScoutChoice8;
+};
+
+instance DIA_LKN_Scout_SectMaster_Cancel(C_INFO) {
+    npc = LKN_SectMaster;
+    nr = 69;
+    permanent = TRUE;
+    condition = LKN_ScoutCanCancel;
+    information = LKN_ScoutCancel;
+    description = LKN_ScoutCancelText;
+};
+
+instance DIA_LKN_Scout_SectMaster_Report(C_INFO) {
+    npc = LKN_SectMaster;
+    nr = 68;
+    permanent = TRUE;
+    condition = LKN_ScoutCanReport;
+    information = LKN_ScoutReport;
+    description = LKN_ScoutReportText;
+};
+
+instance DIA_LKN_Scout_SectMaster_Task6(C_INFO) {
+    npc = LKN_SectMaster;
+    nr = 60;
+    permanent = TRUE;
+    condition = LKN_CanScout6;
+    information = LKN_StartScout6;
+    description = LKN_ScoutChoice6;
+};
+
+instance DIA_LKN_Scout_SectMaster_Task7(C_INFO) {
+    npc = LKN_SectMaster;
+    nr = 61;
+    permanent = TRUE;
+    condition = LKN_CanScout7;
+    information = LKN_StartScout7;
+    description = LKN_ScoutChoice7;
+};
+
+instance DIA_LKN_Scout_SectMaster_Task8(C_INFO) {
+    npc = LKN_SectMaster;
+    nr = 62;
+    permanent = TRUE;
+    condition = LKN_CanScout8;
+    information = LKN_StartScout8;
+    description = LKN_ScoutChoice8;
+};
+
+instance DIA_LKN_Scout_Quartermaster_Cancel(C_INFO) {
+    npc = LKN_Quartermaster;
+    nr = 69;
+    permanent = TRUE;
+    condition = LKN_ScoutCanCancel;
+    information = LKN_ScoutCancel;
+    description = LKN_ScoutCancelText;
 };

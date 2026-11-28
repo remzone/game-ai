@@ -14,16 +14,16 @@ const code = src.replace(/\binstance (\w+)\([^)]+\) \{[^}]+\};/g, 'const $1 = "$
 // Only engine API boundaries are mocked; rules and adapter are mechanically
 // run from the same exact source that the real GDC compiler consumes.
 const newHandle = instance => ({instance,name:[],armor:0});
-function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange=3000}={}) {
+function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange=3000, patrolRange=4000}={}) {
     const self=newHandle("self"), other=newHandle("player");
     const messages=[];
     let calls=0;
     const c=vm.createContext({
-        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,ItAr_NOV_L:4,ItAr_Pal_M:6,ITAR_MIL_L:1,ITAR_SLD_L:2,ITAR_NOV_L:4,ITAR_KDF_L:7,ITAR_KDW_L_Addon:8,ItMw_1H_Mil_Sword:5,AR_NONE:0,SPL_Firebolt:1,SPL_Icelance:2,SPL_Sleep:3,SPL_Cost_Firebolt:5,SPL_Cost_Icelance:7,SPL_Cost_Sleep:8,hero:other,NPC_RUN:2,
-        Npc_ClearAIQueue:()=>{}, AI_GotoWP:(npc,where)=>{npc.target=where;},Npc_GetDistToWP:(npc)=>npc===other?heroRange:0,Npc_GetDistToNpc:()=>0,CreateInvItems:()=>{},AI_EquipBestMeleeWeapon:()=>{},
+        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,ItAr_NOV_L:4,ItAr_Pal_M:6,ITAR_MIL_L:1,ITAR_SLD_L:2,ITAR_NOV_L:4,ITAR_KDF_L:7,ITAR_KDW_L_Addon:8,ItMw_1H_Mil_Sword:5,AR_NONE:0,AR_KILL:1,LOG_MISSION:1,LOG_RUNNING:2,LOG_SUCCESS:3,LOG_FAILED:4,SPL_Firebolt:1,SPL_Icelance:2,SPL_Sleep:3,SPL_Cost_Firebolt:5,SPL_Cost_Icelance:7,SPL_Cost_Sleep:8,hero:other,NPC_RUN:2,NPC_WALK:0,
+        Npc_ClearAIQueue:()=>{}, AI_GotoWP:(npc,where)=>{npc.target=where;},Npc_GetDistToWP:(npc)=>npc===other?heroRange:npc?.instance?.includes("ScoutPatrol")?patrolRange:0,Npc_GetDistToNpc:()=>0,CreateInvItems:()=>{},AI_EquipBestMeleeWeapon:()=>{},
         B_Attack:(a,b)=>{
-          assert.match(a.instance,/^LKN_((City|Onar)(Scout|Blade)|FortGuard[AB]|Raider[ABC])$/);
-          assert.match(b.instance,/^LKN_((City|Onar)(Scout|Blade)|FortGuard[AB]|Raider[ABC])$/);
+          assert.match(a.instance,/^LKN_((City|Onar)(Scout|Blade)|FortGuard[AB]|Raider[ABC]|ScoutPatrol[678][AB]|ScoutDef[678]B|(Forest|Bridge|River)CampGuard)$/);
+          assert.match(b.instance,/^LKN_((City|Onar)(Scout|Blade)|FortGuard[AB]|Raider[ABC]|ScoutPatrol[678][AB]|ScoutDef[678]B|(Forest|Bridge|River)CampGuard)$/);
           messages.push("clash");
         },
         AI_RemoveWeapon:()=>{}, AI_Wait:()=>{}, Npc_SetTarget:(npc,target)=>{npc.spellTarget=target.instance;},
@@ -46,24 +46,25 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange
         Wld_RemoveNpc: ()=>{ throw new Error("persistent actors must not be removed"); },
         Npc_HasItems: (who,item)=>{ return who===other ? bread : 0; },
         Npc_RemoveInvItems: (who,item,n)=>{ if (who===other) bread-=n; else assert.notEqual(who.armor,item); },
+        Log_CreateTopic:(topic)=>messages.push("topic:"+topic), Log_AddEntry:(topic,line)=>messages.push(line), Log_SetTopicStatus:(topic,status)=>messages.push("log:"+status),
         Print: line=>messages.push(line), ConcatStrings:(a,b)=>a+b,
     });
     vm.runInContext(code,c);
     Object.assign(c,prevState);
     return {c,actors,messages,get bread(){return bread;},get calls(){return calls;},
-      day:n=>{gameDay=n;}, range:n=>{heroRange=n;},
+      day:n=>{gameDay=n;}, range:n=>{heroRange=n;}, patrolRange:n=>{patrolRange=n;},
       tick:()=>{c.LKN_Refresh();assert.equal(c.self,self);assert.equal(c.other,other);},
       enter:()=>{c.LKN_OnWorldInit();assert.equal(c.self,self);assert.equal(c.other,other);},
       save:()=>({actors:new Map(actors),prevState:Object.fromEntries(
           Object.entries(c).filter(([k,v])=>/^(LKN_|Patch_LivingKhorinis_)/.test(k) && typeof v==='number')
-      ),gameDay,bread,heroRange}),
+      ),gameDay,bread,heroRange,patrolRange}),
     };
 }
 
 test('new units and named posts are persistent; water novice only in Jharkendar',()=>{
  const sim=simulate();
  sim.enter();sim.enter();sim.tick();
- assert.equal(sim.calls,57);
+ assert.equal(sim.calls,61);
  assert.equal(sim.actors.get('LKN_Ridge').where,'NW_BIGFARM_FARM4_PATH_01');
  assert.equal(sim.actors.get('LKN_PostGuard').name[0],'Neutral tavern lookout');
  assert.equal(sim.actors.get('LKN_OnarScout').where,'NW_BIGFARM_PATH_01');
@@ -218,4 +219,62 @@ test('roads have distinct posts, an expanded pass garrison, and neutral uniforms
  assert.equal(sim.actors.get('LKN_ForestCampGuard').armor,8);
  sim.c.Patch_LivingKhorinis_ForestCampOwner=2;sim.tick();
  assert.equal(sim.actors.get('LKN_ForestCampGuard').armor,2);
+});
+
+function prepScout(side=1){
+ const sim=simulate();sim.enter();
+ const c=sim.c;
+ c.Patch_LivingKhorinis_WarUnlocked=1;
+ const speaker={1:61060,2:61109,4:61080,5:61067,6:61072};
+ c.self={id:speaker[side]};
+ c.LKN_StartScout6();
+ return sim;
+}
+test('scouting does not accept remote estimates and a cleared camp falls only after a patrol arrives',()=>{
+ const sim=prepScout();
+ const c=sim.c;
+ assert.equal(c.LKN_ScoutStatus,1);
+ assert.equal(c.Patch_LivingKhorinis_ScoutReserved,6);
+ assert.ok(!c.LKN_ScoutCanReport());
+ sim.range(900);c.LKN_ScoutTick();
+ assert.equal(c.LKN_ScoutKnown,2);
+ c.self={id:61086};c.LKN_ScoutDeath();c.self={id:61100};c.LKN_ScoutDeath();
+ sim.actors.delete('LKN_ForestCampGuard');sim.actors.delete('LKN_ScoutDef6B'); // corpses may be unloaded
+ c.self={id:61060};
+ assert.ok(c.LKN_ScoutCanReport());
+ c.LKN_ScoutReport();
+ assert.equal(c.LKN_ScoutStatus,2);
+ assert.equal(c.Patch_LivingKhorinis_MilitiaSupply,7);
+ assert.equal(c.Patch_LivingKhorinis_ForestCampOwner,3);
+ const patrol=sim.actors.get('LKN_ScoutPatrol6A');
+ assert.equal(patrol.where,'NW_FARM1_PATH_CITY_19_B');
+ assert.equal(patrol.target,'NW_TAVERNE_TROLLAREA_08');
+ c.LKN_ScoutTick();c.LKN_ScoutTick();assert.equal(c.Patch_LivingKhorinis_ForestCampOwner,3);
+ sim.patrolRange(900);c.LKN_ScoutTick();
+ assert.equal(c.Patch_LivingKhorinis_ForestCampOwner,1);assert.equal(c.Patch_LivingKhorinis_ScoutReserved,0);
+ assert.ok(sim.messages.includes('I reported the surviving sentries: 0'));
+ assert.ok(sim.messages.includes('log:3'));
+ assert.equal(sim.messages.filter(x=>x==='clash').length,0);
+ assert.ok(!c.LKN_CanScout6());
+});
+test('intact defenders fight the reporting faction, and a failed expedition cannot claim the site',()=>{
+ const sim=prepScout(2),c=sim.c;
+ sim.range(900);c.LKN_ScoutTick();c.LKN_ScoutReport();
+ assert.ok(sim.messages.includes('I reported the surviving sentries: 2'));
+ c.LKN_ScoutTick();
+ sim.patrolRange(700);c.LKN_ScoutTick();c.LKN_ScoutTick();
+ assert.equal(sim.messages.filter(x=>x==='clash').length,4);
+ assert.equal(c.Patch_LivingKhorinis_ForestCampOwner,3);
+ sim.actors.get('LKN_ScoutPatrol6A').dead=true;sim.actors.get('LKN_ScoutPatrol6B').dead=true;
+ c.LKN_ScoutTick();
+ assert.equal(c.Patch_LivingKhorinis_ForestCampOwner,3);
+ assert.equal(c.LKN_ScoutStatus,0);assert.ok(sim.messages.includes('log:4'));
+});
+test('one side cannot report for another; reconnaissance can be cancelled before departure',()=>{
+ const sim=prepScout(),c=sim.c;
+ sim.range(1200);c.LKN_ScoutTick();
+ c.self={id:61109};assert.ok(!c.LKN_ScoutCanReport());
+ c.LKN_ScoutCancel();
+ assert.equal(c.Patch_LivingKhorinis_ScoutReserved,0);assert.equal(c.LKN_ScoutStatus,0);
+ assert.ok(c.LKN_CanScout6());
 });
