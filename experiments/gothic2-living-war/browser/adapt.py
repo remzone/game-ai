@@ -101,4 +101,50 @@ s=s.replace('  {{{ SCRIPT }}}','''  <script src="living-khorinis-hook.js"></scri
       document.body.append(runtime);
     }
   </script>''')
+# Local save menu: keep the existing codec and replace its overwrite policy.
+s=s.replace('Game files and savegames','Файлы игры и сохранения')
+s=s.replace('Use a Gothic folder from this device','Выбрать папку Gothic II с этого устройства')
+s=s.replace('Use a ZIP archive of the game from this device','Выбрать ZIP с игрой с этого устройства')
+s=s.replace('>Select folder</button>','>Выбрать папку игры</button>')
+s=s.replace('>Select ZIP</button>','>Выбрать ZIP с игрой</button>')
+s=s.replace('The game restarts to choose other game files. Savegames are kept. Continue?','Лаунчер перезапустится для выбора файлов игры. Сохранения останутся. Продолжить?')
+
+s=s.replace('Download all savegames as a ZIP archive','Скачать сохранения в отдельный ZIP')
+s=s.replace('Add savegames from a ZIP archive or .sav files','Импорт из ZIP или .sav без перезаписи')
+s=s.replace('>Download saves</button>','>Скачать сохранения</button>')
+s=s.replace('>Upload saves</button>','>Импортировать сохранения</button>\n          <a class="fm-item" role="menuitem" href="../saves.html" target="_blank" rel="noopener">Перенос и архив в GitHub ↗</a>')
+s=s.replace('const saves = await collectSaves();',"const saves = (await collectSaves()).filter(s => s.name.toLowerCase() !== 'save_slot_99.sav');",1)
+s=s.replace("'There are no savegames yet.'","'Сохранений пока нет.'")
+start=s.index('    async function onSavesPicked(ev) {')
+end=s.index("    // The canvas takes",start)
+s=s[:start]+'''    let lkSaveImportBusy = false;
+    async function onSavesPicked(ev) {
+      const picked = [...ev.target.files];
+      ev.target.value = '';
+      if (!picked.length || lkSaveImportBusy) return;
+      lkSaveImportBusy = true;
+      try {
+        const incoming = [];
+        for (const f of picked) {
+          if (/\\.zip$/i.test(f.name)) incoming.push(...await unzipSaves(f));
+          else incoming.push({ name: f.name, bytes: new Uint8Array(await f.arrayBuffer()) });
+        }
+        if (!incoming.length) throw Error('В архиве нет файлов .sav.');
+        const {writes, duplicates} = LivingKhorinisSaves.plan(await collectSaves(), incoming, 20);
+        if (!writes.length) {
+          window.ogToast?.(duplicates ? 'Эти сохранения уже есть.' : 'В архиве нет игровых слотов.');
+          return;
+        }
+        for (const s of writes) await writeSave(s.name, s.bytes);
+        const slots = writes.map(s => s.index === 0 ? 'быстрое сохранение' : s.index).join(', ');
+        window.ogToast?.('Импортировано: ' + slots + '. Открой «Загрузить игру».');
+      } catch (e) {
+        alert('Не удалось импортировать сохранения: ' + (e.message || e));
+      } finally {
+        lkSaveImportBusy = false;
+      }
+    }
+
+'''+s[end:]
+s=s.replace('<script src="living-khorinis-hook.js"></script>','<script src="lk-saves.js"></script>\n  <script src="living-khorinis-hook.js"></script>')
 Path('dist/index.html').write_text(s)
