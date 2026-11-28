@@ -3,18 +3,18 @@
   'use strict';
   const repo = 'remzone/living-khorinis-saves';
   const branch = 'mod-ru';
-  const name = 'latest.sav';
   const max = 12 * 1024 * 1024;
   const shaPattern = /^[a-f0-9]{40}$/;
   const headers = {Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'};
-  const path = '/contents/' + name;
   const encode = bytes => {
     const chunks = [];
     for (let i=0;i<bytes.length;i+=24576) chunks.push(btoa(String.fromCharCode(...bytes.subarray(i,i+24576))));
     return chunks.join('');
   };
   const valid = bytes => bytes?.length > 0 && bytes.length <= max;
-  function create(fetcher) {
+  function create(fetcher, version) {
+    const name = version === '0.3' ? 'latest-v03.sav' : 'latest.sav';
+    const path = '/contents/' + name;
     async function req(token, endpoint, options = {}) {
       if (!/^github_pat_[a-zA-Z0-9_]{20,255}$/.test(token)) throw Error('Нужен fine-grained токен GitHub.');
       const h = {...headers, Authorization:'Bearer '+token};

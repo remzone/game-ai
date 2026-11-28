@@ -9,6 +9,9 @@ var int LKN_Initialized;
 var int LKN_Busy;
 var int LKN_LastDeliveryDay;
 var int LKN_VisibleOwner;
+var int LKN_VisibleRidge;
+var int LKN_LastDispatch;
+var int LKN_PhysicalClash;
 
 func void LKN_TA_Guard() {
     TA_Stand_Guarding(6, 0, 18, 0, LKN_RoadPost);
@@ -24,6 +27,339 @@ instance LKN_PostGuard(Npc_Default) {
     B_SetAttributesToChapter(self, 2);
     B_SetNpcVisual(self, MALE, "Hum_Head_Bald", Face_N_Normal01, BodyTex_N, ItAr_Bau_M);
     daily_routine = LKN_TA_Guard;
+};
+
+
+const string LKN_RidgeWP = "NW_BIGFARM_FARM4_PATH_01";
+func void LKN_TA_Ridge() {
+    TA_Stand_Guarding(6,0,18,0,LKN_RidgeWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_RidgeWP);
+};
+instance LKN_Ridge(Npc_Default) {
+    id = 61033;
+    name[0] = "Ridge lookout";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
+    daily_routine = LKN_TA_Ridge;
+};
+
+const string LKN_GateWP = "NW_CITY_ENTRANCE_01";
+func void LKN_TA_Gate() {
+    TA_Stand_Guarding(6,0,18,0,LKN_GateWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_GateWP);
+};
+instance LKN_Gate(Npc_Default) {
+    id = 61034;
+    name[0] = "Khorinis gate watch";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
+    daily_routine = LKN_TA_Gate;
+};
+
+const string LKN_OnarWorkerWP = "NW_BIGFARM_PATH_02";
+func void LKN_TA_OnarWorker() {
+    TA_Pick_FP(8,0,18,0,"NW_BIGFARM_FIELD_01");
+    TA_Stand_WP(18,0,8,0,LKN_OnarWorkerWP);
+};
+instance LKN_OnarWorker(Npc_Default) {
+    id = 61036;
+    name[0] = "Onar farm worker";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    daily_routine = LKN_TA_OnarWorker;
+};
+
+const string LKN_SekobWorkerWP = "NW_FARM4_02";
+func void LKN_TA_SekobWorker() {
+    TA_Pick_FP(8,0,18,0,"NW_FARM4_FIELD_02");
+    TA_Stand_WP(18,0,8,0,LKN_SekobWorkerWP);
+};
+instance LKN_SekobWorker(Npc_Default) {
+    id = 61037;
+    name[0] = "Sekob farm worker";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    daily_routine = LKN_TA_SekobWorker;
+};
+
+const string LKN_BengarWorkerWP = "NW_FARM3_BENGAR";
+func void LKN_TA_BengarWorker() {
+    TA_Rake_FP(8,0,18,0,"NW_FARM3_FIELD_01");
+    TA_Stand_WP(18,0,8,0,LKN_BengarWorkerWP);
+};
+instance LKN_BengarWorker(Npc_Default) {
+    id = 61038;
+    name[0] = "Bengar farm worker";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    daily_routine = LKN_TA_BengarWorker;
+};
+
+const string LKN_FreeFarmerWP = "FARM2";
+func void LKN_TA_FreeFarmer() {
+    TA_Rake_FP(8,0,18,0,"NW_FARM2_FIELD_05");
+    TA_Stand_WP(18,0,8,0,LKN_FreeFarmerWP);
+};
+instance LKN_FreeFarmer(Npc_Default) {
+    id = 61039;
+    name[0] = "Independent farm worker";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    daily_routine = LKN_TA_FreeFarmer;
+};
+
+const string LKN_FireNoviceWP = "NW_MONASTERY_ENTRY_01";
+func void LKN_TA_FireNovice() {
+    TA_Stand_WP(6,0,18,0,LKN_FireNoviceWP);
+    TA_Stand_WP(18,0,6,0,LKN_FireNoviceWP);
+};
+instance LKN_FireNovice(Npc_Default) {
+    id = 61040;
+    name[0] = "Novice of the Fire order";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_NOV_L);
+    daily_routine = LKN_TA_FireNovice;
+};
+
+const string LKN_WaterNoviceWP = "ADW_ENTRANCE_BUILDING2_04";
+func void LKN_TA_WaterNovice() {
+    TA_Study_WP(6,0,18,0,LKN_WaterNoviceWP);
+    TA_Study_WP(18,0,6,0,LKN_WaterNoviceWP);
+};
+instance LKN_WaterNovice(Npc_Default) {
+    id = 61041;
+    name[0] = "Novice of the Water order";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    daily_routine = LKN_TA_WaterNovice;
+};
+
+const string LKN_CityScoutWP = "NW_FARM1_PATH_CITY_19_B";
+func void LKN_TA_CityScout() {
+    TA_Stand_Guarding(6,0,18,0,LKN_CityScoutWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_CityScoutWP);
+};
+instance LKN_CityScout(Npc_Default) {
+    id = 61042;
+    name[0] = "Expedition guard of Khorinis";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
+    daily_routine = LKN_TA_CityScout;
+};
+
+const string LKN_OnarScoutWP = "NW_BIGFARM_PATH_01";
+func void LKN_TA_OnarScout() {
+    TA_Stand_Guarding(6,0,18,0,LKN_OnarScoutWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_OnarScoutWP);
+};
+instance LKN_OnarScout(Npc_Default) {
+    id = 61043;
+    name[0] = "Expedition mercenary of Onar";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
+    daily_routine = LKN_TA_OnarScout;
+};
+
+// Static-looking world props use the shared engine's supported item insertion.
+var int LKN_CrossPlaced;
+var int LKN_RidgePlaced;
+var int LKN_CrossGarrisonSide;
+var int LKN_RidgeGarrisonSide;
+
+instance LKN_CrossBuilding(C_Item) {
+    name = "Road supply shelter";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_CROSS.3DS";
+    value = 0;
+};
+instance LKN_RidgeBuilding(C_Item) {
+    name = "Ridge watchtower";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_STONE;
+    visual = "LKN_RIDGE.3DS";
+    value = 0;
+};
+const string LKN_CrossReserveWP = "NW_TAVERNE_IN_07";
+const string LKN_RidgeReserveWP = "NW_FARM4_02";
+func void LKN_TA_CrossReserve() {
+    TA_Stand_Guarding(6,0,18,0,LKN_CrossReserveWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_CrossReserveWP);
+};
+func void LKN_TA_RidgeReserve() {
+    TA_Stand_Guarding(6,0,18,0,LKN_RidgeReserveWP);
+    TA_Stand_Guarding(18,0,6,0,LKN_RidgeReserveWP);
+};
+instance LKN_CrossReserve(Npc_Default) {
+    id = 61044;
+    name[0] = "Road garrison soldier";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
+    daily_routine = LKN_TA_CrossReserve;
+};
+instance LKN_RidgeReserve(Npc_Default) {
+    id = 61045;
+    name[0] = "Ridge garrison soldier";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
+    daily_routine = LKN_TA_RidgeReserve;
+};
+func void LKN_GarrisonUniform(var C_NPC unit, var int side) {
+    if (side == Patch_LivingKhorinis_Militia) {
+        unit.name[0] = LKN_MilitiaName;
+        B_SetNpcVisual(unit,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
+        Npc_RemoveInvItems(unit,ItAr_Sld_L,1);
+    } else {
+        unit.name[0] = LKN_MercenaryName;
+        B_SetNpcVisual(unit,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
+        Npc_RemoveInvItems(unit,ItAr_Mil_L,1);
+    };
+};
+
+func void LKN_ConstructionVisuals() {
+    var C_NPC oldSelf;
+    var C_NPC oldOther;
+    var C_NPC reserve;
+    oldSelf = self;
+    oldOther = other;
+    if (Patch_LivingKhorinis_PostLevel == 2) {
+        if (LKN_CrossPlaced == 0) {
+            Wld_InsertItem(LKN_CrossBuilding,LKN_RoadPost);
+            LKN_CrossPlaced = 1;
+        };
+        reserve = Hlp_GetNpc(LKN_CrossReserve);
+        if (!Hlp_IsValidNpc(reserve)) {
+            Wld_InsertNpc(LKN_CrossReserve,LKN_CrossReserveWP);
+            reserve = Hlp_GetNpc(LKN_CrossReserve);
+            LKN_CrossGarrisonSide = 0;
+        };
+        if (Hlp_IsValidNpc(reserve) && (LKN_CrossGarrisonSide != Patch_LivingKhorinis_Owner)) {
+            LKN_GarrisonUniform(reserve,Patch_LivingKhorinis_Owner);
+            LKN_CrossGarrisonSide = Patch_LivingKhorinis_Owner;
+        };
+    };
+    if (Patch_LivingKhorinis_RidgeLevel == 2) {
+        if (LKN_RidgePlaced == 0) {
+            Wld_InsertItem(LKN_RidgeBuilding,LKN_RidgeWP);
+            LKN_RidgePlaced = 1;
+        };
+        reserve = Hlp_GetNpc(LKN_RidgeReserve);
+        if (!Hlp_IsValidNpc(reserve)) {
+            Wld_InsertNpc(LKN_RidgeReserve,LKN_RidgeReserveWP);
+            reserve = Hlp_GetNpc(LKN_RidgeReserve);
+            LKN_RidgeGarrisonSide = 0;
+        };
+        if (Hlp_IsValidNpc(reserve) && (LKN_RidgeGarrisonSide != Patch_LivingKhorinis_RidgeOwner)) {
+            LKN_GarrisonUniform(reserve,Patch_LivingKhorinis_RidgeOwner);
+            LKN_RidgeGarrisonSide = Patch_LivingKhorinis_RidgeOwner;
+        };
+    };
+    self = oldSelf;
+    other = oldOther;
+};
+
+func void LKN_RoadOrders() {
+    var C_NPC cityScout;
+    var C_NPC onarScout;
+    var C_NPC prior;
+    var string objective;
+    var int side;
+    if (Patch_LivingKhorinis_Dispatched == 0) { return; };
+    cityScout = Hlp_GetNpc(LKN_CityScout);
+    onarScout = Hlp_GetNpc(LKN_OnarScout);
+    if ((!Hlp_IsValidNpc(cityScout)) || (!Hlp_IsValidNpc(onarScout))) { return; };
+    side = Patch_LivingKhorinis_AttackSide;
+    if (side == 0) {
+        if (LKN_LastDispatch != 0) {
+            LKN_LastDispatch = 0;
+            Npc_ClearAIQueue(cityScout);
+            Npc_ClearAIQueue(onarScout);
+            AI_GotoWP(cityScout,LKN_CityScoutWP);
+            AI_GotoWP(onarScout,LKN_OnarScoutWP);
+        };
+        return;
+    };
+    if (Patch_LivingKhorinis_AttackPost == 1) { objective = LKN_RoadPost; }
+    else { objective = LKN_RidgeWP; };
+    if (LKN_LastDispatch != Patch_LivingKhorinis_Dispatched) {
+        LKN_LastDispatch = Patch_LivingKhorinis_Dispatched;
+        Npc_ClearAIQueue(cityScout);
+        Npc_ClearAIQueue(onarScout);
+        AI_GotoWP(cityScout,objective);
+        AI_GotoWP(onarScout,objective);
+    };
+    // A close-range encounter has no authority to affect the simulated capture,
+    // so distant events give the same result. Give them swords only for this encounter.
+    if ((LKN_PhysicalClash != Patch_LivingKhorinis_Dispatched) &&
+        (Npc_GetDistToWP(cityScout,objective) < 1200) && (Npc_GetDistToWP(onarScout,objective) < 1200) &&
+        (Npc_GetDistToNpc(cityScout,hero) < 2600) && (Npc_GetDistToNpc(onarScout,hero) < 2600)) {
+        LKN_PhysicalClash = Patch_LivingKhorinis_Dispatched;
+        prior = other;
+        if (Npc_HasItems(cityScout,ItMw_1H_Mil_Sword) == 0) { CreateInvItems(cityScout,ItMw_1H_Mil_Sword,1); };
+        if (Npc_HasItems(onarScout,ItMw_1H_Mil_Sword) == 0) { CreateInvItems(onarScout,ItMw_1H_Mil_Sword,1); };
+        AI_EquipBestMeleeWeapon(cityScout);
+        AI_EquipBestMeleeWeapon(onarScout);
+        other = onarScout;
+        B_Attack(cityScout,onarScout,AR_NONE,0);
+        other = cityScout;
+        B_Attack(onarScout,cityScout,AR_NONE,0);
+        other = prior;
+    };
+};
+
+func void LKN_RidgeUpdate() {
+    var C_NPC guard;
+    if (LKN_VisibleRidge == Patch_LivingKhorinis_RidgeOwner) { return; };
+    guard = Hlp_GetNpc(LKN_Ridge);
+    if (!Hlp_IsValidNpc(guard)) { return; };
+    if (Patch_LivingKhorinis_RidgeOwner == Patch_LivingKhorinis_Militia) {
+        guard.name[0] = LKN_MilitiaName;
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
+        Npc_RemoveInvItems(guard,ItAr_Sld_L,1);
+    } else {
+        guard.name[0] = LKN_MercenaryName;
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
+        Npc_RemoveInvItems(guard,ItAr_Mil_L,1);
+    };
+    LKN_VisibleRidge = Patch_LivingKhorinis_RidgeOwner;
 };
 
 func void LKN_Refresh() {
@@ -61,6 +397,9 @@ func void LKN_Refresh() {
             LKN_VisibleOwner = Patch_LivingKhorinis_Owner;
         };
     };
+    LKN_RidgeUpdate();
+    LKN_ConstructionVisuals();
+    LKN_RoadOrders();
     LKN_Busy = 0;
 };
 
@@ -111,7 +450,37 @@ func void LKN_OnWorldInit() {
     if (!Hlp_IsValidNpc(quartermaster)) {
         Wld_InsertNpc(LKN_Quartermaster, LKN_QuartermasterPost);
     };
+    quartermaster = Hlp_GetNpc(LKN_Ridge);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_Ridge,LKN_RidgeWP); };
+    quartermaster = Hlp_GetNpc(LKN_Gate);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_Gate,LKN_GateWP); };
+    quartermaster = Hlp_GetNpc(LKN_OnarWorker);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_OnarWorker,LKN_OnarWorkerWP); };
+    quartermaster = Hlp_GetNpc(LKN_SekobWorker);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_SekobWorker,LKN_SekobWorkerWP); };
+    quartermaster = Hlp_GetNpc(LKN_BengarWorker);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_BengarWorker,LKN_BengarWorkerWP); };
+    quartermaster = Hlp_GetNpc(LKN_FreeFarmer);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_FreeFarmer,LKN_FreeFarmerWP); };
+    quartermaster = Hlp_GetNpc(LKN_FireNovice);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_FireNovice,LKN_FireNoviceWP); };
+    quartermaster = Hlp_GetNpc(LKN_CityScout);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_CityScout,LKN_CityScoutWP); };
+    quartermaster = Hlp_GetNpc(LKN_OnarScout);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_OnarScout,LKN_OnarScoutWP); };
     LKN_Refresh();
+    self = previousSelf;
+    other = previousOther;
+};
+
+func void LKN_OnAddonInit() {
+    var C_NPC previousSelf;
+    var C_NPC previousOther;
+    var C_NPC novice;
+    previousSelf = self;
+    previousOther = other;
+    novice = Hlp_GetNpc(LKN_WaterNovice);
+    if (!Hlp_IsValidNpc(novice)) { Wld_InsertNpc(LKN_WaterNovice,LKN_WaterNoviceWP); };
     self = previousSelf;
     other = previousOther;
 };
@@ -142,12 +511,12 @@ func void LKN_Deliver(var int side) {
     if (Patch_LivingKhorinis_Day < today) { return; };
     if (!LKN_CanDeliver()) { return; };
     if (side == Patch_LivingKhorinis_Militia) {
-        if (Patch_LivingKhorinis_MilitiaSupply >= 10) {
+        if (Patch_LivingKhorinis_MilitiaSupply >= 100) {
             Print("The militia supply store is full.");
             return;
         };
     } else {
-        if (Patch_LivingKhorinis_MercenarySupply >= 10) {
+        if (Patch_LivingKhorinis_MercenarySupply >= 100) {
             Print("The mercenary supply store is full.");
             return;
         };
@@ -196,4 +565,34 @@ instance DIA_LKN_Leave(C_INFO) {
     condition = LKN_Always;
     information = LKN_Leave;
     description = "Leave.";
+};
+
+func string LKN_StockLine(var string faction, var int wood, var int iron, var int gold, var int food, var int troops) {
+    var string line;
+    line = ConcatStrings(faction," L/I/G/F: ");
+    line = ConcatStrings(line,IntToString(wood));
+    line = ConcatStrings(line,"/");
+    line = ConcatStrings(line,IntToString(iron));
+    line = ConcatStrings(line,"/");
+    line = ConcatStrings(line,IntToString(gold));
+    line = ConcatStrings(line,"/");
+    line = ConcatStrings(line,IntToString(food));
+    line = ConcatStrings(line," Units: ");
+    return ConcatStrings(line,IntToString(troops));
+};
+func void LKN_Stocks() {
+    LKN_Refresh();
+    Print(LKN_StockLine("Khorinis",Patch_LivingKhorinis_MilitiaWood,Patch_LivingKhorinis_MilitiaIron,Patch_LivingKhorinis_MilitiaGold,Patch_LivingKhorinis_MilitiaSupply,Patch_LivingKhorinis_MilitiaTroops));
+    Print(LKN_StockLine("Onar",Patch_LivingKhorinis_MercenaryWood,Patch_LivingKhorinis_MercenaryIron,Patch_LivingKhorinis_MercenaryGold,Patch_LivingKhorinis_MercenarySupply,Patch_LivingKhorinis_MercenaryTroops));
+    Print(LKN_StockLine("Akil",Patch_LivingKhorinis_FreeWood,Patch_LivingKhorinis_FreeIron,Patch_LivingKhorinis_FreeGold,Patch_LivingKhorinis_FreeSupply,Patch_LivingKhorinis_FreeTroops));
+    Print(LKN_StockLine("Fire order",Patch_LivingKhorinis_FireWood,Patch_LivingKhorinis_FireIron,Patch_LivingKhorinis_FireGold,Patch_LivingKhorinis_FireSupply,Patch_LivingKhorinis_FireTroops));
+    Print(LKN_StockLine("Water order",Patch_LivingKhorinis_WaterWood,Patch_LivingKhorinis_WaterIron,Patch_LivingKhorinis_WaterGold,Patch_LivingKhorinis_WaterSupply,Patch_LivingKhorinis_WaterTroops));
+};
+instance DIA_LKN_Stocks(C_INFO) {
+    npc = LKN_Quartermaster;
+    nr = 13;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Stocks;
+    description = "Show supplies of the factions.";
 };

@@ -34,20 +34,38 @@ def check_dat(data):
             raise ValueError("NotR mod DAT lacks " + symbol.decode())
 
 
-def vdf_for(data):
-    names = ("_WORK", "DATA", "SCRIPTS", "_COMPILED", DAT_NAME)
+def vdf_for(data, visuals=None):
+    if visuals is None:
+        rows = [("_WORK", 1, DIRECTORY_LAST), ("DATA", 2, DIRECTORY_LAST),
+                ("SCRIPTS", 3, DIRECTORY_LAST), ("_COMPILED", 4, DIRECTORY_LAST),
+                (DAT_NAME, data, FILE_LAST)]
+    else:
+        rows = [("_WORK", 1, DIRECTORY_LAST), ("DATA", 2, DIRECTORY_LAST),
+                ("MESHES", 5, 0x80000000), ("SCRIPTS", 6, 0x80000000),
+                ("TEXTURES", 7, DIRECTORY_LAST), ("_COMPILED", 8, DIRECTORY_LAST),
+                ("_COMPILED", 10, DIRECTORY_LAST), ("_COMPILED", 11, DIRECTORY_LAST),
+                ("LKN_CROSS.MRM", visuals["LKN_CROSS.MRM"], 0),
+                ("LKN_RIDGE.MRM", visuals["LKN_RIDGE.MRM"], FILE_LAST),
+                (DAT_NAME, data, FILE_LAST),
+                ("LKN_CLOTH-C.TEX", visuals["LKN_CLOTH-C.TEX"], 0),
+                ("LKN_IRON-C.TEX", visuals["LKN_IRON-C.TEX"], 0),
+                ("LKN_OAK-C.TEX", visuals["LKN_OAK-C.TEX"], 0),
+                ("LKN_STONE-C.TEX", visuals["LKN_STONE-C.TEX"], FILE_LAST)]
     root = 296
-    offset = root + 80 * len(names)
+    offset = root + 80 * len(rows)
+    files = [val for _,val,_ in rows if isinstance(val, bytes)]
     out = bytearray(b"Living Khorinis local compiler output".ljust(256, b"\x1a"))
     out += G2_SIGNATURE
-    out += struct.pack("<6I", len(names), 1, (46 << 25) | (1 << 21) | (1 << 16),
-                       offset + len(data), root, 0x50)
-    for index, name in enumerate(names):
-        last = index == len(names) - 1
+    out += struct.pack("<6I", len(rows), len(files), (46 << 25) | (1 << 21) | (1 << 16),
+                       offset + sum(map(len,files)), root, 0x50)
+    for name, value, flags in rows:
         out += name.encode("ascii").ljust(64, b" ")
-        out += struct.pack("<4I", offset if last else index + 1,
-                           len(data) if last else 0, FILE_LAST if last else DIRECTORY_LAST, 0)
-    return bytes(out) + data
+        if isinstance(value, bytes):
+            out += struct.pack("<4I", offset, len(value), flags, 0)
+            offset += len(value)
+        else:
+            out += struct.pack("<4I", value, 0, flags, 0)
+    return bytes(out) + b"".join(files)
 
 
 def mod_ini(base):
@@ -79,7 +97,7 @@ def mod_ini(base):
         if current.group(2).lower() == b"info":
             info = current
             break
-    title = b"[INFO]" + nl + b"Title=Living Khorinis - Dead Harpy Crossing" + nl + b"Version=0.2" + nl + b"Authors=Chati" + nl + nl
+    title = b"[INFO]" + nl + b"Title=Living Khorinis - Dead Harpy Crossing" + nl + b"Version=0.3" + nl + b"Authors=Chati" + nl + nl
     if info is not None and info.group(2).lower() == b"info":
         e = _BASE_INI.search(diff, info.end())
         return diff[:info.start()] + title + diff[e.start() if e else len(diff):]
@@ -94,7 +112,8 @@ def package(dat, ini, out):
     raw = dat.read_bytes()
     check_dat(raw)
     manifest = mod_ini(ini.read_bytes())
-    volume = vdf_for(raw)
+    from buildings import assets
+    volume = vdf_for(raw, assets())
     (out / "Data" / "ModVDF").mkdir(parents=True)
     (out / "System").mkdir()
     (out / "Data" / "ModVDF" / MOD_NAME).write_bytes(volume)

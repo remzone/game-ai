@@ -15,9 +15,11 @@ execFileSync('python3', ['-B','-c', `
 from pathlib import Path
 from test_native import fake_dat, INI
 from pack import mod_ini, vdf_for
+from buildings import assets
 p=Path(${JSON.stringify(folder)})
 (p/'system'/'livingkhorinis.ini').write_bytes(mod_ini(INI))
 (p/'data'/'modvdf'/'LivingKhorinis.mod').write_bytes(vdf_for(fake_dat()))
+(p/'art.mod').write_bytes(vdf_for(fake_dat(), assets()))
 `], {cwd:dir});
 const gameRoot='/game';
 function runtime({volMissing=false,iniMissing=false,broken=false,vanilla=false}={}) {
@@ -47,4 +49,30 @@ test('runs vanilla only when both files absent, or explicitly requested', async 
 test('fails closed on incomplete or invalid overlay', async () => {
     await assert.rejects(runtime({volMissing:true}),/нужны обе части/);
     await assert.rejects(runtime({broken:true}),/неподдерживаемый формат/);
+});
+
+test('one .lkmod shadows only the engine view and does not touch base bytes or saves', () => {
+    const ctx=vm.createContext({TextDecoder,Uint8Array,URLSearchParams});
+    vm.runInContext(code,ctx);
+    const ini=fs.readFileSync(path.join(folder,'system/livingkhorinis.ini'));
+    const vol=fs.readFileSync(path.join(folder,'art.mod'));
+    const head=Buffer.alloc(16);head.write('LKHMOD01');head.writeUInt32LE(ini.length,8);head.writeUInt32LE(vol.length,12);
+    const encoded=new Uint8Array(Buffer.concat([head,ini,vol]));
+    const VFS={files:new Map(),addEntry(n,isDir,size){const old=this.files.get(n.toLowerCase()),
+     e=old??{path:n,isDir,size};this.files.set(n.toLowerCase(),e);return e;}};
+    VFS.addEntry('data',true);VFS.addEntry('System',true);
+    VFS.addEntry('data/Worlds_Addon.vdf',false,7);
+    const save=VFS.addEntry('save_slot_1.sav',false,12);
+    ctx.LivingKhorinisOverlay.mount(VFS,encoded);
+    assert.equal(VFS.files.get('data/modvdf/livingkhorinis.mod').mem.length,vol.length);
+    assert.equal(VFS.files.get('system/livingkhorinis.ini').mem.length,ini.length);
+    assert.equal(VFS.files.get('save_slot_1.sav'),save);
+    assert.equal(VFS.files.get('data/worlds_addon.vdf').size,7);
+    const prev=VFS.files.get('system/livingkhorinis.ini').mem;
+    const broken=encoded.slice(0,-1);
+    assert.throws(()=>ctx.LivingKhorinisOverlay.mount(VFS,broken),/повреждён/);
+    assert.equal(VFS.files.get('system/livingkhorinis.ini').mem,prev);
+    const wrongEntry=encoded.slice();
+    wrongEntry[16+ini.length+296+80*8]=0x57;
+    assert.throws(()=>ctx.LivingKhorinisOverlay.mount(VFS,wrongEntry),/содержимое пакета/);
 });

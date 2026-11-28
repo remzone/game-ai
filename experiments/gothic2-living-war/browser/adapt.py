@@ -163,7 +163,7 @@ s=s.replace('<input type="file" id="saves-picker"', '''<dialog id="lk-cloud" sty
           <p id="lk-gh-status" role="status" aria-live="polite"></p>
         </dialog>
         <input type="file" id="saves-picker"''')
-s=s.replace("          if (result != null) {\n            if (typeof result.ini", "          if (result != null) {\n            globalThis.lkModActive = true;\n            if (typeof result.ini",1)
+s=s.replace("          if (result != null) {\n            if (typeof result.ini", "          if (result != null) {\n            globalThis.lkModActive = true; globalThis.lkModVersion = result.version;\n            if (typeof result.ini",1)
 at=s.index('    // The canvas takes')
 s=s[:at]+'''    let lkCloudBusy = false;
     const lkId = id => document.getElementById(id);
@@ -198,7 +198,7 @@ s=s[:at]+'''    let lkCloudBusy = false;
       for (const id of ['lk-gh-push','lk-gh-pull','lk-gh-close']) lkId(id).disabled = true;
       status.textContent = 'Ждём ответ GitHub…';
       try {
-        const api = LivingKhorinisGitHub.create(fetch.bind(window));
+        const api = LivingKhorinisGitHub.create(fetch.bind(window),globalThis.lkModVersion);
         const token = lkId('lk-gh-token').value.trim();
         if (action === 'push') {
           const selected = (await collectSaves()).find(f => f.name === picker.value);
@@ -228,4 +228,51 @@ s=s[:at]+'''    let lkCloudBusy = false;
     }
 
 '''+s[at:]
+# Store one local mod overlay separately from base game files and saves.
+s=s.replace('<input type="file" id="saves-picker"', '<input type="file" id="lk-update-picker" class="file-input" accept=".lkmod" onchange="lkInstallLocalUpdate(event)">\n        <input type="file" id="saves-picker"')
+s=s.replace('<button class="fm-item" role="menuitem" type="button" onclick="lkOpenSync()">','<button class="fm-item" role="menuitem" type="button" onclick="document.getElementById(\'lk-update-picker\').click()">Выбрать обновление мода (.lkmod)</button>\n          <button class="fm-item" role="menuitem" type="button" onclick="lkOpenSync()">')
+pos=s.index('    async function removeRootEntry(name)')
+s=s[:pos]+'''    const LK_OVERLAY_FILE = 'living-khorinis-local-overlay.lkmod';
+    async function lkInstallLocalUpdate(e) {
+      const f=e.target.files[0];e.target.value='';
+      if(!f) return;
+      let writer;
+      try{
+        if(!await readRootJson(INSTALL_MARK)) throw Error('Сначала импортируй папку или ZIP с базовой игрой.');
+        if(f.size > LivingKhorinisOverlay.limit) throw Error('Для обновления выбери .lkmod, не ZIP с игрой.');
+        const bytes=new Uint8Array(await f.arrayBuffer());
+        LivingKhorinisOverlay.parts(bytes);
+        if(!confirm('Установить обновление мода и перезапустить игру? Слоты сохранятся. Для версии 0.3 начни новую игру.')) return;
+        const root=await navigator.storage.getDirectory();
+        writer=await (await root.getFileHandle(LK_OVERLAY_FILE,{create:true})).createWritable();
+        await writer.write(bytes);
+        await writer.close();
+        writer=null;
+        sessionStorage.removeItem('ogResume');
+        const u=new URL(location.href);
+        u.searchParams.delete('lkbase');
+        u.searchParams.delete('vanilla');
+        u.searchParams.delete('nomenu');
+        location.href=u.toString();
+      }catch(err){
+        if(writer) try{await writer.abort();}catch{}
+        alert('Обновление не применено: '+(err.message||err));
+      }
+    }
+    async function lkMountLocalUpdate() {
+      if(new URLSearchParams(location.search).has('lkbase') || new URLSearchParams(location.search).get('vanilla')==='1')return;
+      const root=await navigator.storage.getDirectory();
+      let f;
+      try{ f=await(await root.getFileHandle(LK_OVERLAY_FILE)).getFile(); }
+      catch(e){if(e.name==='NotFoundError')return;throw e;}
+      if(!f.size)return;
+      if(f.size>LivingKhorinisOverlay.limit)throw Error('Локальный пакет мода слишком большой.');
+      LivingKhorinisOverlay.mount(GameFS,new Uint8Array(await f.arrayBuffer()));
+    }
+
+'''+s[pos:]
+s=s.replace("""        if (typeof window.LivingKhorinisPrepare === 'function') {
+          const result""","""        await lkMountLocalUpdate();
+        if (typeof window.LivingKhorinisPrepare === 'function') {
+          const result""",1)
 Path('dist/index.html').write_text(s)

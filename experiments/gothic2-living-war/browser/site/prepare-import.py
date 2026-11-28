@@ -3,6 +3,7 @@ import argparse
 import os
 import shutil
 import subprocess
+import struct
 import sys
 import tempfile
 from pathlib import Path
@@ -30,6 +31,31 @@ def files(root):
                 if f.name.lower()=='livingkhorinis.ini':continue
                 path=f.relative_to(root).as_posix()
                 yield f,path
+
+
+def archive_overlay(overlay, target):
+    """Write exactly one INI+VDF pair. The browser validates before mounting."""
+    ini = (overlay/'System/LivingKhorinis.ini').read_bytes()
+    volume = (overlay/'Data/ModVDF/LivingKhorinis.mod').read_bytes()
+    if not (0 < len(ini) <= 64*1024 and 0 < len(volume) <= 65*1024*1024):
+        raise ValueError('Неподдерживаемый размер пакета мода.')
+    partial = target.with_name(target.name+'.partial')
+    with partial.open('xb') as stream:
+        try:
+            stream.write(struct.pack('<8sII',b'LKHMOD01',len(ini),len(volume)))
+            stream.write(ini)
+            stream.write(volume)
+        except BaseException:
+            stream.close()
+            partial.unlink(missing_ok=True)
+            raise
+    try:
+        if target.exists():
+            raise FileExistsError(target)
+        partial.rename(target)
+    finally:
+        partial.unlink(missing_ok=True)
+
 
 def archive_game(game, overlay, target):
     if target.exists():
@@ -59,19 +85,23 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('steam_folder',type=Path)
     p.add_argument('--lang',choices=['ru','en'],required=True)
-    p.add_argument('--output',type=Path,default=Path('LivingKhorinis-import.zip'))
+    p.add_argument('--overlay-only',action='store_true',help='только файлы мода, без файлов Steam')
+    p.add_argument('--output',type=Path)
     a=p.parse_args()
     try:
         game=a.steam_folder.resolve(strict=True)
-        dest=a.output.resolve()
+        dest=(a.output or Path('LivingKhorinis-update.lkmod' if a.overlay_only else 'LivingKhorinis-import.zip')).resolve()
         if dest.exists() or dest.is_relative_to(game):
             raise ValueError('Выбери новый ZIP за пределами Steam.')
         with tempfile.TemporaryDirectory(prefix='kh-import-') as temp:
             overlay=Path(temp)/'overlay'
             subprocess.run([sys.executable,'-B',str(HERE/'gothic2-native-adapter'/'build-local.py'),str(game),str(overlay),'--lang',a.lang],check=True)
-            print('Копируем игровые данные в локальный ZIP. Ничего не отправляется.',flush=True)
-            archive_game(game,overlay,dest)
-        print('Готово. Выбери этот ZIP в браузерном лаунчере: '+str(dest),flush=True)
+            if a.overlay_only:
+                archive_overlay(overlay,dest)
+            else:
+                print('Копируем игровые данные в локальный ZIP. Ничего не отправляется.',flush=True)
+                archive_game(game,overlay,dest)
+        print('Готово. Выбери файл в браузерном лаунчере: '+str(dest),flush=True)
     except (OSError,ValueError,subprocess.CalledProcessError) as e:
         print('Сборка остановлена: '+str(e),file=sys.stderr)
         return 1

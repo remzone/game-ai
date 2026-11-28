@@ -16,6 +16,8 @@ STARTUP_ENTRY = re.compile(rb'(?im)^[ \t]*"?([^\r\n";*?]*[\\/]startup\.d)"?[ \t]
 BODY = re.compile(rb'\bfunc\s+void\s+init_newworld\s*\(\s*\)\s*\{', re.I)
 COMMENT_OR_STRING = re.compile(rb'//[^\r\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"')
 HOOK = b'LKN_OnWorldInit(); // Chati Living Khorinis'
+ADDON_BODY = re.compile(rb'\bfunc\s+void\s+init_addonworld\s*\(\s*\)\s*\{', re.I)
+ADDON_HOOK = b'LKN_OnAddonInit(); // Chati Living Khorinis'
 
 
 def ci_child(parent, name):
@@ -33,10 +35,15 @@ def patch_bytes(startup):
         raise ValueError(f'Expected one INIT_NEWWORLD definition, got {len(candidates)}')
     if re.search(rb'\bLKN_OnWorldInit\s*\(', masked, re.I):
         raise ValueError('The source startup already references this mod.')
-    pos = candidates[0].end()
+    addon = list(ADDON_BODY.finditer(masked))
+    if len(addon) > 1 or re.search(rb'\bLKN_OnAddonInit\s*\(',masked,re.I):
+        raise ValueError('Ambiguous or already patched AddonWorld init.')
     nl = b'\r\n' if b'\r\n' in startup else b'\n'
-    suffix = b'' if startup[pos:pos+1] in (b'\n', b'\r') else nl
-    return startup[:pos] + nl + b'    ' + HOOK + suffix + startup[pos:]
+    placements = [(candidates[0].end(),HOOK)] + [(m.end(),ADDON_HOOK) for m in addon]
+    for pos, hook in sorted(placements,reverse=True):
+        suffix = b'' if startup[pos:pos+1] in (b'\n', b'\r') else nl
+        startup = startup[:pos] + nl + b'    ' + hook + suffix + startup[pos:]
+    return startup
 
 
 def prepare(source, dest, rules=RULES):
