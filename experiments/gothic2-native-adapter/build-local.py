@@ -32,6 +32,18 @@ RECONSTRUCTED = {
 
 
 RU_TEXT = {
+    "Paladin of the supply watch": "Паладин снабжения",
+    "Mercenary of the supply watch": "Наёмник снабжения",
+    "Paladins' timber depot": "Лесной склад паладинов",
+    "Old mine supply camp": "Лагерь у старой шахты",
+    "Harbour sawyer": "Пильщик в порту",
+    "Miner from Onar's lands": "Рудокоп с земель Онара",
+    ": Khorinis paladins": ": паладины Хориниса",
+    ": Onar's mercenaries": ": наёмники Онара",
+    "; shift suspended.": "; смена остановлена.",
+    "Harbour timber depot": "Лесной склад в порту",
+    "Old mine camp": "Застава у старой шахты",
+    "Who holds the timber depot and mine?": "Кто держит лесной склад и шахту?",
     "Road supply shelter": "Дорожный склад",
     "Ridge watchtower": "Сторожевая башня на гребне",
     "Road garrison soldier": "Боец гарнизона перекрёстка",

@@ -15,6 +15,7 @@ function rules(){
  vm.runInContext(code,session);
  const f=n=>session[prefix+n];
  f('Begin')(0);
+ f.set=(n,value)=>{session[prefix+n]=value;};
  return f;
 }
 test('neutral crossroads, Onar ridge, rising stocks, trade and sustained territorial control',()=>{
@@ -58,4 +59,38 @@ test('construction consumes stock, completes two ticks later and survives change
  const scenario=rules();
  scenario('Advance')(12);
  assert.equal(scenario('RidgeLevel'),2);assert.equal(scenario('PostLevel'),2);
+});
+
+test('paladins start with the docks and Onar with the ore camp; output follows control',()=>{
+ const f=rules();
+ assert.equal(f('DockOwner'),1);assert.equal(f('MineOwner'),2);
+ f('Industry')();
+ assert.equal(f('MilitiaWood'),20);assert.equal(f('MilitiaGold'),8);
+ assert.equal(f('MercenaryIron'),17);assert.equal(f('MercenaryGold'),10);
+ assert.equal(f('MercenarySupply'),21);
+ const siege=rules();
+ for(const d of [7,9]) siege('Advance')(d);
+ assert.equal(siege('AttackPost'),3);assert.equal(siege('AttackSide'),2);
+ assert.equal(siege('DockClosed'),1);assert.equal(siege('DockOwner'),1);
+ siege('Advance')(11);
+ assert.equal(siege('DockOwner'),2);
+ siege.set('MercenaryWood',20);siege.set('MercenarySupply',20);
+ const cityWood=siege('MilitiaWood');
+ siege('Industry')();
+ assert.equal(siege('MercenaryWood'),26);assert.equal(siege('MilitiaWood'),cityWood);
+ siege.set('MercenarySupply',0);
+ siege('Industry')();assert.equal(siege('DockClosed'),1);assert.equal(siege('MineClosed'),1);
+});
+test('paladins can take the ore camp only with the ridge route, supply and a stronger force',()=>{
+ const f=rules();
+ f.set('Rounds',9);
+ f.set('MilitiaSupply',40);f.set('MilitiaTroops',12);f.set('MercenaryTroops',6);
+ assert.equal(f('PlanIndustry')(),0);
+ f.set('RidgeOwner',1);
+ assert.equal(f('PlanIndustry')(),1);
+ assert.equal(f('AttackPost'),4);assert.equal(f('MineClosed'),1);
+ f('ResolveOperation')();f('ResolveOperation')();
+ assert.equal(f('MineOwner'),1);assert.equal(f('RidgeOwner'),1);
+ f.set('MilitiaTroops',8);const before=f('MilitiaIron');const enemy=f('MercenaryIron');
+ f('Industry')();assert.equal(f('MilitiaIron'),before+5);assert.equal(f('MercenaryIron'),enemy);
 });

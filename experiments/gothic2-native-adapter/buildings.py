@@ -124,6 +124,29 @@ def assets():
     for x in [-84,76]:
         for z in [-54,-16,22]:n.box("LKN_OAK",x,164,z,18,40,18)
     n.banner(68,164,-64)
-    result={"LKN_CROSS.MRM":m.emit(),"LKN_RIDGE.MRM":n.emit()}
+    # Paladins' timber depot: stacked timbers and a roof over the scales.
+    dock=Mesh(250,135)
+    dock.box("LKN_STONE",-115,0,-77,230,19,154)
+    for x in (-104,93):
+        for z in (-68,53):dock.box("LKN_OAK",x,19,z,11,182,11)
+    dock.roof(-119,201,-84,238,48,168)
+    for y,num in [(22,5),(40,4),(58,3)]:
+        for j in range(num):
+            dock.box("LKN_OAK",-92,y,-40+16*j+(5-num)*8,133,12,12)
+    dock.box("LKN_IRON",72,20,20,24,18,24)
+    dock.banner(-98,23,-72)
+    # Onar's ore camp: crenellated low walls, a slatted workbench and ore bins.
+    mine=Mesh(-256,142)
+    mine.box("LKN_STONE",-106,0,-78,212,23,156)
+    mine.box("LKN_STONE",-101,23,51,200,87,23)
+    for x in (-101,-42,16,76):
+        mine.box("LKN_STONE",x,110,51,24,26,23)
+    mine.box("LKN_STONE",-101,23,-71,24,83,122)
+    for x,y in [(-35,24),(31,24),(53,24)]:
+        mine.box("LKN_OAK",x,y,-36,31,38,37)
+        mine.box("LKN_IRON",x+5,y+38,-30,21,22,24)
+    mine.banner(65,27,35)
+    result={"LKN_CROSS.MRM":m.emit(),"LKN_RIDGE.MRM":n.emit(),
+            "LKN_DOCK.MRM":dock.emit(),"LKN_MINE.MRM":mine.emit()}
     result.update({k+"-C.TEX":texture(k) for k in PALETTE})
     return result

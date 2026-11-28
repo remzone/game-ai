@@ -19,8 +19,8 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2}={}) {
     const messages=[];
     let calls=0;
     const c=vm.createContext({
-        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,ItAr_NOV_L:4,ItMw_1H_Mil_Sword:5,AR_NONE:0,hero:other,
-        Npc_ClearAIQueue:()=>{}, AI_GotoWP:()=>{},Npc_GetDistToWP:()=>0,Npc_GetDistToNpc:()=>0,CreateInvItems:()=>{},AI_EquipBestMeleeWeapon:()=>{},
+        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,ItAr_NOV_L:4,ItAr_Pal_M:6,ItMw_1H_Mil_Sword:5,AR_NONE:0,hero:other,
+        Npc_ClearAIQueue:()=>{}, AI_GotoWP:(npc,where)=>{npc.target=where;},Npc_GetDistToWP:()=>0,Npc_GetDistToNpc:()=>0,CreateInvItems:()=>{},AI_EquipBestMeleeWeapon:()=>{},
         B_Attack:(a,b)=>{assert.match(a.instance,/^LKN_(City|Onar)Scout$/);assert.match(b.instance,/^LKN_(City|Onar)Scout$/);messages.push("clash")},
         B_SetNpcVisual: (npc,sex,head,face,body,armor)=>{ npc.armor=armor; },
         Wld_InsertItem:(name,where)=>messages.push(name+":"+where),
@@ -38,7 +38,7 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2}={}) {
         Wld_RemoveNpc: ()=>{ throw new Error("persistent actors must not be removed"); },
         Npc_HasItems: (who,item)=>{ return who===other ? bread : 0; },
         Npc_RemoveInvItems: (who,item,n)=>{ if (who===other) bread-=n; else assert.notEqual(who.armor,item); },
-        Print: line=>messages.push(line),
+        Print: line=>messages.push(line), ConcatStrings:(a,b)=>a+b,
     });
     vm.runInContext(code,c);
     Object.assign(c,prevState);
@@ -55,7 +55,7 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2}={}) {
 test('new units and named posts are persistent; water novice only in Jharkendar',()=>{
  const sim=simulate();
  sim.enter();sim.enter();sim.tick();
- assert.equal(sim.calls,11);
+ assert.equal(sim.calls,15);
  assert.equal(sim.actors.get('LKN_Ridge').where,'NW_BIGFARM_FARM4_PATH_01');
  assert.equal(sim.actors.get('LKN_PostGuard').name[0],'Neutral tavern lookout');
  assert.equal(sim.actors.get('LKN_OnarScout').where,'NW_BIGFARM_PATH_01');
@@ -83,4 +83,23 @@ test('one bread per day; no duplicate delivery after reload',()=>{
  const back=simulate(sim.save());back.enter();back.c.LKN_DeliverMilitia();
  assert.equal(back.bread,1);
  back.day(1);back.c.LKN_DeliverMilitia();assert.equal(back.bread,0);
+});
+
+test('preserves posts on reload and routes the dispatch to the port, with the real owner shown',()=>{
+ const sim=simulate();sim.enter();sim.enter();
+ const port=sim.actors.get('LKN_DockGuard'), mine=sim.actors.get('LKN_MineGuard');
+ assert.equal(port.armor,6);assert.equal(mine.armor,2);
+ assert.equal(port.where,'NW_CITY_HABOUR_09');
+ assert.equal(mine.where,'NW_CASTLEMINE_PATH_OUTSIDEHUT_02');
+ assert.equal(sim.messages.filter(m=>m.startsWith('LKN_DockBuilding:')).length,1);
+ assert.equal(sim.messages.filter(m=>m.startsWith('LKN_MineBuilding:')).length,1);
+ assert.ok(sim.actors.has('LKN_DockWorker') && sim.actors.has('LKN_MineWorker'));
+ sim.day(9);sim.tick();
+ assert.equal(sim.actors.get('LKN_OnarScout').target,port.where);
+ assert.equal(port.armor,6);
+ sim.c.LKN_IndustryReport();assert.ok(sim.messages.includes('Harbour timber depot: Khorinis paladins; shift suspended.'));
+ sim.day(11);sim.tick();assert.equal(port.armor,2);
+ const back=simulate(sim.save());back.enter();
+ assert.equal(back.calls,0);assert.equal(back.messages.filter(m=>m.includes('Building:')).length,0);
+ assert.equal(back.actors.get('LKN_DockGuard').armor,2);
 });

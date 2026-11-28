@@ -69,3 +69,17 @@ test('metadata reads for large saves use GitHub object media type before pull an
  assert.equal(f.calls[1][1].headers.Accept,'application/vnd.github.object+json');
  assert.equal(JSON.parse(f.calls[2][1].body).sha,hash);
 });
+
+test('0.4 never reads or overwrites the 0.3 or legacy save path', async ()=>{
+  const calls=[];
+  const fetcher=async (url,opts)=>{
+    calls.push(String(url));
+    if(calls.length===1) return json(info);
+    return {status:404,ok:false};
+  };
+  const box=vm.createContext({AbortController,setTimeout,clearTimeout,btoa,Uint8Array});
+  vm.runInContext(src,box);
+  const sync=box.LivingKhorinisGitHub.create(fetcher,'0.4');
+  assert.equal(await sync.pull(token),null);
+  assert.match(calls[1],/latest-v04\.sav\?ref=mod-ru$/);
+});

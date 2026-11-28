@@ -296,6 +296,129 @@ func void LKN_ConstructionVisuals() {
     other = oldOther;
 };
 
+// Existing NewWorld waypoints. Use only newly defined actor instances.
+const string LKN_DockWP = "NW_CITY_HABOUR_09";
+const string LKN_DockWorkWP = "NW_CITY_HABOUR_08";
+const string LKN_MineWP = "NW_CASTLEMINE_PATH_OUTSIDEHUT_02";
+const string LKN_MineWorkWP = "NW_CASTLEMINE_PATH_HUT_02";
+const string LKN_LoyalPaladin = "Paladin of the supply watch";
+const string LKN_OreMercenary = "Mercenary of the supply watch";
+var int LKN_DockPlaced;
+var int LKN_MinePlaced;
+var int LKN_VisibleDock;
+var int LKN_VisibleMine;
+
+instance LKN_DockBuilding(C_Item) {
+    name = "Paladins' timber depot";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_WOOD;
+    visual = "LKN_DOCK.3DS";
+    value = 0;
+};
+instance LKN_MineBuilding(C_Item) {
+    name = "Old mine supply camp";
+    mainflag = ITEM_KAT_NONE;
+    flags = ITEM_MISSION;
+    material = MAT_STONE;
+    visual = "LKN_MINE.3DS";
+    value = 0;
+};
+func void LKN_TA_DockGuard() {
+    TA_Min(self,6,0,18,0,ZS_LKN_Quartermaster,LKN_DockWP);
+    TA_Min(self,18,0,6,0,ZS_LKN_Quartermaster,LKN_DockWP);
+};
+instance LKN_DockGuard(Npc_Default) {
+    id = 61046;
+    name[0] = LKN_LoyalPaladin;
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Pal_M);
+    daily_routine = LKN_TA_DockGuard;
+};
+func void LKN_TA_MineGuard() {
+    TA_Min(self,6,0,18,0,ZS_LKN_Quartermaster,LKN_MineWP);
+    TA_Min(self,18,0,6,0,ZS_LKN_Quartermaster,LKN_MineWP);
+};
+instance LKN_MineGuard(Npc_Default) {
+    id = 61047;
+    name[0] = LKN_OreMercenary;
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
+    daily_routine = LKN_TA_MineGuard;
+};
+func void LKN_TA_DockWorker() {
+    // Second shift: do not reserve the saw while the stock harbour worker is using it.
+    TA_Stand_WP(4,40,19,20,LKN_DockWP);
+    TA_Saw(19,20,4,40,LKN_DockWorkWP);
+};
+instance LKN_DockWorker(Npc_Default) {
+    id = 61048;
+    name[0] = "Harbour sawyer";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    daily_routine = LKN_TA_DockWorker;
+};
+func void LKN_TA_MineWorker() {
+    TA_Pick_Ore(8,0,18,0,LKN_MineWorkWP);
+    TA_Stand_WP(18,0,8,0,LKN_MineWP);
+};
+instance LKN_MineWorker(Npc_Default) {
+    id = 61049;
+    name[0] = "Miner from Onar's lands";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_AMBIENT;
+    flags = NPC_FLAG_IMMORTAL;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    daily_routine = LKN_TA_MineWorker;
+};
+
+func void LKN_IndustryUniform(var C_NPC guard, var int side) {
+    if (side == Patch_LivingKhorinis_Militia) {
+        guard.name[0] = LKN_LoyalPaladin;
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Pal_M);
+        Npc_RemoveInvItems(guard,ItAr_Sld_L,1);
+    } else {
+        guard.name[0] = LKN_OreMercenary;
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
+        Npc_RemoveInvItems(guard,ItAr_Pal_M,1);
+    };
+};
+func void LKN_IndustryVisuals() {
+    var C_NPC oldSelf;
+    var C_NPC oldOther;
+    var C_NPC guard;
+    oldSelf = self;
+    oldOther = other;
+    if (LKN_DockPlaced == 0) { Wld_InsertItem(LKN_DockBuilding,LKN_DockWP); LKN_DockPlaced = 1; };
+    if (LKN_MinePlaced == 0) { Wld_InsertItem(LKN_MineBuilding,LKN_MineWP); LKN_MinePlaced = 1; };
+    if (LKN_VisibleDock != Patch_LivingKhorinis_DockOwner) {
+        guard = Hlp_GetNpc(LKN_DockGuard);
+        if (Hlp_IsValidNpc(guard)) {
+            LKN_IndustryUniform(guard,Patch_LivingKhorinis_DockOwner);
+            LKN_VisibleDock = Patch_LivingKhorinis_DockOwner;
+        };
+    };
+    if (LKN_VisibleMine != Patch_LivingKhorinis_MineOwner) {
+        guard = Hlp_GetNpc(LKN_MineGuard);
+        if (Hlp_IsValidNpc(guard)) {
+            LKN_IndustryUniform(guard,Patch_LivingKhorinis_MineOwner);
+            LKN_VisibleMine = Patch_LivingKhorinis_MineOwner;
+        };
+    };
+    self = oldSelf;
+    other = oldOther;
+};
+
 func void LKN_RoadOrders() {
     var C_NPC cityScout;
     var C_NPC onarScout;
@@ -318,7 +441,9 @@ func void LKN_RoadOrders() {
         return;
     };
     if (Patch_LivingKhorinis_AttackPost == 1) { objective = LKN_RoadPost; }
-    else { objective = LKN_RidgeWP; };
+    else if (Patch_LivingKhorinis_AttackPost == 2) { objective = LKN_RidgeWP; }
+    else if (Patch_LivingKhorinis_AttackPost == 3) { objective = LKN_DockWP; }
+    else { objective = LKN_MineWP; };
     if (LKN_LastDispatch != Patch_LivingKhorinis_Dispatched) {
         LKN_LastDispatch = Patch_LivingKhorinis_Dispatched;
         Npc_ClearAIQueue(cityScout);
@@ -399,6 +524,7 @@ func void LKN_Refresh() {
     };
     LKN_RidgeUpdate();
     LKN_ConstructionVisuals();
+    LKN_IndustryVisuals();
     LKN_RoadOrders();
     LKN_Busy = 0;
 };
@@ -468,6 +594,14 @@ func void LKN_OnWorldInit() {
     if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_CityScout,LKN_CityScoutWP); };
     quartermaster = Hlp_GetNpc(LKN_OnarScout);
     if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_OnarScout,LKN_OnarScoutWP); };
+    quartermaster = Hlp_GetNpc(LKN_DockGuard);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_DockGuard,LKN_DockWP); LKN_VisibleDock = 0; };
+    quartermaster = Hlp_GetNpc(LKN_MineGuard);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_MineGuard,LKN_MineWP); LKN_VisibleMine = 0; };
+    quartermaster = Hlp_GetNpc(LKN_DockWorker);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_DockWorker,LKN_DockWorkWP); };
+    quartermaster = Hlp_GetNpc(LKN_MineWorker);
+    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_MineWorker,LKN_MineWorkWP); };
     LKN_Refresh();
     self = previousSelf;
     other = previousOther;
@@ -595,4 +729,25 @@ instance DIA_LKN_Stocks(C_INFO) {
     condition = LKN_Always;
     information = LKN_Stocks;
     description = "Show supplies of the factions.";
+};
+
+func string LKN_IndustryLine(var string place, var int side, var int closed) {
+    var string line;
+    if (side == Patch_LivingKhorinis_Militia) { line = ConcatStrings(place,": Khorinis paladins"); }
+    else { line = ConcatStrings(place,": Onar's mercenaries"); };
+    if (closed == 1) { return ConcatStrings(line,"; shift suspended."); };
+    return line;
+};
+func void LKN_IndustryReport() {
+    LKN_Refresh();
+    Print(LKN_IndustryLine("Harbour timber depot",Patch_LivingKhorinis_DockOwner,Patch_LivingKhorinis_DockClosed));
+    Print(LKN_IndustryLine("Old mine camp",Patch_LivingKhorinis_MineOwner,Patch_LivingKhorinis_MineClosed));
+};
+instance DIA_LKN_IndustryReport(C_INFO) {
+    npc = LKN_Quartermaster;
+    nr = 14;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_IndustryReport;
+    description = "Who holds the timber depot and mine?";
 };

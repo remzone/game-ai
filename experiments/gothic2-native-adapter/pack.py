@@ -40,17 +40,16 @@ def vdf_for(data, visuals=None):
                 ("SCRIPTS", 3, DIRECTORY_LAST), ("_COMPILED", 4, DIRECTORY_LAST),
                 (DAT_NAME, data, FILE_LAST)]
     else:
+        meshes = sorted(name for name in visuals if name.endswith(".MRM"))
+        textures = sorted(name for name in visuals if name.endswith(".TEX"))
+        dat_index = 8 + len(meshes)
         rows = [("_WORK", 1, DIRECTORY_LAST), ("DATA", 2, DIRECTORY_LAST),
                 ("MESHES", 5, 0x80000000), ("SCRIPTS", 6, 0x80000000),
                 ("TEXTURES", 7, DIRECTORY_LAST), ("_COMPILED", 8, DIRECTORY_LAST),
-                ("_COMPILED", 10, DIRECTORY_LAST), ("_COMPILED", 11, DIRECTORY_LAST),
-                ("LKN_CROSS.MRM", visuals["LKN_CROSS.MRM"], 0),
-                ("LKN_RIDGE.MRM", visuals["LKN_RIDGE.MRM"], FILE_LAST),
-                (DAT_NAME, data, FILE_LAST),
-                ("LKN_CLOTH-C.TEX", visuals["LKN_CLOTH-C.TEX"], 0),
-                ("LKN_IRON-C.TEX", visuals["LKN_IRON-C.TEX"], 0),
-                ("LKN_OAK-C.TEX", visuals["LKN_OAK-C.TEX"], 0),
-                ("LKN_STONE-C.TEX", visuals["LKN_STONE-C.TEX"], FILE_LAST)]
+                ("_COMPILED", dat_index, DIRECTORY_LAST), ("_COMPILED", dat_index+1, DIRECTORY_LAST)]
+        rows += [(name,visuals[name],FILE_LAST if name == meshes[-1] else 0) for name in meshes]
+        rows += [(DAT_NAME,data,FILE_LAST)]
+        rows += [(name,visuals[name],FILE_LAST if name == textures[-1] else 0) for name in textures]
     root = 296
     offset = root + 80 * len(rows)
     files = [val for _,val,_ in rows if isinstance(val, bytes)]
@@ -97,7 +96,7 @@ def mod_ini(base):
         if current.group(2).lower() == b"info":
             info = current
             break
-    title = b"[INFO]" + nl + b"Title=Living Khorinis - Dead Harpy Crossing" + nl + b"Version=0.3" + nl + b"Authors=Chati" + nl + nl
+    title = b"[INFO]" + nl + b"Title=Living Khorinis - Dead Harpy Crossing" + nl + b"Version=0.4" + nl + b"Authors=Chati" + nl + nl
     if info is not None and info.group(2).lower() == b"info":
         e = _BASE_INI.search(diff, info.end())
         return diff[:info.start()] + title + diff[e.start() if e else len(diff):]
