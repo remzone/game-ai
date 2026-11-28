@@ -167,7 +167,7 @@
         const iniBytes = fileBytes(FS,ini,64*1024);
         const archive = fileBytes(FS,volume,65*1024*1024);
         const datRow = verify(iniBytes,archive,volume.substring(volume.lastIndexOf("/")+1));
-        const version = new TextDecoder().decode(iniBytes).match(/^Version[ \t]*=[ \t]*(0\.[345])[ \t]*\r?$/im)?.[1] ?? 'legacy';
+        const version = new TextDecoder().decode(iniBytes).match(/^Version[ \t]*=[ \t]*(0\.[3456])[ \t]*\r?$/im)?.[1] ?? 'legacy';
         if (gameFs) return {runtime:runtimeVdf(gameFs,data,archive,datRow),version};
         return {ini: ini.substring(ini.lastIndexOf("/")+1),version};
     };

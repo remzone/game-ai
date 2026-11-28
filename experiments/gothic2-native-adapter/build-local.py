@@ -14,6 +14,7 @@ from urllib.request import urlopen
 
 import pack
 import stage
+import stock
 
 GDC_VERSION = "0.9.5"
 GDC_BINARIES = {
@@ -32,6 +33,20 @@ RECONSTRUCTED = {
 
 
 RU_TEXT = {
+    "Emil, fort carpenter": "Эмиль, плотник Привратного форта",
+    "What is happening at this post?": "Что происходит на заставе?",
+    "Give the post one bread (+5 rations).": "Передать заставе хлеб (+5 провизии).",
+    "Give this post priority for the next convoy.": "Попросить направить следующий обоз сюда.",
+    "End conversation.": "Закончить разговор.",
+    "We watch the crossroads. Whoever controls the road feeds the watch.": "Мы держим перекрёсток. Кто контролирует дорогу, тот и снабжает караул.",
+    "The ridge guards the farm road. Fresh supplies keep the watch on duty.": "Отсюда мы держим путь к фермам. Без припасов караулу не выстоять.",
+    "You will find Jan and the logs at the harbour sawbench. No rations, no timber.": "Ян работает у козел с брёвнами в порту. Без пайка склад не получает лес.",
+    "Mikkel works the vein beside the guard. Without rations we cannot dig.": "Миккель у рудной жилы рядом с караулом. Без пайка добыча встанет.",
+    "Stay by the road. The watch has spotted mercenaries nearby.": "Не сходи с дороги. Дозор заметил наёмников неподалёку.",
+    "We held the fort. Food for the watch gives us a chance to hold it next time.": "Мы удержали форт. Запас еды для караула поможет выдержать следующий налёт.",
+    "Post rations: ": "Провизия на заставе: ",
+    "Thank you. We added your bread to the post's stores.": "Спасибо. Хлеб добавили в запас заставы.",
+    "I have passed on the order. We get the next convoy if the road stays open.": "Передал приказ. Следующий обоз пойдёт сюда, если путь останется открытым.",
     "Gate road fort": "Форт у дороги Хориниса",
     "Bertold, captain of the Gate Fort": "Бертольд, капитан Привратного форта",
     "Wulf, Gate Fort paladin": "Вульф, паладин Привратного форта",
@@ -233,6 +248,7 @@ def build(args):
 
         staged = stage.prepare(content, scratch / "staged")
         localize(staged.parent, args.lang)
+        stock.apply(staged.parent / stage.MOD_DIR / "LivingKhorinisNative.d", gamedata)
         normalize_for_gdc(staged.parent)
         dat = scratch / "GOTHIC.DAT"
         print("Compiling Daedalus to a local DAT…", flush=True)

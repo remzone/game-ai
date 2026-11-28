@@ -22,8 +22,8 @@ instance LKN_PostGuard(Npc_Default) {
     id = 61032;
     name[0] = LKN_NeutralName;
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self, 2);
     B_SetNpcVisual(self, MALE, "Hum_Head_Bald", Face_N_Normal01, BodyTex_N, ItAr_Bau_M);
     daily_routine = LKN_TA_Guard;
@@ -39,8 +39,8 @@ instance LKN_Ridge(Npc_Default) {
     id = 61033;
     name[0] = "Ridge lookout";
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     daily_routine = LKN_TA_Ridge;
@@ -56,7 +56,7 @@ instance LKN_Gate(Npc_Default) {
     name[0] = "Khorinis gate watch";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
     daily_routine = LKN_TA_Gate;
@@ -72,7 +72,7 @@ instance LKN_OnarWorker(Npc_Default) {
     name[0] = "Onar farm worker";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_OnarWorker;
@@ -88,7 +88,7 @@ instance LKN_SekobWorker(Npc_Default) {
     name[0] = "Sekob farm worker";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_SekobWorker;
@@ -104,7 +104,7 @@ instance LKN_BengarWorker(Npc_Default) {
     name[0] = "Bengar farm worker";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_BengarWorker;
@@ -120,7 +120,7 @@ instance LKN_FreeFarmer(Npc_Default) {
     name[0] = "Independent farm worker";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_FreeFarmer;
@@ -136,7 +136,7 @@ instance LKN_FireNovice(Npc_Default) {
     name[0] = "Novice of the Fire order";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_NOV_L);
     daily_routine = LKN_TA_FireNovice;
@@ -152,7 +152,7 @@ instance LKN_WaterNovice(Npc_Default) {
     name[0] = "Novice of the Water order";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_WaterNovice;
@@ -168,7 +168,7 @@ instance LKN_CityScout(Npc_Default) {
     name[0] = "Expedition guard of Khorinis";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
     daily_routine = LKN_TA_CityScout;
@@ -184,7 +184,7 @@ instance LKN_OnarScout(Npc_Default) {
     name[0] = "Expedition mercenary of Onar";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     daily_routine = LKN_TA_OnarScout;
@@ -227,7 +227,7 @@ instance LKN_CrossReserve(Npc_Default) {
     name[0] = "Road garrison soldier";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
     daily_routine = LKN_TA_CrossReserve;
@@ -237,7 +237,7 @@ instance LKN_RidgeReserve(Npc_Default) {
     name[0] = "Ridge garrison soldier";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     daily_routine = LKN_TA_RidgeReserve;
@@ -300,7 +300,7 @@ func void LKN_ConstructionVisuals() {
 const string LKN_DockWP = "NW_CITY_HABOUR_09";
 const string LKN_DockWorkWP = "NW_CITY_HABOUR_08";
 const string LKN_MineWP = "NW_CASTLEMINE_PATH_OUTSIDEHUT_02";
-const string LKN_MineWorkWP = "NW_CASTLEMINE_PATH_HUT_02";
+const string LKN_MineWorkWP = "NW_CASTLEMINE_PATH_OUTSIDEHUT_02";
 const string LKN_LoyalPaladin = "Paladin of the supply watch";
 const string LKN_OreMercenary = "Mercenary of the supply watch";
 var int LKN_DockPlaced;
@@ -332,8 +332,8 @@ instance LKN_DockGuard(Npc_Default) {
     id = 61046;
     name[0] = LKN_LoyalPaladin;
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Pal_M);
     daily_routine = LKN_TA_DockGuard;
@@ -346,8 +346,8 @@ instance LKN_MineGuard(Npc_Default) {
     id = 61047;
     name[0] = LKN_OreMercenary;
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     daily_routine = LKN_TA_MineGuard;
@@ -405,29 +405,29 @@ func int ZS_LKN_Miner_Loop() {
 func void ZS_LKN_Miner_End() { AI_UseMob(self,"ORE",-1); };
 func void LKN_TA_DockWorker() {
     // Second shift: do not reserve the saw while the stock harbour worker is using it.
-    TA_Stand_WP(4,40,19,20,LKN_DockWP);
+    TA_Stand_WP(4,40,19,20,LKN_DockWorkWP);
     TA_Min(self,19,20,4,40,ZS_LKN_Sawyer,LKN_DockWorkWP);
 };
 instance LKN_DockWorker(Npc_Default) {
     id = 61048;
     name[0] = "Jan, harbour sawyer";
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_DockWorker;
 };
 func void LKN_TA_MineWorker() {
     TA_Min(self,8,0,18,0,ZS_LKN_Miner,LKN_MineWorkWP);
-    TA_Stand_WP(18,0,8,0,LKN_MineWP);
+    TA_Stand_WP(18,0,8,0,LKN_MineWorkWP);
 };
 instance LKN_MineWorker(Npc_Default) {
     id = 61049;
     name[0] = "Mikkel, ore miner";
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_MineWorker;
@@ -531,7 +531,7 @@ instance LKN_LobartPorter(Npc_Default) {
     name[0] = "Martin, Lobart farm carrier";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_LobartPorter;
@@ -546,7 +546,7 @@ instance LKN_OnarPorter(Npc_Default) {
     name[0] = "Gunnar, Onar farm carrier";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_OnarPorter;
@@ -561,7 +561,7 @@ instance LKN_SekobPorter(Npc_Default) {
     name[0] = "Erik, Sekob farm carrier";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_SekobPorter;
@@ -576,7 +576,7 @@ instance LKN_BengarPorter(Npc_Default) {
     name[0] = "Rolf, Bengar farm carrier";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_BengarPorter;
@@ -590,8 +590,8 @@ instance LKN_CitySupplyLead(Npc_Default) {
     id = 61054;
     name[0] = "Konrad, Khorinis provisions";
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_CitySupplyLead;
@@ -606,7 +606,7 @@ instance LKN_CitySupplyGuard(Npc_Default) {
     name[0] = "Adalmar, convoy paladin";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Pal_M);
     daily_routine = LKN_TA_CitySupplyGuard;
@@ -621,7 +621,7 @@ instance LKN_CitySupplyRear(Npc_Default) {
     name[0] = "Falk, convoy guard";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
     daily_routine = LKN_TA_CitySupplyRear;
@@ -635,8 +635,8 @@ instance LKN_OnarSupplyLead(Npc_Default) {
     id = 61057;
     name[0] = "Gerold, Onar provisions";
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
     daily_routine = LKN_TA_OnarSupplyLead;
@@ -651,7 +651,7 @@ instance LKN_OnarSupplyGuard(Npc_Default) {
     name[0] = "Ulrik, convoy mercenary";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     daily_routine = LKN_TA_OnarSupplyGuard;
@@ -666,7 +666,7 @@ instance LKN_OnarSupplyRear(Npc_Default) {
     name[0] = "Sven, convoy guard";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     daily_routine = LKN_TA_OnarSupplyRear;
@@ -682,7 +682,7 @@ instance LKN_GateFort(C_Item) {
     mainflag = ITEM_KAT_NONE;
     flags = ITEM_MISSION;
     material = MAT_STONE;
-    visual = "LKN_RIDGE.3DS";
+    visual = "LKN_GATEFORT.3DS";
     value = 0;
 };
 
@@ -723,8 +723,8 @@ instance LKN_FortCaptain(Npc_Default) {
     id = 61060;
     name[0] = "Bertold, captain of the Gate Fort";
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Pal_M);
     B_SetFightSkills(self,35);
@@ -737,13 +737,16 @@ instance LKN_FortGuardA(Npc_Default) {
     id = 61061;
     name[0] = "Wulf, Gate Fort paladin";
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Pal_M);
-    B_SetFightSkills(self,35);
+    attribute[ATR_STRENGTH] = 62;
+    attribute[ATR_HITPOINTS_MAX] = 170;
+    attribute[ATR_HITPOINTS] = 170;
+    B_SetFightSkills(self,46);
     fight_tactic = FAI_HUMAN_NORMAL;
-    EquipItem(self,ItMw_1H_Mil_Sword);
+    EquipItem(self,ItMw_1H_Pal_Sword);
     daily_routine = LKN_TA_FortGuard;
 };
 
@@ -751,11 +754,14 @@ instance LKN_FortGuardB(Npc_Default) {
     id = 61062;
     name[0] = "Odo, Gate Fort guard";
     guild = GIL_NONE;
-    npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Mil_L);
-    B_SetFightSkills(self,35);
+    attribute[ATR_STRENGTH] = 54;
+    attribute[ATR_HITPOINTS_MAX] = 145;
+    attribute[ATR_HITPOINTS] = 145;
+    B_SetFightSkills(self,46);
     fight_tactic = FAI_HUMAN_NORMAL;
     EquipItem(self,ItMw_1H_Mil_Sword);
     daily_routine = LKN_TA_FortGuard;
@@ -766,7 +772,7 @@ instance LKN_RaiderA(Npc_Default) {
     name[0] = "Einar, Onar raider";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     B_SetFightSkills(self,35);
@@ -780,7 +786,7 @@ instance LKN_RaiderB(Npc_Default) {
     name[0] = "Knut, Onar raider";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     B_SetFightSkills(self,35);
@@ -794,13 +800,42 @@ instance LKN_RaiderC(Npc_Default) {
     name[0] = "Torben, Onar raider";
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self,2);
     B_SetNpcVisual(self,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ItAr_Sld_L);
     B_SetFightSkills(self,35);
     fight_tactic = FAI_HUMAN_NORMAL;
     EquipItem(self,ItMw_1H_Mil_Sword);
     daily_routine = LKN_TA_Raider;
+};
+
+func void ZS_LKN_FortSteward() {
+    Perception_Set_Normal();
+    AI_SetWalkMode(self,NPC_WALK);
+    AI_GotoWP(self,LKN_FortWP);
+};
+func int ZS_LKN_FortSteward_Loop() {
+    var C_NPC captain;
+    LKN_Refresh();
+    captain = Hlp_GetNpc(LKN_FortCaptain);
+    if ((!Hlp_IsValidNpc(captain)) || Npc_IsDead(captain)) { LKN_RaidTick(); };
+    AI_Wait(self,2);
+    return LOOP_CONTINUE;
+};
+func void ZS_LKN_FortSteward_End() {};
+func void LKN_TA_FortSteward() {
+    TA_Min(self,6,0,18,0,ZS_LKN_FortSteward,LKN_FortWP);
+    TA_Min(self,18,0,6,0,ZS_LKN_FortSteward,LKN_FortWP);
+};
+instance LKN_FortSteward(Npc_Default) {
+    id = 61066;
+    name[0] = "Emil, fort carpenter";
+    guild = GIL_NONE;
+    npctype = NPCTYPE_MAIN;
+    flags = 0;
+    B_SetAttributesToChapter(self,2);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    daily_routine = LKN_TA_FortSteward;
 };
 
 func void LKN_FortInit() {
@@ -812,12 +847,14 @@ func void LKN_FortInit() {
     if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FortCaptain))) { Wld_InsertNpc(LKN_FortCaptain,LKN_FortWP); };
     if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FortGuardA))) { Wld_InsertNpc(LKN_FortGuardA,LKN_FortWP); };
     if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FortGuardB))) { Wld_InsertNpc(LKN_FortGuardB,LKN_FortWP); };
+    if (!Hlp_IsValidNpc(Hlp_GetNpc(LKN_FortSteward))) { Wld_InsertNpc(LKN_FortSteward,LKN_FortWP); };
     self = oldSelf;
     other = oldOther;
 };
 func void LKN_RaidPair(var C_NPC raider,var C_NPC guard) {
     var C_NPC oldOther;
     if ((!Hlp_IsValidNpc(raider)) || (!Hlp_IsValidNpc(guard))) { return; };
+    if (Npc_IsDead(raider) || Npc_IsDead(guard)) { return; };
     oldOther = other;
     Npc_ClearAIQueue(raider);
     Npc_ClearAIQueue(guard);
@@ -828,7 +865,7 @@ func void LKN_RaidPair(var C_NPC raider,var C_NPC guard) {
     other = oldOther;
 };
 func void LKN_RaidLeave(var C_NPC actor) {
-    if (!Hlp_IsValidNpc(actor)) { return; };
+    if ((!Hlp_IsValidNpc(actor)) || Npc_IsDead(actor)) { return; };
     Npc_ClearAIQueue(actor);
     AI_StartState(actor,ZS_LKN_Retreat,1,"");
 };
@@ -871,7 +908,9 @@ func void LKN_RaidTick() {
         // A third attacker joins the same melee without replacing the guard's current target.
         oldOther = other;
         other = Hlp_GetNpc(LKN_FortGuardA);
-        B_Attack(Hlp_GetNpc(LKN_RaiderC),other,AR_NONE,0);
+        if (Hlp_IsValidNpc(other) && (!Npc_IsDead(other)) && !Npc_IsDead(Hlp_GetNpc(LKN_RaiderC))) {
+            B_Attack(Hlp_GetNpc(LKN_RaiderC),other,AR_NONE,0);
+        };
         other = oldOther;
         return;
     };
@@ -897,6 +936,7 @@ func void LKN_RoadOrders() {
     cityScout = Hlp_GetNpc(LKN_CityScout);
     onarScout = Hlp_GetNpc(LKN_OnarScout);
     if ((!Hlp_IsValidNpc(cityScout)) || (!Hlp_IsValidNpc(onarScout))) { return; };
+    if (Npc_IsDead(cityScout) || Npc_IsDead(onarScout)) { return; };
     side = Patch_LivingKhorinis_AttackSide;
     if (side == 0) {
         if (LKN_LastDispatch != 0) {
@@ -955,6 +995,20 @@ func void LKN_RidgeUpdate() {
     LKN_VisibleRidge = Patch_LivingKhorinis_RidgeOwner;
 };
 
+func void LKN_UpdateCrewLosses() {
+    var C_NPC hand;
+    hand = Hlp_GetNpc(LKN_DockWorker);
+    if (Hlp_IsValidNpc(hand) && Npc_IsDead(hand)) {
+        Patch_LivingKhorinis_DockWorkerLost = 1;
+        Patch_LivingKhorinis_DockClosed = 1;
+    };
+    hand = Hlp_GetNpc(LKN_MineWorker);
+    if (Hlp_IsValidNpc(hand) && Npc_IsDead(hand)) {
+        Patch_LivingKhorinis_MineWorkerLost = 1;
+        Patch_LivingKhorinis_MineClosed = 1;
+    };
+};
+
 func void LKN_Refresh() {
     var int today;
     var C_NPC guard;
@@ -966,6 +1020,7 @@ func void LKN_Refresh() {
         LKN_LastDeliveryDay = today - 1;
         LKN_Initialized = 1;
     };
+    LKN_UpdateCrewLosses();
     Patch_LivingKhorinis_Advance(today);
     // A persistent new post actor represents the currently assigned lookout.
     // Avoid Wld_RemoveNpc: OpenGothic retains removed NPC handles in its symbol
@@ -1021,7 +1076,7 @@ instance LKN_Quartermaster(Npc_Default) {
     name[0] = "Marek, road quartermaster";
     guild = GIL_NONE;
     npctype = NPCTYPE_MAIN;
-    flags = NPC_FLAG_IMMORTAL;
+    flags = 0;
     B_SetAttributesToChapter(self, 2);
     B_SetNpcVisual(self, MALE, "Hum_Head_Bald", Face_N_Normal01, BodyTex_N, ItAr_Bau_M);
     daily_routine = LKN_TA_Quartermaster;
@@ -1067,9 +1122,9 @@ func void LKN_OnWorldInit() {
     quartermaster = Hlp_GetNpc(LKN_MineGuard);
     if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_MineGuard,LKN_MineWP); LKN_VisibleMine = 0; };
     quartermaster = Hlp_GetNpc(LKN_DockWorker);
-    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_DockWorker,LKN_DockWorkWP); };
+    if ((!Hlp_IsValidNpc(quartermaster)) && (Patch_LivingKhorinis_DockWorkerLost == 0)) { Wld_InsertNpc(LKN_DockWorker,LKN_DockWorkWP); };
     quartermaster = Hlp_GetNpc(LKN_MineWorker);
-    if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_MineWorker,LKN_MineWorkWP); };
+    if ((!Hlp_IsValidNpc(quartermaster)) && (Patch_LivingKhorinis_MineWorkerLost == 0)) { Wld_InsertNpc(LKN_MineWorker,LKN_MineWorkWP); };
     quartermaster = Hlp_GetNpc(LKN_LobartPorter);
     if (!Hlp_IsValidNpc(quartermaster)) { Wld_InsertNpc(LKN_LobartPorter,LKN_LobartDepot); };
     quartermaster = Hlp_GetNpc(LKN_OnarPorter);
@@ -1240,4 +1295,434 @@ instance DIA_LKN_IndustryReport(C_INFO) {
     condition = LKN_Always;
     information = LKN_IndustryReport;
     description = "Who holds the timber depot and mine?";
+};
+
+// Shared on-site dialogue. Choices are localized once, without replacing stock OU/voice archives.
+const string LKN_AskPostText = "What is happening at this post?";
+const string LKN_FeedPostText = "Give the post one bread (+5 rations).";
+const string LKN_PriorityText = "Give this post priority for the next convoy.";
+const string LKN_EndPostTalk = "End conversation.";
+var int LKN_GiftCrossDay;
+var int LKN_GiftRidgeDay;
+var int LKN_GiftDockDay;
+var int LKN_GiftMineDay;
+var int LKN_GiftGateDay;
+
+func int LKN_SpeakerPost() {
+    if (self.id == 61032) { return 1; };
+    if (self.id == 61033) { return 2; };
+    if ((self.id == 61046) || (self.id == 61048)) { return 3; };
+    if ((self.id == 61047) || (self.id == 61049)) { return 4; };
+    return 5;
+};
+func string LKN_PostJob(var int site) {
+    if (site == 1) { return "We watch the crossroads. Whoever controls the road feeds the watch."; };
+    if (site == 2) { return "The ridge guards the farm road. Fresh supplies keep the watch on duty."; };
+    if (site == 3) { return "You will find Jan and the logs at the harbour sawbench. No rations, no timber."; };
+    if (site == 4) { return "Mikkel works the vein beside the guard. Without rations we cannot dig."; };
+    if (LKN_RaidStage < 3) { return "Stay by the road. The watch has spotted mercenaries nearby."; };
+    return "We held the fort. Food for the watch gives us a chance to hold it next time.";
+};
+func void LKN_Subtitle(var string line) {
+    PrintScreen(line,-1,67,"FONT_OLD_10_WHITE.TGA",5);
+};
+func void LKN_PostSpeak() {
+    var int site;
+    LKN_Refresh();
+    site = LKN_SpeakerPost();
+    LKN_Subtitle(LKN_PostJob(site));
+    Print(ConcatStrings("Post rations: ",IntToString(Patch_LivingKhorinis_PostFood(site))));
+};
+func int LKN_LastPostGift(var int site) {
+    if (site == 1) { return LKN_GiftCrossDay; };
+    if (site == 2) { return LKN_GiftRidgeDay; };
+    if (site == 3) { return LKN_GiftDockDay; };
+    if (site == 4) { return LKN_GiftMineDay; };
+    return LKN_GiftGateDay;
+};
+func int LKN_CanFeedPost() {
+    var int site;
+    site = LKN_SpeakerPost();
+    if (Npc_HasItems(other,ItFo_Bread) < 1) { return FALSE; };
+    if (Patch_LivingKhorinis_PostFood(site) > 19) { return FALSE; };
+    return LKN_LastPostGift(site) < Wld_GetDay()+1;
+};
+func void LKN_FeedPost() {
+    var int site;
+    var int today;
+    var int owner;
+    var int food;
+    LKN_Refresh();
+    if (!LKN_CanFeedPost()) { return; };
+    site = LKN_SpeakerPost();
+    today = Wld_GetDay()+1;
+    owner = Patch_LivingKhorinis_PostOwner(site);
+    food = Patch_LivingKhorinis_PostFood(site);
+    Npc_RemoveInvItems(other,ItFo_Bread,1);
+    Patch_LivingKhorinis_SetPostFood(site,food+5);
+    if (site == 1) { LKN_GiftCrossDay = today; };
+    if (site == 2) { LKN_GiftRidgeDay = today; };
+    if (site == 3) { LKN_GiftDockDay = today; };
+    if (site == 4) { LKN_GiftMineDay = today; };
+    if (site == 5) { LKN_GiftGateDay = today; };
+    if (owner == Patch_LivingKhorinis_Militia) {
+        Patch_LivingKhorinis_CityStanding = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_CityStanding+1,4);
+    } else if (owner == Patch_LivingKhorinis_Mercenaries) {
+        Patch_LivingKhorinis_MercStanding = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercStanding+1,4);
+    };
+    if ((site == 3) && (Patch_LivingKhorinis_DockWorkerLost == 0) && (!Patch_LivingKhorinis_Blocked(site))) {
+        Patch_LivingKhorinis_DockClosed = 0;
+    };
+    if ((site == 4) && (Patch_LivingKhorinis_MineWorkerLost == 0) && (!Patch_LivingKhorinis_Blocked(site))) {
+        Patch_LivingKhorinis_MineClosed = 0;
+    };
+    LKN_Subtitle("Thank you. We added your bread to the post's stores.");
+};
+func int LKN_CanRequestPost() {
+    var int owner;
+    var int site;
+    site = LKN_SpeakerPost();
+    owner = Patch_LivingKhorinis_PostOwner(site);
+    if ((Patch_LivingKhorinis_PostFood(site) >= 16) || Patch_LivingKhorinis_Blocked(site)) { return FALSE; };
+    if (owner == Patch_LivingKhorinis_Militia) {
+        return (Patch_LivingKhorinis_CityStanding >= 1) && (Patch_LivingKhorinis_CityRequest != site);
+    };
+    if (owner == Patch_LivingKhorinis_Mercenaries) {
+        return (Patch_LivingKhorinis_MercStanding >= 1) && (Patch_LivingKhorinis_MercRequest != site);
+    };
+    return FALSE;
+};
+func void LKN_RequestPost() {
+    var int owner;
+    var int site;
+    if (!LKN_CanRequestPost()) { return; };
+    site = LKN_SpeakerPost();
+    owner = Patch_LivingKhorinis_PostOwner(site);
+    if (owner == Patch_LivingKhorinis_Militia) { Patch_LivingKhorinis_CityRequest = site; };
+    if (owner == Patch_LivingKhorinis_Mercenaries) { Patch_LivingKhorinis_MercRequest = site; };
+    LKN_Subtitle("I have passed on the order. We get the next convoy if the road stays open.");
+};
+
+instance DIA_LKN_FortCaptain_Report(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_FortCaptain_Bread(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_FortCaptain_Convoy(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 12;
+    permanent = TRUE;
+    condition = LKN_CanRequestPost;
+    information = LKN_RequestPost;
+    description = LKN_PriorityText;
+};
+
+instance DIA_LKN_FortCaptain_Leave(C_INFO) {
+    npc = LKN_FortCaptain;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_FortSteward_Report(C_INFO) {
+    npc = LKN_FortSteward;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_FortSteward_Bread(C_INFO) {
+    npc = LKN_FortSteward;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_FortSteward_Convoy(C_INFO) {
+    npc = LKN_FortSteward;
+    nr = 12;
+    permanent = TRUE;
+    condition = LKN_CanRequestPost;
+    information = LKN_RequestPost;
+    description = LKN_PriorityText;
+};
+
+instance DIA_LKN_FortSteward_Leave(C_INFO) {
+    npc = LKN_FortSteward;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_FortGuardA_Report(C_INFO) {
+    npc = LKN_FortGuardA;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_FortGuardA_Bread(C_INFO) {
+    npc = LKN_FortGuardA;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_FortGuardA_Leave(C_INFO) {
+    npc = LKN_FortGuardA;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_FortGuardB_Report(C_INFO) {
+    npc = LKN_FortGuardB;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_FortGuardB_Bread(C_INFO) {
+    npc = LKN_FortGuardB;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_FortGuardB_Leave(C_INFO) {
+    npc = LKN_FortGuardB;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_PostGuard_Report(C_INFO) {
+    npc = LKN_PostGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_PostGuard_Bread(C_INFO) {
+    npc = LKN_PostGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_PostGuard_Convoy(C_INFO) {
+    npc = LKN_PostGuard;
+    nr = 12;
+    permanent = TRUE;
+    condition = LKN_CanRequestPost;
+    information = LKN_RequestPost;
+    description = LKN_PriorityText;
+};
+
+instance DIA_LKN_PostGuard_Leave(C_INFO) {
+    npc = LKN_PostGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_Ridge_Report(C_INFO) {
+    npc = LKN_Ridge;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_Ridge_Bread(C_INFO) {
+    npc = LKN_Ridge;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_Ridge_Convoy(C_INFO) {
+    npc = LKN_Ridge;
+    nr = 12;
+    permanent = TRUE;
+    condition = LKN_CanRequestPost;
+    information = LKN_RequestPost;
+    description = LKN_PriorityText;
+};
+
+instance DIA_LKN_Ridge_Leave(C_INFO) {
+    npc = LKN_Ridge;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_DockGuard_Report(C_INFO) {
+    npc = LKN_DockGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_DockGuard_Bread(C_INFO) {
+    npc = LKN_DockGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_DockGuard_Convoy(C_INFO) {
+    npc = LKN_DockGuard;
+    nr = 12;
+    permanent = TRUE;
+    condition = LKN_CanRequestPost;
+    information = LKN_RequestPost;
+    description = LKN_PriorityText;
+};
+
+instance DIA_LKN_DockGuard_Leave(C_INFO) {
+    npc = LKN_DockGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_MineGuard_Report(C_INFO) {
+    npc = LKN_MineGuard;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_MineGuard_Bread(C_INFO) {
+    npc = LKN_MineGuard;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_MineGuard_Convoy(C_INFO) {
+    npc = LKN_MineGuard;
+    nr = 12;
+    permanent = TRUE;
+    condition = LKN_CanRequestPost;
+    information = LKN_RequestPost;
+    description = LKN_PriorityText;
+};
+
+instance DIA_LKN_MineGuard_Leave(C_INFO) {
+    npc = LKN_MineGuard;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_DockWorker_Report(C_INFO) {
+    npc = LKN_DockWorker;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_DockWorker_Bread(C_INFO) {
+    npc = LKN_DockWorker;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_DockWorker_Leave(C_INFO) {
+    npc = LKN_DockWorker;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
+};
+
+instance DIA_LKN_MineWorker_Report(C_INFO) {
+    npc = LKN_MineWorker;
+    nr = 10;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_PostSpeak;
+    description = LKN_AskPostText;
+};
+
+instance DIA_LKN_MineWorker_Bread(C_INFO) {
+    npc = LKN_MineWorker;
+    nr = 11;
+    permanent = TRUE;
+    condition = LKN_CanFeedPost;
+    information = LKN_FeedPost;
+    description = LKN_FeedPostText;
+};
+
+instance DIA_LKN_MineWorker_Leave(C_INFO) {
+    npc = LKN_MineWorker;
+    nr = 999;
+    permanent = TRUE;
+    condition = LKN_Always;
+    information = LKN_Leave;
+    description = LKN_EndPostTalk;
 };

@@ -98,3 +98,17 @@ test('0.5 uses its own cloud slot',async ()=>{
  assert.match(calls[1],/latest-v05\.sav\?ref=mod-ru$/);
  assert.match(calls[2],/latest-v05\.sav$/);
 });
+test('0.6 uses its own cloud slot',async ()=>{
+ const calls=[];
+ const box=vm.createContext({AbortController,setTimeout,clearTimeout,btoa,Uint8Array});
+ vm.runInContext(src,box);
+ const api=box.LivingKhorinisGitHub.create(async (url)=>{
+  calls.push(url);
+  if(calls.length===1) return json(info);
+  if(calls.length===2) return new Response(null,{status:404});
+  return json({});
+ },'0.6');
+ assert.equal(await api.push(token,Uint8Array.of(1),()=>true),true);
+ assert.match(calls[1],/latest-v06\.sav\?ref=mod-ru$/);
+ assert.match(calls[2],/latest-v06\.sav$/);
+});

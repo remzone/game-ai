@@ -46,6 +46,20 @@ class Native(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "already references"):
             stage.patch_bytes(b'func void INIT_NEWWORLD() { LKN_ONWORLDINIT(); };')
 
+    def test_uses_only_known_catalog_stock_mesh_and_never_copies_it(self):
+        import stock
+        from buildings import assets
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp)
+            models = assets()
+            models["OW_LOOKOUT.MRM"] = models["LKN_RIDGE.MRM"]
+            (data / "Meshes.vdf").write_bytes(pack.vdf_for(fake_dat(), models))
+            src = data / "source.d"
+            src.write_bytes(b'"LKN_GATEFORT.3DS" "LKN_RIDGE.3DS" "LKN_DOCK.3DS"')
+            stock.apply(src, data)
+            self.assertEqual(src.read_bytes(), b'"OW_LOOKOUT.3DS" "OW_LOOKOUT.3DS" "LKN_DOCK.3DS"')
+            self.assertFalse((data / "OW_LOOKOUT.MRM").exists())
+
     def test_vdf_layout_roundtrip(self):
         payload = fake_dat()
         pack.check_dat(payload)

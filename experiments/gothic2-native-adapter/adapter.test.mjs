@@ -28,6 +28,7 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange
         },
         AI_SetWalkMode:()=>{}, AI_StartState:(actor,state)=>{actor.lastState=state.name;}, IntToString:String,
         B_SetNpcVisual: (npc,sex,head,face,body,armor)=>{ npc.armor=armor; },
+        Npc_IsDead:npc=>!!npc?.dead, PrintScreen:line=>messages.push(line),
         Wld_InsertItem:(name,where)=>messages.push(name+":"+where),
         Wld_GetDay:()=>gameDay,
         Hlp_GetNpc: name=>actors.get(name),
@@ -60,7 +61,7 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2, heroRange
 test('new units and named posts are persistent; water novice only in Jharkendar',()=>{
  const sim=simulate();
  sim.enter();sim.enter();sim.tick();
- assert.equal(sim.calls,28);
+ assert.equal(sim.calls,29);
  assert.equal(sim.actors.get('LKN_Ridge').where,'NW_BIGFARM_FARM4_PATH_01');
  assert.equal(sim.actors.get('LKN_PostGuard').name[0],'Neutral tavern lookout');
  assert.equal(sim.actors.get('LKN_OnarScout').where,'NW_BIGFARM_PATH_01');
@@ -136,5 +137,29 @@ test('carrier targets use the same staged route as the food cargo',()=>{
  assert.equal(c.LKN_FreightGoal(61055),c.LKN_FreightGoal(61054));
  assert.equal(c.LKN_FreightGoal(61059),c.LKN_FreightGoal(61057));
  assert.ok(sim.messages.includes('LKN_DockBench:NW_CITY_HABOUR_08'));
- assert.ok(sim.messages.includes('LKN_OreVein:NW_CASTLEMINE_PATH_HUT_02'));
+ assert.ok(sim.messages.includes('LKN_OreVein:NW_CASTLEMINE_PATH_OUTSIDEHUT_02'));
+});
+
+test('post dialogue consumes one real bread, creates local food and a valid faction convoy order',()=>{
+ const sim=simulate();sim.enter();
+ const c=sim.c;
+ c.self={id:61046};
+ assert.equal(c.LKN_CanRequestPost(),false);
+ c.LKN_PostSpeak();assert.ok(sim.messages.some(x=>x.includes('Jan')));
+ c.LKN_FeedPost();c.LKN_FeedPost();
+ assert.equal(sim.bread,1);assert.equal(c.Patch_LivingKhorinis_DockFood,10);
+ assert.equal(c.Patch_LivingKhorinis_CityStanding,1);
+ c.LKN_RequestPost();assert.equal(c.Patch_LivingKhorinis_CityRequest,3);
+ c.Patch_LivingKhorinis_MilitiaSupply=40;
+ c.Patch_LivingKhorinis_OutpostFreight();
+ assert.equal(c.Patch_LivingKhorinis_CityRoute,3);
+ assert.equal(c.Patch_LivingKhorinis_CityRequest,0);
+});
+test('dead miner stops production and corpses are not replaced on load',()=>{
+ const sim=simulate();sim.enter();sim.actors.get('LKN_MineWorker').dead=true;
+ sim.day(1);sim.tick();
+ assert.equal(sim.c.Patch_LivingKhorinis_MineWorkerLost,1);
+ assert.equal(sim.c.Patch_LivingKhorinis_MineClosed,1);
+ const saved=sim.save();saved.actors.delete('LKN_MineWorker');
+ const reload=simulate(saved);reload.enter();assert.ok(!reload.actors.has('LKN_MineWorker'));
 });

@@ -1,4 +1,4 @@
-// Living Khorinis 0.5: day-driven logistics for the original Gothic II world.
+// Living Khorinis 0.6: day-driven logistics for the original Gothic II world.
 const int Patch_LivingKhorinis_Militia = 1;
 const int Patch_LivingKhorinis_Mercenaries = 2;
 const int Patch_LivingKhorinis_Neutral = 3;
@@ -26,6 +26,12 @@ var int Patch_LivingKhorinis_MercRoute;
 var int Patch_LivingKhorinis_CityReturn;
 var int Patch_LivingKhorinis_MercReturn;
 var int Patch_LivingKhorinis_Arrivals;
+var int Patch_LivingKhorinis_DockWorkerLost;
+var int Patch_LivingKhorinis_MineWorkerLost;
+var int Patch_LivingKhorinis_CityRequest;
+var int Patch_LivingKhorinis_MercRequest;
+var int Patch_LivingKhorinis_CityStanding;
+var int Patch_LivingKhorinis_MercStanding;
 var int Patch_LivingKhorinis_MineOwner;
 var int Patch_LivingKhorinis_DockClosed;
 var int Patch_LivingKhorinis_MineClosed;
@@ -105,6 +111,12 @@ func void Patch_LivingKhorinis_Begin(var int day) {
     Patch_LivingKhorinis_CityReturn = 0;
     Patch_LivingKhorinis_MercReturn = 0;
     Patch_LivingKhorinis_Arrivals = 0;
+    Patch_LivingKhorinis_DockWorkerLost = 0;
+    Patch_LivingKhorinis_MineWorkerLost = 0;
+    Patch_LivingKhorinis_CityRequest = 0;
+    Patch_LivingKhorinis_MercRequest = 0;
+    Patch_LivingKhorinis_CityStanding = 0;
+    Patch_LivingKhorinis_MercStanding = 0;
     Patch_LivingKhorinis_MineClosed = 0;
     Patch_LivingKhorinis_Revision = 0;
     Patch_LivingKhorinis_Rounds = 0;
@@ -228,6 +240,12 @@ func int Patch_LivingKhorinis_PriorityPost(var int side) {
     var int best;
     var int mostUrgent;
     var int need;
+    var int request;
+    request = Patch_LivingKhorinis_MercRequest;
+    if (side == Patch_LivingKhorinis_Militia) { request = Patch_LivingKhorinis_CityRequest; };
+    if ((request > 0) && (Patch_LivingKhorinis_PostOwner(request) == side) && (!Patch_LivingKhorinis_Blocked(request)) && (Patch_LivingKhorinis_PostFood(request) < 16)) {
+        return request;
+    };
     site = 1;
     best = 0;
     mostUrgent = 0;
@@ -288,6 +306,7 @@ func void Patch_LivingKhorinis_OutpostFreight() {
         if (Patch_LivingKhorinis_CityRoute != 0) {
             Patch_LivingKhorinis_CityCargo = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply - 10,16);
             Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_MilitiaSupply - Patch_LivingKhorinis_CityCargo;
+            if (Patch_LivingKhorinis_CityRoute == Patch_LivingKhorinis_CityRequest) { Patch_LivingKhorinis_CityRequest = 0; };
         };
     };
     if (Patch_LivingKhorinis_MercCargo > 0) {
@@ -303,6 +322,7 @@ func void Patch_LivingKhorinis_OutpostFreight() {
         if (Patch_LivingKhorinis_MercRoute != 0) {
             Patch_LivingKhorinis_MercCargo = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply - 13,18);
             Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_MercenarySupply - Patch_LivingKhorinis_MercCargo;
+            if (Patch_LivingKhorinis_MercRoute == Patch_LivingKhorinis_MercRequest) { Patch_LivingKhorinis_MercRequest = 0; };
         };
     };
 };
@@ -320,7 +340,7 @@ func void Patch_LivingKhorinis_FeedGuards() {
 // These are advances from two staffed sites, not global income modifiers.
 func void Patch_LivingKhorinis_Industry() {
     Patch_LivingKhorinis_DockClosed = 1;
-    if ((Patch_LivingKhorinis_AttackSide == 0) || (Patch_LivingKhorinis_AttackPost != 3)) {
+    if ((Patch_LivingKhorinis_DockWorkerLost == 0) && ((Patch_LivingKhorinis_AttackSide == 0) || (Patch_LivingKhorinis_AttackPost != 3))) {
         if ((Patch_LivingKhorinis_DockOwner == Patch_LivingKhorinis_Militia) &&
             (Patch_LivingKhorinis_DockFood >= 1) && (Patch_LivingKhorinis_MilitiaGold >= 1) && (Patch_LivingKhorinis_MilitiaTroops < 10)) {
             Patch_LivingKhorinis_MilitiaGold = Patch_LivingKhorinis_MilitiaGold - 1;
@@ -336,7 +356,7 @@ func void Patch_LivingKhorinis_Industry() {
         };
     };
     Patch_LivingKhorinis_MineClosed = 1;
-    if ((Patch_LivingKhorinis_AttackSide == 0) || (Patch_LivingKhorinis_AttackPost != 4)) {
+    if ((Patch_LivingKhorinis_MineWorkerLost == 0) && ((Patch_LivingKhorinis_AttackSide == 0) || (Patch_LivingKhorinis_AttackPost != 4))) {
         if ((Patch_LivingKhorinis_MineOwner == Patch_LivingKhorinis_Mercenaries) &&
             (Patch_LivingKhorinis_MineFood >= 1) && (Patch_LivingKhorinis_MercenaryTroops < 15)) {
             Patch_LivingKhorinis_MineFood = Patch_LivingKhorinis_MineFood - 1;

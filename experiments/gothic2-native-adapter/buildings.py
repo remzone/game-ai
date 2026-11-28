@@ -93,6 +93,27 @@ class Mesh:
         for p,q in [(a,b),(b,c),(c,d),(d,a)]: self.face(key,[p,roof,q])
         self.face(key,[a,b,c,d])
 
+    def ring(self,key,x,z,lower,upper,r1,r2,count=14):
+        coords=[(math.cos(math.tau*i/count),math.sin(math.tau*i/count)) for i in range(count)]
+        for i,(a,b) in enumerate(coords):
+            c,d=coords[(i+1)%count]
+            self.face(key,[(x+r1*a,lower,z+r1*b),(x+r2*a,upper,z+r2*b),
+                           (x+r2*c,upper,z+r2*d),(x+r1*c,lower,z+r1*d)])
+
+    def cone(self,key,x,z,base,tip,r,count=14):
+        coords=[(math.cos(math.tau*i/count),math.sin(math.tau*i/count)) for i in range(count)]
+        for i,(a,b) in enumerate(coords):
+            c,d=coords[(i+1)%count]
+            self.face(key,[(x+r*a,base,z+r*b),(x,tip,z),(x+r*c,base,z+r*d)])
+
+    def palisade(self,start,stop,z):
+        for i,x in enumerate(range(start,stop,28)):
+            h=109+(i*19%31)
+            self.ring("LKN_OAK",x,z,0,h,12,12,6)
+            self.cone("LKN_OAK",x,z,h,h+31,12,6)
+        for y in (40,86):
+            self.box("LKN_OAK",start,y,z+10,stop-start,8,7)
+
     def roof(self,x,y,z,w,h,d):
         a=(x,y,z);b=(x+w,y,z);c=(x+w,y,z+d);d0=(x,y,z+d)
         p=(x+w/2,y+h,z);q=(x+w/2,y+h,z+d)
@@ -134,14 +155,28 @@ def assets():
     m.box("LKN_OAK",64,25,-55,11,102,110)
     m.roof(-97,183,-78,194,57,156)
     m.banner(-74,26,-61)
-    n=Mesh(-280,170)
-    n.box("LKN_STONE",-82,0,-79,164,146,158)
-    n.box("LKN_OAK",-97,146,-91,194,18,182)
-    for x in [-84,-42,0,42,76]:
-        for z in [-82,66]:n.box("LKN_OAK",x,164,z,18,40,16)
-    for x in [-84,76]:
-        for z in [-54,-16,22]:n.box("LKN_OAK",x,164,z,18,40,18)
-    n.banner(68,164,-64)
+    n=Mesh(-315,200)
+    n.ring("LKN_STONE",0,0,0,31,114,107)
+    for ring in range(7):
+        y=31+ring*39
+        n.ring("LKN_STONE",0,0,y,y+39,107-ring*1.5,105-ring*1.5)
+    n.ring("LKN_STONE",0,0,299,325,118,128)
+    n.ring("LKN_OAK",0,0,325,401,114,113)
+    n.ring("LKN_OAK",0,0,399,415,133,128)
+    n.cone("LKN_OAK",0,0,413,529,128)
+    n.box("LKN_IRON",-4,524,-4,8,19,8)
+    # Deep arrow slits, entrance recess and stone arch framing.
+    n.box("LKN_IRON",-10,215,-105,20,73,8)
+    n.box("LKN_IRON",-45,0,-109,90,133,8)
+    n.box("LKN_STONE",-69,0,-114,21,129,12)
+    n.box("LKN_STONE",48,0,-114,21,129,12)
+    for i in range(7):
+        ang=math.pi*(i+.5)/7
+        x=57*math.cos(ang); y=122+49*math.sin(ang)
+        n.box("LKN_STONE",x-12,y-12,-117,24,24,13)
+    n.palisade(-252,-118,-127)
+    n.palisade(103,288,-127)
+    n.banner(139,12,-134)
     # Paladins' timber depot: stacked timbers and a roof over the scales.
     dock=Mesh(250,135)
     dock.box("LKN_STONE",-115,0,-77,230,19,154)
