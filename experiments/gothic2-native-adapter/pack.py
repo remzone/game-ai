@@ -40,7 +40,7 @@ def vdf_for(data, visuals=None):
                 ("SCRIPTS", 3, DIRECTORY_LAST), ("_COMPILED", 4, DIRECTORY_LAST),
                 (DAT_NAME, data, FILE_LAST)]
     else:
-        meshes = sorted(name for name in visuals if name.endswith(".MRM"))
+        meshes = sorted(name for name in visuals if name.endswith((".MRM",".MDM")))
         textures = sorted(name for name in visuals if name.endswith(".TEX"))
         dat_index = 8 + len(meshes)
         rows = [("_WORK", 1, DIRECTORY_LAST), ("DATA", 2, DIRECTORY_LAST),
@@ -96,14 +96,14 @@ def mod_ini(base):
         if current.group(2).lower() == b"info":
             info = current
             break
-    title = b"[INFO]" + nl + b"Title=Living Khorinis - Dead Harpy Crossing" + nl + b"Version=0.8" + nl + b"Authors=Chati" + nl + nl
+    title = b"[INFO]" + nl + b"Title=Living Khorinis - Dead Harpy Crossing" + nl + b"Version=0.9" + nl + b"Authors=Chati" + nl + nl
     if info is not None and info.group(2).lower() == b"info":
         e = _BASE_INI.search(diff, info.end())
         return diff[:info.start()] + title + diff[e.start() if e else len(diff):]
     return title + diff
 
 
-def package(dat, ini, out):
+def package(dat, ini, out, outfit_assets=None):
     out = out.resolve()
     if out.exists():
         raise ValueError("Output must be a new directory. Refusing to overwrite existing files.")
@@ -112,7 +112,7 @@ def package(dat, ini, out):
     check_dat(raw)
     manifest = mod_ini(ini.read_bytes())
     from buildings import assets
-    volume = vdf_for(raw, assets())
+    volume = vdf_for(raw, {**assets(), **(outfit_assets or {})})
     (out / "Data" / "ModVDF").mkdir(parents=True)
     (out / "System").mkdir()
     (out / "Data" / "ModVDF" / MOD_NAME).write_bytes(volume)

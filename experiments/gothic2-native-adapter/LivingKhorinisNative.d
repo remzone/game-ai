@@ -1,3 +1,52 @@
+instance LKN_BlueNoviceArmor(C_Item) {
+    name = "Blue robe of the Water acolytes";
+    description = name;
+    mainflag = ITEM_KAT_ARMOR;
+    flags = 0;
+    protection[PROT_EDGE] = 25;
+    protection[PROT_BLUNT] = 25;
+    protection[PROT_POINT] = 25;
+    protection[PROT_MAGIC] = 10;
+    wear = WEAR_TORSO;
+    visual = "ItAr_Nov_L.3ds";
+    visual_change = "LKNW_ROBE.ASC";
+    visual_skin = 0;
+    material = MAT_LEATHER;
+    value = 450;
+};
+instance LKN_SectHabitArmor(C_Item) {
+    name = "Moss robe of the Brotherhood";
+    description = name;
+    mainflag = ITEM_KAT_ARMOR;
+    flags = 0;
+    protection[PROT_EDGE] = 25;
+    protection[PROT_BLUNT] = 25;
+    protection[PROT_POINT] = 25;
+    protection[PROT_MAGIC] = 10;
+    wear = WEAR_TORSO;
+    visual = "ItAr_Nov_L.3ds";
+    visual_change = "LKNS_ROBE.ASC";
+    visual_skin = 0;
+    material = MAT_LEATHER;
+    value = 450;
+};
+instance LKN_SectLeatherArmor(C_Item) {
+    name = "Brotherhood marsh leathers";
+    description = name;
+    mainflag = ITEM_KAT_ARMOR;
+    flags = 0;
+    protection[PROT_EDGE] = 35;
+    protection[PROT_BLUNT] = 35;
+    protection[PROT_POINT] = 35;
+    protection[PROT_MAGIC] = 10;
+    wear = WEAR_TORSO;
+    visual = "ItAr_Bdt_M.3ds";
+    visual_change = "LKNT_LEATHER.ASC";
+    visual_skin = 0;
+    material = MAT_LEATHER;
+    value = 450;
+};
+
 // Living Khorinis: Dead Harpy crossing. Gothic II: Night of the Raven.
 // Load after Gothic.src's story NPCs and core rules, before the NewWorld hook.
 const string LKN_RoadPost = "TAVERNE";
@@ -154,7 +203,7 @@ instance LKN_WaterNovice(Npc_Default) {
     npctype = NPCTYPE_AMBIENT;
     flags = 0;
     B_SetAttributesToChapter(self,2);
-    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,ItAr_Bau_M);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Bald",Face_N_Normal01,BodyTex_N,LKN_BlueNoviceArmor);
     daily_routine = LKN_TA_WaterNovice;
 };
 
@@ -1955,7 +2004,7 @@ instance LKN_WaterAcolyte1(Npc_Default) {
     npctype = NPCTYPE_MAIN;
     flags = 0;
     B_SetAttributesToChapter(self,2);
-    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_L_Addon);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,LKN_BlueNoviceArmor);
     daily_routine = LKN_TA_WaterAcolyte1;
 };
 
@@ -1970,7 +2019,7 @@ instance LKN_WaterAcolyte2(Npc_Default) {
     npctype = NPCTYPE_MAIN;
     flags = 0;
     B_SetAttributesToChapter(self,2);
-    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_KDW_L_Addon);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,LKN_BlueNoviceArmor);
     daily_routine = LKN_TA_WaterAcolyte2;
 };
 
@@ -1985,7 +2034,7 @@ instance LKN_SectMaster(Npc_Default) {
     npctype = NPCTYPE_MAIN;
     flags = 0;
     B_SetAttributesToChapter(self,2);
-    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_NOV_L);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,LKN_SectHabitArmor);
     daily_routine = LKN_TA_SectMaster;
 };
 
@@ -2000,7 +2049,7 @@ instance LKN_SectGuard(Npc_Default) {
     npctype = NPCTYPE_MAIN;
     flags = 0;
     B_SetAttributesToChapter(self,2);
-    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_BDT_M);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,LKN_SectLeatherArmor);
     B_SetFightSkills(self,30);
     fight_tactic = FAI_HUMAN_NORMAL;
     EquipItem(self,ItMw_1H_Mil_Sword);
@@ -2018,7 +2067,7 @@ instance LKN_SectNovice(Npc_Default) {
     npctype = NPCTYPE_MAIN;
     flags = 0;
     B_SetAttributesToChapter(self,2);
-    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_NOV_L);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,LKN_SectHabitArmor);
     daily_routine = LKN_TA_SectNovice;
 };
 
@@ -2091,7 +2140,7 @@ instance LKN_OnarSectMage(Npc_Default) {
     flags = 0;
     fight_tactic = FAI_HUMAN_STRONG;
     B_SetAttributesToChapter(self,2);
-    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_NOV_L);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,LKN_SectHabitArmor);
     attribute[ATR_MANA] = 78;
     attribute[ATR_MANA_MAX] = 78;
     CreateInvItems(self,ItRu_Sleep,1);
@@ -2170,7 +2219,7 @@ instance LKN_SectGuard2(Npc_Default) {
     npctype = NPCTYPE_MAIN;
     flags = 0;
     B_SetAttributesToChapter(self,2);
-    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,ITAR_BDT_M);
+    B_SetNpcVisual(self,MALE,"Hum_Head_Psionic",Face_N_Normal01,BodyTex_N,LKN_SectLeatherArmor);
     B_SetFightSkills(self,30);
     fight_tactic = FAI_HUMAN_NORMAL;
     EquipItem(self,ItMw_1H_Mil_Sword);
@@ -2981,7 +3030,7 @@ func void LKN_CampUniform(var C_NPC guard,var int side) {
     } else if (side == 5) {
         B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_KDW_L_Addon);
     } else if (side == 6) {
-        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,ITAR_NOV_L);
+        B_SetNpcVisual(guard,MALE,"Hum_Head_Fighter",Face_N_Normal01,BodyTex_N,LKN_SectLeatherArmor);
     };
 };
 func void LKN_RoadNetworkVisuals() {

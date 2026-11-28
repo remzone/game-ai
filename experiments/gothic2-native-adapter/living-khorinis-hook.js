@@ -29,6 +29,33 @@
         ["LKN_BLUE-C.TEX",-1,false],["LKN_CLOTH-C.TEX",-1,false],["LKN_GREEN-C.TEX",-1,false],
         ["LKN_IRON-C.TEX",-1,false],["LKN_OAK-C.TEX",-1,false],
         ["LKN_ORE-C.TEX",-1,false],["LKN_RED-C.TEX",-1,false],["LKN_STONE-C.TEX",-1]];
+    // 0.9 can append only three named armour meshes and their bounded palette textures.
+    function withArmour(count, ascii, bytesLength) {
+        if (count <= magicRows.length || count > magicRows.length+15 || bytesLength < 296+count*80+1024) return null;
+        const names=[];
+        for(let i=8;i<count;i++)names.push(ascii(296+i*80,360+i*80).trimEnd());
+        const dat=names.indexOf("LIVINGKHORINIS.DAT");
+        if(dat<0)return null;
+        const models=names.slice(0,dat), textures=names.slice(dat+1);
+        const canonicalModels=magicRows.slice(8,17).map(r=>r[0]);
+        const canonicalTextures=magicRows.slice(18).map(r=>r[0]);
+        const pairs=[["LKNW_ROBE.MDM","LKW_"],["LKNS_ROBE.MDM","LKS_"],["LKNT_LEATHER.MDM","LKT_"]];
+        const extrasM=models.filter(n=>!canonicalModels.includes(n));
+        const extrasT=textures.filter(n=>!canonicalTextures.includes(n));
+        if(extrasM.some(n=>!pairs.some(p=>p[0]===n)))return null;
+        if(extrasT.some(n=>!/^LK[WST]_[A-Z0-9_]{5,44}-C\.TEX$/.test(n) ||
+                           !pairs.some(p=>n.startsWith(p[1])&&extrasM.includes(p[0]))))return null;
+        for(const [mesh,prefix] of pairs) if(extrasM.includes(mesh)){
+          const num=extrasT.filter(n=>n.startsWith(prefix)).length;
+          if(num<1||num>4)return null;
+        }
+        const expectedM=[...new Set([...canonicalModels,...extrasM])].sort();
+        const expectedT=[...new Set([...canonicalTextures,...extrasT])].sort();
+        if(expectedM.join("|")!==models.join("|")||expectedT.join("|")!==textures.join("|"))return null;
+        return [...magicRows.slice(0,6),["_COMPILED",8+dat],["_COMPILED",9+dat],
+            ...models.map((n,i)=>[n,-1,i===models.length-1]),["LIVINGKHORINIS.DAT",-1],
+            ...textures.map((n,i)=>[n,-1,i===textures.length-1])];
+    }
     const err = text => new Error("Мод «Живой Хоринис»: " + text);
 
     function child(fs, parent, wanted) {
@@ -73,7 +100,7 @@
         const view = new DataView(volume.buffer, volume.byteOffset, volume.byteLength);
         const u32 = p => view.getUint32(p, true);
         const ascii = (a, b) => String.fromCharCode(...volume.subarray(a,b));
-        const rows = [magicRows, logisticsRows, industryRows, artRows, oldRows].find(r=>r.length === u32(272)) ?? oldRows;
+        const rows = [magicRows, logisticsRows, industryRows, artRows, oldRows].find(r=>r.length === u32(272)) ?? withArmour(u32(272),ascii,volume.length) ?? oldRows;
         if (ascii(256,272) !== "PSVDSC_V2.00\n\r\n\r" ||
             u32(272) !== rows.length || u32(276) !== (rows.length - (rows === oldRows ? 4 : 8)) || u32(284) !== volume.length ||
             u32(288) !== 296 || u32(292) !== 0x50 || volume.length < 296 + 80*rows.length + 1024) {
@@ -90,8 +117,8 @@
             }
             if (dir) continue;
             if (name === "LIVINGKHORINIS.DAT") { pos=cursor; end=cursor+size; datRow=p; }
-            else if (size > 1024*1024 || (name.endsWith(".TEX") ? ascii(cursor,cursor+4) !== "ZTEX" :
-                size < 6 || volume[cursor] !== 0 || volume[cursor+1] !== 0xb1)) throw err("файл модели повреждён.");
+            else if (size > (name.endsWith(".MDM") ? 4 : 1)*1024*1024 || (name.endsWith(".TEX") ? ascii(cursor,cursor+4) !== "ZTEX" :
+                size < 6 || volume[cursor] !== 0 || volume[cursor+1] !== (name.endsWith(".MDM") ? 0xd0 : 0xb1))) throw err("файл модели повреждён.");
             cursor += size;
         }
         if (end-pos < 1024 || end-pos > 64*1024*1024 || cursor !== volume.length) throw err("DAT повреждён.");
@@ -175,7 +202,7 @@
         const iniBytes = fileBytes(FS,ini,64*1024);
         const archive = fileBytes(FS,volume,65*1024*1024);
         const datRow = verify(iniBytes,archive,volume.substring(volume.lastIndexOf("/")+1));
-        const version = new TextDecoder().decode(iniBytes).match(/^Version[ \t]*=[ \t]*(0\.[345678])[ \t]*\r?$/im)?.[1] ?? 'legacy';
+        const version = new TextDecoder().decode(iniBytes).match(/^Version[ \t]*=[ \t]*(0\.[3456789])[ \t]*\r?$/im)?.[1] ?? 'legacy';
         if (gameFs) return {runtime:runtimeVdf(gameFs,data,archive,datRow),version};
         return {ini: ini.substring(ini.lastIndexOf("/")+1),version};
     };

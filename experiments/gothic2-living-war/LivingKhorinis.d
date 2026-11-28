@@ -1,4 +1,4 @@
-// Living Khorinis 0.8: day-driven logistics for the original Gothic II world.
+// Living Khorinis 0.9: day-driven logistics for the original Gothic II world.
 const int Patch_LivingKhorinis_Militia = 1;
 const int Patch_LivingKhorinis_Mercenaries = 2;
 const int Patch_LivingKhorinis_Neutral = 3;

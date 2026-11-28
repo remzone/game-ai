@@ -70,6 +70,43 @@ class Native(unittest.TestCase):
         with self.assertRaises(ValueError):
             stage.patch_human_death(patched)
 
+    def test_local_armour_variants_clone_mesh_links_and_preserve_alpha(self):
+        import armor
+        from buildings import assets
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp)
+            shapes = assets()
+            tex = b"ZTEX" +struct.pack("<8I",0,0,4,4,1,4,4,0xffb85323)+bytes([35,83,184,167])*16
+            model = bytes.fromhex("00d00400000006050304")+b'pHUM_NOVL_ARMOR_V0.TGA\0HUM_BODY_NAKED_V0.TGA\0'
+            shapes.update({"ARMOR_NOV_L.MDM":model,"ARMOR_BDT_M.MDM":model,"HUM_NOVL_ARMOR_V0-C.TEX":tex})
+            original = pack.vdf_for(fake_dat(), shapes)
+            archive = data/"Textures.vdf"
+            archive.write_bytes(original)
+            src = data/"NPC.d"
+            src.write_bytes(b'LKNW_ROBE.ASC LKNS_ROBE.ASC LKNT_LEATHER.ASC')
+            out=armor.prepare(data,src)
+            self.assertEqual(len(out),6)
+            self.assertEqual(len(out["LKNW_ROBE.MDM"]),len(model))
+            self.assertIn(b'pLKW_NOVL_ARMOR_V0.TGA\0',out["LKNW_ROBE.MDM"])
+            self.assertIn(b'HUM_BODY_NAKED_V0.TGA\0',out["LKNW_ROBE.MDM"])
+            blue=out["LKW_NOVL_ARMOR_V0-C.TEX"]
+            self.assertGreater(blue[36],blue[38])
+            self.assertEqual(blue[39::4],tex[39::4])
+            self.assertEqual(archive.read_bytes(),original)
+    def test_dxt1_keeps_transparency_and_correct_palette_order(self):
+        import armor
+        a,b=0xf000,0x287c
+        source=b"ZTEX"+struct.pack("<8I",0,10,4,4,1,4,4,0xffc54a37)+struct.pack("<HHI",a,b,0xe4e4e4e4)
+        opaque=armor.recolor(source,"blue")
+        self.assertIsNotNone(opaque)
+        x,y,_=struct.unpack_from("<HHI",opaque,36)
+        self.assertGreater(x,y)
+        source=b"ZTEX"+struct.pack("<8I",0,10,4,4,1,4,4,0xffc54a37)+struct.pack("<HHI",b,a,0xe4e4e4e4)
+        translucent=armor.recolor(source,"blue")
+        x,y,idx=struct.unpack_from("<HHI",translucent,36)
+        self.assertLessEqual(x,y)
+        self.assertEqual(idx&0xc0c0c0c0,0xc0c0c0c0)
+
     def test_vdf_layout_roundtrip(self):
         payload = fake_dat()
         pack.check_dat(payload)

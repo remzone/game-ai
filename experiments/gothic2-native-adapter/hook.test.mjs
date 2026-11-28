@@ -20,6 +20,10 @@ p=Path(${JSON.stringify(folder)})
 (p/'system'/'livingkhorinis.ini').write_bytes(mod_ini(INI))
 (p/'data'/'modvdf'/'LivingKhorinis.mod').write_bytes(vdf_for(fake_dat()))
 (p/'art.mod').write_bytes(vdf_for(fake_dat(), assets()))
+new=assets()
+new["LKNW_ROBE.MDM"]=bytes.fromhex("00d00400000006050304")
+new["LKW_NOVL_ARMOR_V0-C.TEX"]=new["LKN_BLUE-C.TEX"]
+(p/'armour.mod').write_bytes(vdf_for(fake_dat(), new))
 logistics={k:v for k,v in assets().items() if k not in ['LKN_SECT.MRM','LKN_WATER.MRM','LKN_BLUE-C.TEX','LKN_GREEN-C.TEX','LKN_FIRE.MRM','LKN_RED-C.TEX']}
 (p/'v06-art.mod').write_bytes(vdf_for(fake_dat(), logistics))
 old={k:v for k,v in logistics.items() if k not in ['LKN_LOGS.MRM','LKN_ORE.MRM','LKN_ORE-C.TEX']}
@@ -83,11 +87,11 @@ test('one .lkmod shadows only the engine view and does not touch base bytes or s
 });
 
 
-test('accepts 0.3 through 0.8 asset catalogs while retaining the version tag', async ()=>{
+test('accepts 0.3 through 0.9 asset catalogs while retaining the version tag', async ()=>{
  const ini=fs.readFileSync(path.join(folder,'system/livingkhorinis.ini'));
  const ctx=vm.createContext({TextDecoder,Uint8Array,URLSearchParams});vm.runInContext(code,ctx);
- for(const [version,asset] of [['0.3','old-art.mod'],['0.4','v04-art.mod'],['0.5','v06-art.mod'],['0.6','v06-art.mod'],['0.7','art.mod'],['0.8','art.mod']]){
-   const versioned=Buffer.from(ini.toString().replace('Version=0.8','Version='+version));
+ for(const [version,asset] of [['0.3','old-art.mod'],['0.4','v04-art.mod'],['0.5','v06-art.mod'],['0.6','v06-art.mod'],['0.7','art.mod'],['0.8','art.mod'],['0.9','art.mod']]){
+   const versioned=Buffer.from(ini.toString().replace('Version=0.9','Version='+version));
    const volume=fs.readFileSync(path.join(folder,asset));
    const FS={
     readdir(p){return ({'/game':['system','data'],'/game/system':['LivingKhorinis.ini'],'/game/data':['modvdf'],
@@ -126,4 +130,17 @@ test('passes the patched parser to engines that only start the standard GOTHIC.D
  assert.deepEqual(e.mem.subarray(row+64),orig.subarray(row+64));
  assert.deepEqual(volume,orig);
  assert.equal(gameFs.files.get('data/scripts.vdf').path,'DaTa/Scripts.vdf');
+});
+
+test('allows only bounded local outfit mesh/texture pairs in the armour package',()=>{
+ const ctx=vm.createContext({TextDecoder,Uint8Array,URLSearchParams});vm.runInContext(code,ctx);
+ const ini=fs.readFileSync(path.join(folder,'system/livingkhorinis.ini'));
+ const vol=fs.readFileSync(path.join(folder,'armour.mod'));
+ const head=Buffer.alloc(16);head.write('LKHMOD01');head.writeUInt32LE(ini.length,8);head.writeUInt32LE(vol.length,12);
+ const make=v=>new Uint8Array(Buffer.concat([head,ini,v]));
+ assert.doesNotThrow(()=>ctx.LivingKhorinisOverlay.parts(make(vol)));
+ const corrupt=Buffer.from(vol);
+ const pos=corrupt.indexOf('LKW_NOVL_ARMOR_V0-C.TEX');
+ assert.ok(pos>=296);corrupt.write('LKS_',pos);
+ assert.throws(()=>ctx.LivingKhorinisOverlay.parts(make(corrupt)));
 });

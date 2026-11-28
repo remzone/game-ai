@@ -15,6 +15,7 @@ from urllib.request import urlopen
 import pack
 import stage
 import stock
+import armor
 
 GDC_VERSION = "0.9.5"
 GDC_BINARIES = {
@@ -33,6 +34,9 @@ RECONSTRUCTED = {
 
 
 RU_TEXT = {
+    "Blue robe of the Water acolytes": "Синяя роба послушника Воды",
+    "Moss robe of the Brotherhood": "Мшистая роба Братства",
+    "Brotherhood marsh leathers": "Болотный доспех Братства",
     "Report on the camp.": "Доложить о лагере.",
     "Abandon the scouting mission.": "Отказаться от разведки.",
     "Scout: Forest camp": "Разведка: Лесной лагерь",
@@ -343,13 +347,15 @@ def build(args):
 
         staged = stage.prepare(content, scratch / "staged")
         localize(staged.parent, args.lang)
-        stock.apply(staged.parent / stage.MOD_DIR / "LivingKhorinisNative.d", gamedata)
+        adapter_file = staged.parent / stage.MOD_DIR / "LivingKhorinisNative.d"
+        stock.apply(adapter_file, gamedata)
+        outfits = armor.prepare(gamedata, adapter_file)
         normalize_for_gdc(staged.parent)
         dat = scratch / "GOTHIC.DAT"
         print("Compiling Daedalus to a local DAT…", flush=True)
         subprocess.run([str(compiler), str(staged), "--runtime", str(externals),
                         "--output-dat", str(dat)], cwd=scratch, check=True)
-        pack.package(dat, base_ini, out)
+        pack.package(dat, base_ini, out, outfits)
 
     return out
 
