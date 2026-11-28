@@ -1,4 +1,4 @@
-// Living Khorinis 0.4: day-driven logistics for the original Gothic II world.
+// Living Khorinis 0.5: day-driven logistics for the original Gothic II world.
 const int Patch_LivingKhorinis_Militia = 1;
 const int Patch_LivingKhorinis_Mercenaries = 2;
 const int Patch_LivingKhorinis_Neutral = 3;
@@ -6,11 +6,32 @@ var int Patch_LivingKhorinis_Day;
 var int Patch_LivingKhorinis_Owner;
 var int Patch_LivingKhorinis_RidgeOwner;
 var int Patch_LivingKhorinis_DockOwner;
+var int Patch_LivingKhorinis_LobartFood;
+var int Patch_LivingKhorinis_OnarFarmFood;
+var int Patch_LivingKhorinis_SekobFood;
+var int Patch_LivingKhorinis_BengarFood;
+var int Patch_LivingKhorinis_LobartCart;
+var int Patch_LivingKhorinis_OnarCart;
+var int Patch_LivingKhorinis_SekobCart;
+var int Patch_LivingKhorinis_BengarCart;
+var int Patch_LivingKhorinis_DockFood;
+var int Patch_LivingKhorinis_MineFood;
+var int Patch_LivingKhorinis_RidgeFood;
+var int Patch_LivingKhorinis_CrossFood;
+var int Patch_LivingKhorinis_GateFood;
+var int Patch_LivingKhorinis_CityCargo;
+var int Patch_LivingKhorinis_MercCargo;
+var int Patch_LivingKhorinis_CityRoute;
+var int Patch_LivingKhorinis_MercRoute;
+var int Patch_LivingKhorinis_CityReturn;
+var int Patch_LivingKhorinis_MercReturn;
+var int Patch_LivingKhorinis_Arrivals;
 var int Patch_LivingKhorinis_MineOwner;
 var int Patch_LivingKhorinis_DockClosed;
 var int Patch_LivingKhorinis_MineClosed;
 var int Patch_LivingKhorinis_Revision;
 var int Patch_LivingKhorinis_Rounds;
+var int Patch_LivingKhorinis_WarUnlocked;
 var int Patch_LivingKhorinis_PostLevel;
 var int Patch_LivingKhorinis_RidgeLevel;
 var int Patch_LivingKhorinis_PostWork;
@@ -64,9 +85,30 @@ func void Patch_LivingKhorinis_Begin(var int day) {
     Patch_LivingKhorinis_DockOwner = Patch_LivingKhorinis_Militia;
     Patch_LivingKhorinis_MineOwner = Patch_LivingKhorinis_Mercenaries;
     Patch_LivingKhorinis_DockClosed = 0;
+    Patch_LivingKhorinis_LobartFood = 10;
+    Patch_LivingKhorinis_OnarFarmFood = 8;
+    Patch_LivingKhorinis_SekobFood = 7;
+    Patch_LivingKhorinis_BengarFood = 6;
+    Patch_LivingKhorinis_LobartCart = 0;
+    Patch_LivingKhorinis_OnarCart = 0;
+    Patch_LivingKhorinis_SekobCart = 0;
+    Patch_LivingKhorinis_BengarCart = 0;
+    Patch_LivingKhorinis_DockFood = 5;
+    Patch_LivingKhorinis_MineFood = 5;
+    Patch_LivingKhorinis_RidgeFood = 4;
+    Patch_LivingKhorinis_CrossFood = 0;
+    Patch_LivingKhorinis_GateFood = 6;
+    Patch_LivingKhorinis_CityCargo = 0;
+    Patch_LivingKhorinis_MercCargo = 0;
+    Patch_LivingKhorinis_CityRoute = 0;
+    Patch_LivingKhorinis_MercRoute = 0;
+    Patch_LivingKhorinis_CityReturn = 0;
+    Patch_LivingKhorinis_MercReturn = 0;
+    Patch_LivingKhorinis_Arrivals = 0;
     Patch_LivingKhorinis_MineClosed = 0;
     Patch_LivingKhorinis_Revision = 0;
     Patch_LivingKhorinis_Rounds = 0;
+    Patch_LivingKhorinis_WarUnlocked = 0;
     Patch_LivingKhorinis_PostLevel = 1;
     Patch_LivingKhorinis_RidgeLevel = 1;
     Patch_LivingKhorinis_PostWork = 0;
@@ -123,13 +165,11 @@ func void Patch_LivingKhorinis_Harvest() {
         Patch_LivingKhorinis_MilitiaWood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaWood + 12, 100);
         Patch_LivingKhorinis_MilitiaIron = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaIron + 6, 100);
         Patch_LivingKhorinis_MilitiaGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaGold + 3, 100);
-        Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply + 2, 100);
     };
     if (Patch_LivingKhorinis_MercenaryTroops < 14) {
         Patch_LivingKhorinis_MercenaryWood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenaryWood + 21, 100);
         Patch_LivingKhorinis_MercenaryIron = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenaryIron + 9, 100);
         Patch_LivingKhorinis_MercenaryGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenaryGold + 4, 100);
-        Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply + 18, 100);
     };
     if (Patch_LivingKhorinis_FreeTroops < 5) {
         Patch_LivingKhorinis_FreeWood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_FreeWood + 5, 100);
@@ -150,12 +190,130 @@ func void Patch_LivingKhorinis_Harvest() {
         Patch_LivingKhorinis_WaterSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_WaterSupply + 7, 100);
     };
 
-    if (Patch_LivingKhorinis_Owner == Patch_LivingKhorinis_Militia) {
-        Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply + 4, 100);
-    };
     if (Patch_LivingKhorinis_RidgeOwner == Patch_LivingKhorinis_Militia) {
         Patch_LivingKhorinis_MilitiaIron = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaIron + 2, 100);
-        Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply + 3, 100);
+    };
+};
+
+
+// 1 tavern, 2 ridge, 3 docks, 4 mine, 5 road fort; a convoy never feeds an enemy or an active siege.
+func int Patch_LivingKhorinis_PostOwner(var int site) {
+    if (site == 1) { return Patch_LivingKhorinis_Owner; };
+    if (site == 2) { return Patch_LivingKhorinis_RidgeOwner; };
+    if (site == 3) { return Patch_LivingKhorinis_DockOwner; };
+    if (site == 4) { return Patch_LivingKhorinis_MineOwner; };
+    return Patch_LivingKhorinis_Militia;
+};
+func int Patch_LivingKhorinis_PostFood(var int site) {
+    if (site == 1) { return Patch_LivingKhorinis_CrossFood; };
+    if (site == 2) { return Patch_LivingKhorinis_RidgeFood; };
+    if (site == 3) { return Patch_LivingKhorinis_DockFood; };
+    if (site == 4) { return Patch_LivingKhorinis_MineFood; };
+    return Patch_LivingKhorinis_GateFood;
+};
+func void Patch_LivingKhorinis_SetPostFood(var int site,var int food) {
+    food = Patch_LivingKhorinis_Bounded(food,24);
+    if (site == 1) { Patch_LivingKhorinis_CrossFood = food; };
+    if (site == 2) { Patch_LivingKhorinis_RidgeFood = food; };
+    if (site == 3) { Patch_LivingKhorinis_DockFood = food; };
+    if (site == 4) { Patch_LivingKhorinis_MineFood = food; };
+    if (site == 5) { Patch_LivingKhorinis_GateFood = food; };
+};
+func int Patch_LivingKhorinis_Blocked(var int site) {
+    if ((Patch_LivingKhorinis_AttackSide != 0) && (Patch_LivingKhorinis_AttackPost == site)) { return 1; };
+    return 0;
+};
+func int Patch_LivingKhorinis_PriorityPost(var int side) {
+    var int site;
+    var int best;
+    var int mostUrgent;
+    var int need;
+    site = 1;
+    best = 0;
+    mostUrgent = 0;
+    while (site <= 5) {
+        if ((Patch_LivingKhorinis_PostOwner(site) == side) && (!Patch_LivingKhorinis_Blocked(site))) {
+            need = 9 - Patch_LivingKhorinis_PostFood(site);
+            if ((site == 3) || (site == 4)) { need = need + 2; };
+            if (need > mostUrgent) { best = site; mostUrgent = need; };
+        };
+        site = site + 1;
+    };
+    return best;
+};
+func int Patch_LivingKhorinis_Unload(var int site,var int side,var int cargo) {
+    var int start;
+    if ((Patch_LivingKhorinis_PostOwner(site) != side) || (Patch_LivingKhorinis_Blocked(site))) { return cargo; };
+    start = Patch_LivingKhorinis_PostFood(site);
+    Patch_LivingKhorinis_SetPostFood(site,start+cargo);
+    Patch_LivingKhorinis_Arrivals = Patch_LivingKhorinis_Arrivals + 1;
+    return cargo - (Patch_LivingKhorinis_PostFood(site) - start);
+};
+func void Patch_LivingKhorinis_FarmFreight() {
+    Patch_LivingKhorinis_LobartFood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_LobartFood + 13,60);
+    Patch_LivingKhorinis_OnarFarmFood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_OnarFarmFood + 9,60);
+    Patch_LivingKhorinis_SekobFood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_SekobFood + 8,60);
+    Patch_LivingKhorinis_BengarFood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_BengarFood + 7,60);
+    if (Patch_LivingKhorinis_LobartCart != 0) {
+        Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply + Patch_LivingKhorinis_LobartCart,100);
+        Patch_LivingKhorinis_LobartCart = 0;
+    } else {
+        Patch_LivingKhorinis_LobartCart = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_LobartFood,26);
+        Patch_LivingKhorinis_LobartFood = Patch_LivingKhorinis_LobartFood - Patch_LivingKhorinis_LobartCart;
+    };
+    if ((Patch_LivingKhorinis_OnarCart + Patch_LivingKhorinis_SekobCart + Patch_LivingKhorinis_BengarCart) != 0) {
+        Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply + Patch_LivingKhorinis_OnarCart + Patch_LivingKhorinis_SekobCart + Patch_LivingKhorinis_BengarCart,100);
+        Patch_LivingKhorinis_OnarCart = 0; Patch_LivingKhorinis_SekobCart = 0; Patch_LivingKhorinis_BengarCart = 0;
+    } else {
+        Patch_LivingKhorinis_OnarCart = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_OnarFarmFood,18);
+        Patch_LivingKhorinis_SekobCart = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_SekobFood,16);
+        Patch_LivingKhorinis_BengarCart = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_BengarFood,14);
+        Patch_LivingKhorinis_OnarFarmFood = Patch_LivingKhorinis_OnarFarmFood - Patch_LivingKhorinis_OnarCart;
+        Patch_LivingKhorinis_SekobFood = Patch_LivingKhorinis_SekobFood - Patch_LivingKhorinis_SekobCart;
+        Patch_LivingKhorinis_BengarFood = Patch_LivingKhorinis_BengarFood - Patch_LivingKhorinis_BengarCart;
+    };
+};
+func void Patch_LivingKhorinis_OutpostFreight() {
+    var int remainder;
+    if (Patch_LivingKhorinis_CityCargo > 0) {
+        remainder = Patch_LivingKhorinis_Unload(Patch_LivingKhorinis_CityRoute,Patch_LivingKhorinis_Militia,Patch_LivingKhorinis_CityCargo);
+        Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply + remainder,100);
+        Patch_LivingKhorinis_CityCargo = 0;
+        Patch_LivingKhorinis_CityReturn = 1;
+    } else if (Patch_LivingKhorinis_CityReturn == 1) {
+        Patch_LivingKhorinis_CityRoute = 0;
+        Patch_LivingKhorinis_CityReturn = 0;
+    } else if (Patch_LivingKhorinis_MilitiaSupply >= 19) {
+        Patch_LivingKhorinis_CityRoute = Patch_LivingKhorinis_PriorityPost(Patch_LivingKhorinis_Militia);
+        if (Patch_LivingKhorinis_CityRoute != 0) {
+            Patch_LivingKhorinis_CityCargo = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply - 10,16);
+            Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_MilitiaSupply - Patch_LivingKhorinis_CityCargo;
+        };
+    };
+    if (Patch_LivingKhorinis_MercCargo > 0) {
+        remainder = Patch_LivingKhorinis_Unload(Patch_LivingKhorinis_MercRoute,Patch_LivingKhorinis_Mercenaries,Patch_LivingKhorinis_MercCargo);
+        Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply + remainder,100);
+        Patch_LivingKhorinis_MercCargo = 0;
+        Patch_LivingKhorinis_MercReturn = 1;
+    } else if (Patch_LivingKhorinis_MercReturn == 1) {
+        Patch_LivingKhorinis_MercRoute = 0;
+        Patch_LivingKhorinis_MercReturn = 0;
+    } else if (Patch_LivingKhorinis_MercenarySupply >= 23) {
+        Patch_LivingKhorinis_MercRoute = Patch_LivingKhorinis_PriorityPost(Patch_LivingKhorinis_Mercenaries);
+        if (Patch_LivingKhorinis_MercRoute != 0) {
+            Patch_LivingKhorinis_MercCargo = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply - 13,18);
+            Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_MercenarySupply - Patch_LivingKhorinis_MercCargo;
+        };
+    };
+};
+func void Patch_LivingKhorinis_FeedGuards() {
+    var int site;
+    site = 1;
+    while (site <= 5) {
+        if (Patch_LivingKhorinis_PostOwner(site) != Patch_LivingKhorinis_Neutral) {
+            Patch_LivingKhorinis_SetPostFood(site,Patch_LivingKhorinis_PostFood(site) - 1);
+        };
+        site = site + 1;
     };
 };
 
@@ -164,28 +322,30 @@ func void Patch_LivingKhorinis_Industry() {
     Patch_LivingKhorinis_DockClosed = 1;
     if ((Patch_LivingKhorinis_AttackSide == 0) || (Patch_LivingKhorinis_AttackPost != 3)) {
         if ((Patch_LivingKhorinis_DockOwner == Patch_LivingKhorinis_Militia) &&
-            (Patch_LivingKhorinis_MilitiaSupply >= 4) && (Patch_LivingKhorinis_MilitiaGold >= 1) && (Patch_LivingKhorinis_MilitiaTroops < 10)) {
+            (Patch_LivingKhorinis_DockFood >= 1) && (Patch_LivingKhorinis_MilitiaGold >= 1) && (Patch_LivingKhorinis_MilitiaTroops < 10)) {
             Patch_LivingKhorinis_MilitiaGold = Patch_LivingKhorinis_MilitiaGold - 1;
             Patch_LivingKhorinis_MilitiaWood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaWood + 6, 100);
+            Patch_LivingKhorinis_DockFood = Patch_LivingKhorinis_DockFood - 1;
             Patch_LivingKhorinis_DockClosed = 0;
         } else if ((Patch_LivingKhorinis_DockOwner == Patch_LivingKhorinis_Mercenaries) &&
-                   (Patch_LivingKhorinis_MercenarySupply >= 4) && (Patch_LivingKhorinis_MercenaryGold >= 1) && (Patch_LivingKhorinis_MercenaryTroops < 15)) {
+                   (Patch_LivingKhorinis_DockFood >= 1) && (Patch_LivingKhorinis_MercenaryGold >= 1) && (Patch_LivingKhorinis_MercenaryTroops < 15)) {
             Patch_LivingKhorinis_MercenaryGold = Patch_LivingKhorinis_MercenaryGold - 1;
             Patch_LivingKhorinis_MercenaryWood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenaryWood + 6, 100);
+            Patch_LivingKhorinis_DockFood = Patch_LivingKhorinis_DockFood - 1;
             Patch_LivingKhorinis_DockClosed = 0;
         };
     };
     Patch_LivingKhorinis_MineClosed = 1;
     if ((Patch_LivingKhorinis_AttackSide == 0) || (Patch_LivingKhorinis_AttackPost != 4)) {
         if ((Patch_LivingKhorinis_MineOwner == Patch_LivingKhorinis_Mercenaries) &&
-            (Patch_LivingKhorinis_MercenarySupply >= 5) && (Patch_LivingKhorinis_MercenaryTroops < 15)) {
-            Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_MercenarySupply - 1;
+            (Patch_LivingKhorinis_MineFood >= 1) && (Patch_LivingKhorinis_MercenaryTroops < 15)) {
+            Patch_LivingKhorinis_MineFood = Patch_LivingKhorinis_MineFood - 1;
             Patch_LivingKhorinis_MercenaryIron = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenaryIron + 5, 100);
             Patch_LivingKhorinis_MercenaryGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenaryGold + 1, 100);
             Patch_LivingKhorinis_MineClosed = 0;
         } else if ((Patch_LivingKhorinis_MineOwner == Patch_LivingKhorinis_Militia) &&
-                   (Patch_LivingKhorinis_MilitiaSupply >= 5) && (Patch_LivingKhorinis_MilitiaTroops < 10)) {
-            Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_MilitiaSupply - 1;
+                   (Patch_LivingKhorinis_MineFood >= 1) && (Patch_LivingKhorinis_MilitiaTroops < 10)) {
+            Patch_LivingKhorinis_MineFood = Patch_LivingKhorinis_MineFood - 1;
             Patch_LivingKhorinis_MilitiaIron = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaIron + 5, 100);
             Patch_LivingKhorinis_MilitiaGold = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaGold + 1, 100);
             Patch_LivingKhorinis_MineClosed = 0;
@@ -200,7 +360,7 @@ func void Patch_LivingKhorinis_Trade() {
         Patch_LivingKhorinis_MilitiaWood = Patch_LivingKhorinis_MilitiaWood - 6;
         Patch_LivingKhorinis_FreeWood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_FreeWood + 6, 100);
         Patch_LivingKhorinis_FreeSupply = Patch_LivingKhorinis_FreeSupply - 8;
-        Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_MilitiaSupply + 8;
+        Patch_LivingKhorinis_LobartFood = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_LobartFood + 8,60);
         Patch_LivingKhorinis_Convoys = Patch_LivingKhorinis_Convoys + 1;
     };
 };
@@ -362,6 +522,7 @@ func int Patch_LivingKhorinis_PlanIndustry() {
 };
 
 func void Patch_LivingKhorinis_PlanOperation() {
+    if (Patch_LivingKhorinis_WarUnlocked == 0) { return; };
     if ((Patch_LivingKhorinis_AttackSide != 0) || (Patch_LivingKhorinis_Rounds < 3)) { return; };
     if (Patch_LivingKhorinis_PlanIndustry()) { return; };
     // The mercenaries can supply a near-term claim on the neutral road, unless the city is provisioned first.
@@ -413,9 +574,12 @@ func void Patch_LivingKhorinis_Advance(var int day) {
         if (remaining == 0) { return; };
         Patch_LivingKhorinis_Rounds = Patch_LivingKhorinis_Rounds + 1;
         Patch_LivingKhorinis_Harvest();
-        Patch_LivingKhorinis_Industry();
         Patch_LivingKhorinis_Trade();
+        Patch_LivingKhorinis_FarmFreight();
         Patch_LivingKhorinis_Upkeep();
+        Patch_LivingKhorinis_OutpostFreight();
+        Patch_LivingKhorinis_FeedGuards();
+        Patch_LivingKhorinis_Industry();
         Patch_LivingKhorinis_Invest();
         Patch_LivingKhorinis_Fortify();
         Patch_LivingKhorinis_ResolveOperation();

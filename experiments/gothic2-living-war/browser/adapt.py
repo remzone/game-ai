@@ -150,7 +150,7 @@ s=s.replace('<script src="living-khorinis-hook.js"></script>','<script src="lk-s
 # Optional direct GitHub sync. The browser never stores the token.
 s=s.replace("connect-src 'self' blob:;", "connect-src 'self' blob: https://api.github.com;")
 s=s.replace('<script src="lk-saves.js"></script>', '<script src="lk-saves.js"></script>\n  <script src="lk-github-saves.js"></script>')
-s=s.replace('src="living-khorinis-hook.js"', 'src="living-khorinis-hook.js?v=04"').replace('src="lk-github-saves.js"', 'src="lk-github-saves.js?v=04"')
+s=s.replace('src="living-khorinis-hook.js"', 'src="living-khorinis-hook.js?v=05"').replace('src="lk-github-saves.js"', 'src="lk-github-saves.js?v=05"')
 s=s.replace('<a class="fm-item" role="menuitem" href="../saves.html"','<button class="fm-item" role="menuitem" type="button" onclick="lkOpenSync()">Сейвы в GitHub</button>\n          <a class="fm-item" role="menuitem" href="../saves.html"')
 s=s.replace('<input type="file" id="saves-picker"', '''<dialog id="lk-cloud" style="max-width:min(90vw,32rem); color:#eee3c8; background:#171512; border:1px solid #8e7550; border-radius:8px; padding:1rem; z-index:99999">
           <h2>Сохранения мода в GitHub</h2>

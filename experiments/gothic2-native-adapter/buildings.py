@@ -17,6 +17,7 @@ PALETTE={
     "LKN_STONE":(107,107,98),
     "LKN_CLOTH":(167,152,112),
     "LKN_IRON":(76,75,70),
+    "LKN_ORE":(103,143,158),
 }
 
 def texture(key):
@@ -27,6 +28,7 @@ def texture(key):
         for x in range(size):
             q=((x*6037 ^ y*7919 ^ x*y*19) %17)-8
             if key=="LKN_OAK": q+=3*(x%6)-9 - (14 if x%8==0 else 0)
+            if key=="LKN_ORE": q+=20 if (x+y*3)%13<3 else -10
             if key=="LKN_STONE": q-=15 if y%8==0 or (x+((y//8)%2)*8)%16==0 else 0
             if key=="LKN_CLOTH":
                 # Woven lozenge on a muted campaign standard.
@@ -74,6 +76,22 @@ class Mesh:
         e=(x,y,z+d); f=(x+w,y,z+d); g=(x+w,y+h,z+d); h0=(x,y+h,z+d)
         for quad in [(d0,c,b,a),(e,f,g,h0),(a,b,f,e),(d0,h0,g,c),(a,e,h0,d0),(b,c,g,f)]:
             self.face(key,quad)
+
+    def log(self,x,y,z,length,r):
+        faces=8
+        end=[(y+r*math.cos(i*math.tau/faces),z+r*math.sin(i*math.tau/faces)) for i in range(faces)]
+        for i,(a,b) in enumerate(end):
+            c,d=end[(i+1)%faces]
+            self.face("LKN_OAK",[(x,c,d),(x+length,c,d),(x+length,a,b),(x,a,b)])
+            self.face("LKN_OAK",[(x,y,z),(x,c,d),(x,a,b)])
+            self.face("LKN_OAK",[(x+length,y,z),(x+length,a,b),(x+length,c,d)])
+
+    def boulder(self,key,x,y,z,size):
+        a=(x-size,y,z-size); b=(x+size,y,z-size)
+        c=(x+size,y,z+size); d=(x-size,y,z+size)
+        roof=(x+size*.28,y+size*1.65,z-size*.17)
+        for p,q in [(a,b),(b,c),(c,d),(d,a)]: self.face(key,[p,roof,q])
+        self.face(key,[a,b,c,d])
 
     def roof(self,x,y,z,w,h,d):
         a=(x,y,z);b=(x+w,y,z);c=(x+w,y,z+d);d0=(x,y,z+d)
@@ -146,7 +164,21 @@ def assets():
         mine.box("LKN_OAK",x,y,-36,31,38,37)
         mine.box("LKN_IRON",x+5,y+38,-30,21,22,24)
     mine.banner(65,27,35)
+    logs=Mesh(95,-128)
+    for x in [-54,54]:
+        logs.box("LKN_OAK",x,0,-24,8,58,9)
+        logs.box("LKN_OAK",x,0,15,8,58,9)
+        logs.box("LKN_OAK",x-4,49,-31,16,10,65)
+    logs.log(-77,67,0,152,13)
+    logs.log(-77,12,46,150,12)
+    logs.log(-70,10,67,135,10)
+    ore=Mesh(78,59)
+    for x,z,size in [(-29,-20,37),(15,-9,30),(6,24,24),(-28,31,19)]:
+        ore.boulder("LKN_STONE",x,0,z,size)
+    for x,y,z,size in [(-34,30,-20,8),(-22,39,-16,10),(-11,29,-23,8),(13,22,2,10),(22,18,5,8)]:
+        ore.boulder("LKN_ORE",x,y,z,size)
     result={"LKN_CROSS.MRM":m.emit(),"LKN_RIDGE.MRM":n.emit(),
-            "LKN_DOCK.MRM":dock.emit(),"LKN_MINE.MRM":mine.emit()}
+            "LKN_DOCK.MRM":dock.emit(),"LKN_MINE.MRM":mine.emit(),
+            "LKN_LOGS.MRM":logs.emit(),"LKN_ORE.MRM":ore.emit()}
     result.update({k+"-C.TEX":texture(k) for k in PALETTE})
     return result

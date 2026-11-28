@@ -15,6 +15,12 @@
         ["LKN_RIDGE.MRM",-1],["LIVINGKHORINIS.DAT",-1],
         ["LKN_CLOTH-C.TEX",-1,false],["LKN_IRON-C.TEX",-1,false],
         ["LKN_OAK-C.TEX",-1,false],["LKN_STONE-C.TEX",-1]];
+    const logisticsRows = [["_WORK",1],["DATA",2],["MESHES",5,false],["SCRIPTS",6,false],["TEXTURES",7],
+        ["_COMPILED",8],["_COMPILED",14],["_COMPILED",15],
+        ["LKN_CROSS.MRM",-1,false],["LKN_DOCK.MRM",-1,false],["LKN_LOGS.MRM",-1,false],
+        ["LKN_MINE.MRM",-1,false],["LKN_ORE.MRM",-1,false],["LKN_RIDGE.MRM",-1],["LIVINGKHORINIS.DAT",-1],
+        ["LKN_CLOTH-C.TEX",-1,false],["LKN_IRON-C.TEX",-1,false],["LKN_OAK-C.TEX",-1,false],
+        ["LKN_ORE-C.TEX",-1,false],["LKN_STONE-C.TEX",-1]];
     const err = text => new Error("Мод «Живой Хоринис»: " + text);
 
     function child(fs, parent, wanted) {
@@ -59,7 +65,7 @@
         const view = new DataView(volume.buffer, volume.byteOffset, volume.byteLength);
         const u32 = p => view.getUint32(p, true);
         const ascii = (a, b) => String.fromCharCode(...volume.subarray(a,b));
-        const rows = u32(272) === industryRows.length ? industryRows : u32(272) === artRows.length ? artRows : oldRows;
+        const rows = [logisticsRows, industryRows, artRows, oldRows].find(r=>r.length === u32(272)) ?? oldRows;
         if (ascii(256,272) !== "PSVDSC_V2.00\n\r\n\r" ||
             u32(272) !== rows.length || u32(276) !== (rows.length - (rows === oldRows ? 4 : 8)) || u32(284) !== volume.length ||
             u32(288) !== 296 || u32(292) !== 0x50 || volume.length < 296 + 80*rows.length + 1024) {
@@ -137,7 +143,7 @@
         }
         const iniBytes = fileBytes(FS,ini,64*1024);
         verify(iniBytes, fileBytes(FS,volume,65*1024*1024), volume.substring(volume.lastIndexOf("/")+1));
-        const version = new TextDecoder().decode(iniBytes).match(/^Version[ \t]*=[ \t]*(0\.[34])[ \t]*\r?$/im)?.[1] ?? 'legacy';
+        const version = new TextDecoder().decode(iniBytes).match(/^Version[ \t]*=[ \t]*(0\.[345])[ \t]*\r?$/im)?.[1] ?? 'legacy';
         return {ini: ini.substring(ini.lastIndexOf("/")+1),version};
     };
 })();
