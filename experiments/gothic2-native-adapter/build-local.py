@@ -32,11 +32,13 @@ RECONSTRUCTED = {
 
 
 RU_TEXT = {
+    "Neutral tavern lookout": "Нейтральный дозорный",
+    "Dead Harpy crossing: the lookout is neutral.": "Дозор у Мёртвой гарпии пока нейтрален.",
     "Marek, road quartermaster": "Марек, кладовщик заставы",
     "Khorinis militia lookout": "Дозорный ополчения Хориниса",
     "Onar's mercenary lookout": "Дозорный наёмников Онара",
-    "Road to Onar: Khorinis militia holds the post.": "Заставу на дороге Онара держит ополчение Хориниса.",
-    "Road to Onar: Onar's mercenaries hold the post.": "Заставу на дороге Онара держат наёмники.",
+    "Dead Harpy crossing: Khorinis militia holds the post.": "Заставу у Мёртвой гарпии держит ополчение Хориниса.",
+    "Dead Harpy crossing: Onar's mercenaries hold the post.": "Заставу на дороге Онара держат наёмники.",
     "The militia supply store is full.": "Запасы ополчения полны.",
     "The mercenary supply store is full.": "Запасы наёмников полны.",
     "Your provisions were delivered.": "Провизия отправлена.",

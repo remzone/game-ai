@@ -1,5 +1,6 @@
 // Original, engine-independent Daedalus rules for a Gothic II NotR prototype.
 // No changes to vanilla game instances, assets or globals.
+const int Patch_LivingKhorinis_Neutral = 3;
 const int Patch_LivingKhorinis_Militia = 1;
 const int Patch_LivingKhorinis_Mercenaries = 2;
 var int Patch_LivingKhorinis_Day;
@@ -18,7 +19,7 @@ func int Patch_LivingKhorinis_Bounded(var int value, var int maximum) {
 
 func void Patch_LivingKhorinis_Begin(var int day) {
     Patch_LivingKhorinis_Day = day;
-    Patch_LivingKhorinis_Owner = Patch_LivingKhorinis_Militia;
+    Patch_LivingKhorinis_Owner = Patch_LivingKhorinis_Neutral;
     Patch_LivingKhorinis_MilitiaSupply = 5;
     Patch_LivingKhorinis_MercenarySupply = 4;
     Patch_LivingKhorinis_Tension = 0;
@@ -50,9 +51,12 @@ func void Patch_LivingKhorinis_OneDay() {
     if (oldOwner == Patch_LivingKhorinis_Militia) {
         Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply - 1, 10);
         Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply + 1, 10);
-    } else {
+    } else if (oldOwner == Patch_LivingKhorinis_Mercenaries) {
         Patch_LivingKhorinis_MilitiaSupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MilitiaSupply + 1, 10);
         Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply - 1, 10);
+    } else {
+        // The neutral crossing has no allied garrison. Onar's farms provide the better food flow.
+        Patch_LivingKhorinis_MercenarySupply = Patch_LivingKhorinis_Bounded(Patch_LivingKhorinis_MercenarySupply + 1, 10);
     };
     if (Patch_LivingKhorinis_Tension < 3) { return; };
     strengthMilitia = Patch_LivingKhorinis_MilitiaSupply;

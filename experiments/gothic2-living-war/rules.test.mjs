@@ -23,11 +23,11 @@ test('unguarded logistics lose the post without player input; militia can later 
  f('Advance')(5);assert.equal(f('Revision'),1);
  f('Advance')(13);assert.ok(f('Revision')>1);
 });
-test('supporting a faction can prevent its loss',()=>{
+test('supporting the militia can secure the initially neutral post',()=>{
  const f=rules();
  f('Deliver')(1);f('Deliver')(1);
  f('Advance')(3);
- assert.equal(f('Owner'),1);assert.equal(f('Revision'),0);
+ assert.equal(f('Owner'),1);assert.equal(f('Revision'),1);
 });
 test('no duplicate day settlement, no supply overflow, bounded catch-up',()=>{
  const f=rules();

@@ -19,7 +19,7 @@ function simulate({actors=new Map(), prevState={}, gameDay=0, bread=2}={}) {
     const messages=[];
     let calls=0;
     const c=vm.createContext({
-        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,
+        self,other,TRUE:1,FALSE:0,ItFo_Bread:1,MALE:0,Face_N_Normal01:0,BodyTex_N:0,ItAr_Mil_L:1,ItAr_Sld_L:2,ItAr_Bau_M:3,
         B_SetNpcVisual: (npc,sex,head,face,body,armor)=>{ npc.armor=armor; },
         Wld_GetDay:()=>gameDay,
         Hlp_GetNpc: name=>actors.get(name),
@@ -54,6 +54,9 @@ test('world init and restore use exactly one added quartermaster and one owned g
     sim.enter(); sim.enter(); sim.tick();
     assert.equal(sim.calls,2);
     assert.deepEqual([...sim.actors.keys()],['LKN_PostGuard','LKN_Quartermaster']);
+    assert.equal(sim.actors.get('LKN_PostGuard').name[0], "Neutral tavern lookout");
+    assert.equal(sim.actors.get('LKN_PostGuard').where, "TAVERNE");
+    assert.equal(sim.actors.get('LKN_Quartermaster').where, "NW_TAVERNE_IN_07");
     sim.day(3); sim.tick();
     assert.deepEqual([...sim.actors.keys()],['LKN_PostGuard','LKN_Quartermaster']);
     assert.equal(sim.actors.get('LKN_PostGuard').name[0], "Onar's mercenary lookout");

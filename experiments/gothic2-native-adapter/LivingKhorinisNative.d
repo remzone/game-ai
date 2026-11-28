@@ -1,7 +1,8 @@
-// Living Khorinis: Road to Onar. Gothic II: Night of the Raven.
+// Living Khorinis: Dead Harpy crossing. Gothic II: Night of the Raven.
 // Load after Gothic.src's story NPCs and core rules, before the NewWorld hook.
-const string LKN_RoadPost = "NW_BIGFARM_PATH_01";
-const string LKN_QuartermasterPost = "NW_BIGFARM_PATH_02";
+const string LKN_RoadPost = "TAVERNE";
+const string LKN_QuartermasterPost = "NW_TAVERNE_IN_07";
+const string LKN_NeutralName = "Neutral tavern lookout";
 const string LKN_MilitiaName = "Khorinis militia lookout";
 const string LKN_MercenaryName = "Onar's mercenary lookout";
 var int LKN_Initialized;
@@ -16,12 +17,12 @@ func void LKN_TA_Guard() {
 
 instance LKN_PostGuard(Npc_Default) {
     id = 61032;
-    name[0] = LKN_MilitiaName;
+    name[0] = LKN_NeutralName;
     guild = GIL_NONE;
     npctype = NPCTYPE_AMBIENT;
     flags = NPC_FLAG_IMMORTAL;
     B_SetAttributesToChapter(self, 2);
-    B_SetNpcVisual(self, MALE, "Hum_Head_Bald", Face_N_Normal01, BodyTex_N, ItAr_Mil_L);
+    B_SetNpcVisual(self, MALE, "Hum_Head_Bald", Face_N_Normal01, BodyTex_N, ItAr_Bau_M);
     daily_routine = LKN_TA_Guard;
 };
 
@@ -47,10 +48,15 @@ func void LKN_Refresh() {
                 guard.name[0] = LKN_MilitiaName;
                 B_SetNpcVisual(guard, MALE, "Hum_Head_Bald", Face_N_Normal01, BodyTex_N, ItAr_Mil_L);
                 Npc_RemoveInvItems(guard, ItAr_Sld_L, 1);
-            } else {
+                Npc_RemoveInvItems(guard, ItAr_Bau_M, 1);
+            } else if (Patch_LivingKhorinis_Owner == Patch_LivingKhorinis_Mercenaries) {
                 guard.name[0] = LKN_MercenaryName;
                 B_SetNpcVisual(guard, MALE, "Hum_Head_Fighter", Face_N_Normal01, BodyTex_N, ItAr_Sld_L);
                 Npc_RemoveInvItems(guard, ItAr_Mil_L, 1);
+                Npc_RemoveInvItems(guard, ItAr_Bau_M, 1);
+            } else {
+                guard.name[0] = LKN_NeutralName;
+                B_SetNpcVisual(guard, MALE, "Hum_Head_Bald", Face_N_Normal01, BodyTex_N, ItAr_Bau_M);
             };
             LKN_VisibleOwner = Patch_LivingKhorinis_Owner;
         };
@@ -115,9 +121,11 @@ func int LKN_Always() { return TRUE; };
 func void LKN_Report() {
     LKN_Refresh();
     if (Patch_LivingKhorinis_Owner == Patch_LivingKhorinis_Militia) {
-        Print("Road to Onar: Khorinis militia holds the post.");
+        Print("Dead Harpy crossing: Khorinis militia holds the post.");
+    } else if (Patch_LivingKhorinis_Owner == Patch_LivingKhorinis_Mercenaries) {
+        Print("Dead Harpy crossing: Onar's mercenaries hold the post.");
     } else {
-        Print("Road to Onar: Onar's mercenaries hold the post.");
+        Print("Dead Harpy crossing: the lookout is neutral.");
     };
 };
 
